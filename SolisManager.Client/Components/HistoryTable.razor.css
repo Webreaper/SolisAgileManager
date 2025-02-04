@@ -14,3 +14,8 @@
     column-gap: 10px;
     font-weight: bold;
 }
+
+::deep .date-row {
+    color: white;
+    font-weight: bold;
+}

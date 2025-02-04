@@ -24,7 +24,8 @@ else
     }
     else
     {
-        <MudTable Items="historyEntries.OrderByDescending(x => x.Start)" Dense="true" Breakpoint="Breakpoint.None">
+        <MudTable Items="historyEntries.OrderByDescending(x => x.Start)" Dense="true" Breakpoint="Breakpoint.None"
+                  GroupBy="_groupDefinition" >
             <HeaderContent>
                 <MudTh>Date</MudTh>
                 <MudTh>Period</MudTh>
@@ -38,6 +39,21 @@ else
                 <MudTh>Action Taken</MudTh>
                 <MudTh>Explanation</MudTh>
             </HeaderContent>
+            <GroupHeaderTemplate>
+                <MudTh Class="mud-table-cell-custom-group date-row">
+                    <DateDisplay Date="@((DateTime)context.Key)"/>
+                </MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@Math.Round(context.Items.Average(x => x.Price), 2)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ForecastKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ActualKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ImportedKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ExportedKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.HouseLoadKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
+            </GroupHeaderTemplate>
             <RowTemplate>
                 <MudTd Style="white-space: nowrap;">@context.Start.ToString("dd-MMM-yyyy")</MudTd>
                 <MudTd Style="white-space: nowrap;">@context.Start.ToString("HH:mm") - @context.End.ToString("HH:mm")</MudTd>
@@ -59,6 +75,15 @@ else
     IEnumerable<HistoryEntry>? historyEntries = null;
     ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     SolisManagerConfig? config;
+
+    private TableGroupDefinition<HistoryEntry> _groupDefinition = new()
+    {
+        GroupName = "Date",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.Start.Date
+    };
 
     private decimal GetDampedForecast(HistoryEntry entry) => entry.ForecastKWH * (config?.SolcastDampFactor ?? 1);
 

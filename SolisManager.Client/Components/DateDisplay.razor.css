@@ -4,6 +4,7 @@
     flex-direction: row;
     column-gap: 10px;
     align-items: center;
+    white-space: nowrap;
 }
 
 .date-text {
