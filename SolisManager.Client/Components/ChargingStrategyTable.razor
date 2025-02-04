@@ -82,11 +82,11 @@
                     <MudTh>Period</MudTh>
                     <MudTh>Price (p/kWh)</MudTh>
                     <MudTh>Plan</MudTh>
+                    <MudTh Style="text-align: center;">Manual Actions</MudTh>
                     @if (hasSolcastData)
                     {
-                        <MudTh>Forecast (kWh)</MudTh>
+                        <MudTh Style="text-align: right;">Forecast (kWh)</MudTh>
                     }
-                    <MudTh>Manual Actions</MudTh>
                 </HeaderContent>
                 <FooterContent>
                     @FooterSummary()
@@ -107,13 +107,13 @@
                         <PriceIndicator Type="@context.PriceType" Price="@context.value_inc_vat"/>
                     </MudTd>
                     <MudTd DataLabel="Plan"><SlotPlan Slot="@context"/></MudTd>
+                    <MudTd DataLabel="Manual Action">
+                        <SlotActions Slot="@context" OnChangeSlotAction="ChangeSlotAction"/>
+                    </MudTd>
                     @if (hasSolcastData)
                     {
                         <MudTd Style="text-align: right;padding-right: 5px;" DataLabel="Forecast">@ForecastEstimate(context)</MudTd>
                     }
-                    <MudTd DataLabel="Manual Action">
-                        <SlotActions Slot="@context" OnChangeSlotAction="ChangeSlotAction"/>
-                    </MudTd>
                 </RowTemplate>
             </MudTable>
         }
