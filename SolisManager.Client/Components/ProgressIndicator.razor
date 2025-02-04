@@ -1,0 +1,11 @@
+<div class="loading">
+    <MudProgressCircular Indeterminate="true" Size="Size.Small"/>
+    @if (! string.IsNullOrEmpty(ProgressText))
+    {
+        <text>@ProgressText</text>
+    }
+</div>
+
+@code {
+    [Parameter] public string? ProgressText { get; set; }    
+}

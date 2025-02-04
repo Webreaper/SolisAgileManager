@@ -1,4 +1,5 @@
 @using ApexCharts
+@using Size = MudBlazor.Size
 @inject IInverterService inverterService
 
 <PageTitle>Solis Manager</PageTitle>
@@ -16,6 +17,10 @@
 {
     <ComparisonChart FirstName="@($"Current Tariff ({currentTariff})")" FirstSeries="comparison.TariffAPrices"
                      SecondName="@selectedTariff" SecondSeries="@comparison.TariffBPrices" />
+}
+else
+{
+    <ProgressIndicator ProgressText="Loading Octopus Tariff Data..."/>
 }
 
 @code {

@@ -8,6 +8,7 @@
 .table-chart { 
     flex: 1 1 100%;
     overflow-y: scroll;
+    padding-right: 15px;
 }
 
 .table {
@@ -70,6 +71,10 @@
 }
 
 @media screen and (max-width: 900px) {
+    .table-chart {
+        padding-right: 2px;
+    }
+    
     .title-and-nav {
         column-gap: 5px;
     }
