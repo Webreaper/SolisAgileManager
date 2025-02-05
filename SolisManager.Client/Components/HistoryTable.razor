@@ -44,13 +44,25 @@ else
                     <DateDisplay Date="@((DateTime)context.Key)"/>
                 </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@Math.Round(context.Items.Average(x => x.Price), 2)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Average price">
+                    @Math.Round(context.Items.Average(x => x.Price), 2)
+                </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ForecastKWH)</MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ActualKWH)</MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ImportedKWH)</MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.ExportedKWH)</MudTh>
-                <MudTh Class="mud-table-cell-custom-group date-row">@context.Items.Sum(x => x.HouseLoadKWH)</MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Total Forecast">
+                    @context.Items.Sum(x => x.ForecastKWH)
+                </MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Total Actual PV">
+                    @context.Items.Sum(x => x.ActualKWH)
+                </MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Total Imported">
+                    @context.Items.Sum(x => x.ImportedKWH)
+                </MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Total Exported">
+                    @context.Items.Sum(x => x.ExportedKWH)
+                </MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Total house energy consumption">
+                    @context.Items.Sum(x => x.HouseLoadKWH)
+                </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
             </GroupHeaderTemplate>
