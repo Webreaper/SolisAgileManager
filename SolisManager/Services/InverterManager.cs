@@ -129,7 +129,9 @@ public class InverterManager(
         var daysToProcess = executionHistory.GroupBy(x => x.Start.Date)
             .Where(x => x.Sum(r => r.ActualKWH) == 0 ||
                                                    x.Sum(r => r.ImportedKWH) == 0 ||
-                                                   x.Sum(r => r.HouseLoadKWH) == 0)
+                                                   x.Sum(r => r.HouseLoadKWH) == 0 ||
+                                                   // Temp bugfix for when we write import data as export data
+                                                   x.All(r => r.ImportedKWH == r.ExportedKWH))
             .Select(x => x.Key)
             .OrderDescending()
             .ToList();

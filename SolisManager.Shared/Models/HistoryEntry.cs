@@ -107,7 +107,7 @@ public class HistoryEntry
             ActualKWH.ToString("0.00"),
             ForecastKWH.ToString("0.00"),
             ImportedKWH.ToString("0.00"),
-            ImportedKWH.ToString("0.00"),
+            ExportedKWH.ToString("0.00"),
             HouseLoadKWH.ToString("0.00"),
             $"\"{Reason}\""
         );
