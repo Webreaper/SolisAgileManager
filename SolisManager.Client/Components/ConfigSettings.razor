@@ -103,7 +103,7 @@
                     <MudNumericField T="int" Label="Battery % for Peak Period" @bind-Value="@PeakPercentageProxy" Min="20" Max="100" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
-                <ConfigSettingHelp HelpText="Ensures that if the battery falls below a certain threshold, it will be charged regardless of price">
+                <ConfigSettingHelp HelpText="Ensures that if the price falls below a certain threshold, the battery will be charged regardless of SOC %">
                     <MudNumericField T="int" Label="Always charge below (p/kWh)" @bind-Value="@config.AlwaysChargeBelowPrice" Min="-10" Max="100" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
