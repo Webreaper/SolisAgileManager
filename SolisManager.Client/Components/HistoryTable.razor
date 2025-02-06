@@ -49,7 +49,7 @@ else
                 </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row" title="Total Forecast">
-                    @context.Items.Sum(x => x.ForecastKWH)
+                    @Math.Round(context.Items.Sum(GetDampedForecast), 2)
                 </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row" title="Total Actual PV">
                     @context.Items.Sum(x => x.ActualKWH)
