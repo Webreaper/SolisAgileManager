@@ -494,141 +494,12 @@ public class InverterManager(
                 }
             }
 
-            if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH )
-            {
-                // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
-                // First we need to find when 'night' is. Iterate through the slots, looking for the first
-                // one where the forecast is zero. That's the start of night. Then the first one where the
-                // forecast is non-zero, is the end of night. 
-                // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
-                // do for now.
-                DateTime? nightStart = null, nightEnd = null;
-
-                foreach (var slot in slots)
-                {
-                    if (nightStart == null && slot.pv_est_kwh == 0)
-                        nightStart = slot.valid_from;
-
-                    if (nightStart != null && slot.pv_est_kwh > 0)
-                    {
-                        nightEnd = slot.valid_to;
-                        break;
-                    }
-                }
-
-                var overnightChargeSlots = slots.Where(x =>
-                        x.valid_from >= nightStart &&
-                        x.valid_to <= nightEnd &&
-                        x.PlanAction == SlotAction.Charge)
-                    .ToList();
-
-                logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S} => {E}", 
-                    InverterState.TomorrowForecastKWH, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd);
-
-                foreach (var slot in overnightChargeSlots)
-                {
-                    slot.PlanAction = SlotAction.DoNothing;
-                    slot.ActionReason =
-                        $"Skipping overnight charge due to forecast of {InverterState.TomorrowForecastKWH:F2}kWh tomorrow";
-                }
-            }
-
-            var extraReason = string.Empty;
-
-            if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH)
-                extraReason = " (even though forcast is above the threshold for tomorrow)";
-            
-            // If there are any slots below our "Blimey it's cheap" threshold, elect to charge them anyway.
-            foreach (var slot in slots.Where(s => s.value_inc_vat < config.AlwaysChargeBelowPrice))
-            {
-                slot.PriceType = PriceType.BelowThreshold;
-                slot.PlanAction = SlotAction.Charge;
-                slot.ActionReason =
-                    $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge{extraReason}";
-            }
-
-            foreach (var slot in slots.Where(s => s.value_inc_vat < 0))
-            {
-                slot.PriceType = PriceType.Negative;
-                slot.PlanAction = SlotAction.Charge;
-                slot.ActionReason = "Negative price - always charge";
-            }
-
-            // For any slots that are set to "charge if low battery", update them to 'charge' if the 
-            // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
-            if (InverterState.BatterySOC < config.LowBatteryPercentage)
-            {
-                foreach (var slot in slots.Where(x => x.PlanAction == SlotAction.ChargeIfLowBattery)
-                             .Take(config.SlotsForFullBatteryCharge))
-                {
-                    slot.PlanAction = SlotAction.Charge;
-                    slot.ActionReason =
-                        $"Upcoming slot is set to charge if low battery; battery is currently at {InverterState.BatterySOC}%";
-                }
-            }
-
-            // Now apply any scheduled actions to the slots for the next 24-48 hours. 
-            if (config.ScheduledActions != null && config.ScheduledActions.Any())
-            {
-                foreach (var slot in slots)
-                {
-                    foreach (var scheduledAction in config.ScheduledActions)
-                    {
-                        if (scheduledAction.StartTime != null)
-                        {
-                            var actionTime = scheduledAction.StartTime.Value;
-                            if (slot.valid_from.TimeOfDay == actionTime)
-                            {
-                                var timeStr = actionTime.ToString(@"hh\:mm");
-                                slot.OverrideAction = scheduledAction.Action;
-                                slot.ActionReason = "Overridden by a scheduled action";
-                                slot.OverrideType = OctopusPriceSlot.SlotOverrideType.Scheduled;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            var firstSlot = slots.FirstOrDefault();
-
-            if (firstSlot != null)
-            {
-                // High precedence rule - if the 'Always charge below SOC' is set, we want to maintain
-                // a minimum charge level. So we always charge if the battery is below this SOC. 
-                // We check this every 30 minutes
-                // TODO: We should check this every 5 minutes.
-                if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
-                {
-                   firstSlot.PlanAction = SlotAction.Charge;
-                   firstSlot.ActionReason =
-                        $"Battery SOC % is below minimum threshold of {config.AlwaysChargeBelowSOC}%.";
-                }
-            }
-
-            // Now it gets interesting. Find the groups of slots that have negative prices. So we
-            // might end up with 3 negative prices, and another group of 7 negative prices. For any
-            // groups that are long enough to charge the battery fully, discharge the battery for 
-            // all the slots that aren't needed to recharge the battery. 
-            // NOTE/TODO: We should check, and if any of the groups of negative slots are *now*
-            // then we should factor in the SOC.
-            var negativeSpans = slots.GetAdjacentGroups(x => x.PriceType == PriceType.Negative);
-
-            foreach (var negSpan in negativeSpans)
-            {
-                if (negSpan.Count() > config.SlotsForFullBatteryCharge)
-                {
-                    var dischargeSlots = negSpan.SkipLast(config.SlotsForFullBatteryCharge).ToList();
-
-                    dischargeSlots.ForEach(x =>
-                    {
-                        x.PlanAction = SlotAction.Discharge;
-                        x.OverrideAction = SlotAction.Discharge;
-                        x.OverrideType = OctopusPriceSlot.SlotOverrideType.NegativePrices; 
-                        x.ActionReason =
-                            "Contiguous negative slots allow the battery to be discharged and charged again.";
-                    });
-                }
-            }
+            EvaluateSolcastThresholdRule(slots);
+            EvaluatePriceBasedRules(slots);
+            EvaluateChargeIfLowBatteryRule(slots);
+            EvaluateScheduleActionRules(slots);
+            EvaluateMaintainChargeRule(slots);
+            EvaluateDumpAndRechargeIfFreeRule(slots);
         }
         catch (Exception ex)
         {
@@ -638,7 +509,161 @@ public class InverterManager(
         return slots.ToList();
     }
 
-    
+    private void EvaluateDumpAndRechargeIfFreeRule(OctopusPriceSlot[] slots)
+    {
+        // Now it gets interesting. Find the groups of slots that have negative prices. So we
+        // might end up with 3 negative prices, and another group of 7 negative prices. For any
+        // groups that are long enough to charge the battery fully, discharge the battery for 
+        // all the slots that aren't needed to recharge the battery. 
+        // NOTE/TODO: We should check, and if any of the groups of negative slots are *now*
+        // then we should factor in the SOC.
+        var negativeSpans = slots.GetAdjacentGroups(x => x.PriceType == PriceType.Negative);
+
+        foreach (var negSpan in negativeSpans)
+        {
+            if (negSpan.Count() > config.SlotsForFullBatteryCharge)
+            {
+                var dischargeSlots = negSpan.SkipLast(config.SlotsForFullBatteryCharge).ToList();
+
+                dischargeSlots.ForEach(x =>
+                {
+                    x.PlanAction = SlotAction.Discharge;
+                    x.OverrideAction = SlotAction.Discharge;
+                    x.OverrideType = OctopusPriceSlot.SlotOverrideType.NegativePrices; 
+                    x.ActionReason =
+                        "Contiguous negative slots allow the battery to be discharged and charged again.";
+                });
+            }
+        }
+    }
+
+    private void EvaluateChargeIfLowBatteryRule(OctopusPriceSlot[] slots)
+    {
+        // For any slots that are set to "charge if low battery", update them to 'charge' if the 
+        // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
+        if (InverterState.BatterySOC < config.LowBatteryPercentage)
+        {
+            foreach (var slot in slots.Where(x => x.PlanAction == SlotAction.ChargeIfLowBattery)
+                         .Take(config.SlotsForFullBatteryCharge))
+            {
+                slot.PlanAction = SlotAction.Charge;
+                slot.ActionReason =
+                    $"Upcoming slot is set to charge if low battery; battery is currently at {InverterState.BatterySOC}%";
+            }
+        }
+    }
+
+    private void EvaluateScheduleActionRules(OctopusPriceSlot[] slots)
+    {
+        // Now apply any scheduled actions to the slots for the next 24-48 hours. 
+        if (config.ScheduledActions != null && config.ScheduledActions.Any())
+        {
+            foreach (var slot in slots)
+            {
+                foreach (var scheduledAction in config.ScheduledActions)
+                {
+                    if (scheduledAction.StartTime != null)
+                    {
+                        var actionTime = scheduledAction.StartTime.Value;
+                        if (slot.valid_from.TimeOfDay == actionTime)
+                        {
+                            var timeStr = actionTime.ToString(@"hh\:mm");
+                            slot.OverrideAction = scheduledAction.Action;
+                            slot.ActionReason = "Overridden by a scheduled action";
+                            slot.OverrideType = OctopusPriceSlot.SlotOverrideType.Scheduled;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void EvaluateMaintainChargeRule(OctopusPriceSlot[] slots)
+    {
+        var firstSlot = slots.FirstOrDefault();
+
+        if (firstSlot != null)
+        {
+            // High precedence rule - if the 'Always charge below SOC' is set, we want to maintain
+            // a minimum charge level. So we always charge if the battery is below this SOC. 
+            // We check this every 30 minutes
+            // TODO: We should check this every 5 minutes.
+            if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
+            {
+                firstSlot.PlanAction = SlotAction.Charge;
+                firstSlot.ActionReason =
+                    $"Battery SOC % is below minimum threshold of {config.AlwaysChargeBelowSOC}%.";
+            }
+        }
+    }
+
+    private void EvaluatePriceBasedRules(OctopusPriceSlot[] slots)
+    {
+        var extraReason = string.Empty;
+
+        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH)
+            extraReason = " (even though forcast is above the threshold for tomorrow)";
+            
+        // If there are any slots below our "Blimey it's cheap" threshold, elect to charge them anyway.
+        foreach (var slot in slots.Where(s => s.value_inc_vat < config.AlwaysChargeBelowPrice))
+        {
+            slot.PriceType = PriceType.BelowThreshold;
+            slot.PlanAction = SlotAction.Charge;
+            slot.ActionReason =
+                $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge{extraReason}";
+        }
+
+        foreach (var slot in slots.Where(s => s.value_inc_vat < 0))
+        {
+            slot.PriceType = PriceType.Negative;
+            slot.PlanAction = SlotAction.Charge;
+            slot.ActionReason = "Negative price - always charge";
+        }
+    }
+
+    private void EvaluateSolcastThresholdRule(OctopusPriceSlot[] slots)
+    {
+        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH )
+        {
+            // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
+            // First we need to find when 'night' is. Iterate through the slots, looking for the first
+            // one where the forecast is zero. That's the start of night. Then the first one where the
+            // forecast is non-zero, is the end of night. 
+            // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
+            // do for now.
+            DateTime? nightStart = null, nightEnd = null;
+
+            foreach (var slot in slots)
+            {
+                if (nightStart == null && slot.pv_est_kwh == 0)
+                    nightStart = slot.valid_from;
+
+                if (nightStart != null && slot.pv_est_kwh > 0)
+                {
+                    nightEnd = slot.valid_to;
+                    break;
+                }
+            }
+
+            var overnightChargeSlots = slots.Where(x =>
+                    x.valid_from >= nightStart &&
+                    x.valid_to <= nightEnd &&
+                    x.PlanAction == SlotAction.Charge)
+                .ToList();
+
+            logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S} => {E}", 
+                InverterState.TomorrowForecastKWH, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd);
+
+            foreach (var slot in overnightChargeSlots)
+            {
+                slot.PlanAction = SlotAction.DoNothing;
+                slot.ActionReason =
+                    $"Skipping overnight charge due to forecast of {InverterState.TomorrowForecastKWH:F2}kWh tomorrow";
+            }
+        }
+    }
+
+
     private void CreateSomeNegativeSlots(IEnumerable<OctopusPriceSlot> slots)
     {
         if (Debugger.IsAttached && ! slots.Any(x => x.value_inc_vat < 0))
