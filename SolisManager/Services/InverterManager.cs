@@ -601,7 +601,7 @@ public class InverterManager(
     {
         var extraReason = string.Empty;
 
-        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH)
+        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH * config.SolcastDampFactor)
             extraReason = " (even though forcast is above the threshold for tomorrow)";
             
         // If there are any slots below our "Blimey it's cheap" threshold, elect to charge them anyway.
@@ -623,7 +623,9 @@ public class InverterManager(
 
     private void EvaluateSolcastThresholdRule(OctopusPriceSlot[] slots)
     {
-        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH )
+        var dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
+        
+        if (config.SkipOvernightCharge && config.ForecastThreshold < dampedForecast )
         {
             // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
             // First we need to find when 'night' is. Iterate through the slots, looking for the first
@@ -652,13 +654,12 @@ public class InverterManager(
                 .ToList();
 
             logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S} => {E}", 
-                InverterState.TomorrowForecastKWH, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd);
+                dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd);
 
             foreach (var slot in overnightChargeSlots)
             {
                 slot.PlanAction = SlotAction.DoNothing;
-                slot.ActionReason =
-                    $"Skipping overnight charge due to forecast of {InverterState.TomorrowForecastKWH:F2}kWh tomorrow";
+                slot.ActionReason = $"Skipping overnight charge due to forecast of {dampedForecast:F2}kWh tomorrow";
             }
         }
     }
