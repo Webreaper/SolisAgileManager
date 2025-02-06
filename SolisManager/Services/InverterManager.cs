@@ -494,13 +494,57 @@ public class InverterManager(
                 }
             }
 
+            if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH )
+            {
+                // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
+                // First we need to find when 'night' is. Iterate through the slots, looking for the first
+                // one where the forecast is zero. That's the start of night. Then the first one where the
+                // forecast is non-zero, is the end of night. 
+                // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
+                // do for now.
+                DateTime? nightStart = null, nightEnd = null;
+
+                foreach (var slot in slots)
+                {
+                    if (nightStart == null && slot.pv_est_kwh == 0)
+                        nightStart = slot.valid_from;
+
+                    if (nightStart != null && slot.pv_est_kwh > 0)
+                    {
+                        nightEnd = slot.valid_to;
+                        break;
+                    }
+                }
+
+                var overnightChargeSlots = slots.Where(x =>
+                        x.valid_from >= nightStart &&
+                        x.valid_to <= nightEnd &&
+                        x.PlanAction == SlotAction.Charge)
+                    .ToList();
+
+                logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S} => {E}", 
+                    InverterState.TomorrowForecastKWH, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd);
+
+                foreach (var slot in overnightChargeSlots)
+                {
+                    slot.PlanAction = SlotAction.DoNothing;
+                    slot.ActionReason =
+                        $"Skipping overnight charge due to forecast of {InverterState.TomorrowForecastKWH:F2}kWh tomorrow";
+                }
+            }
+
+            var extraReason = string.Empty;
+
+            if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH)
+                extraReason = " (even though forcast is above the threshold for tomorrow)";
+            
             // If there are any slots below our "Blimey it's cheap" threshold, elect to charge them anyway.
             foreach (var slot in slots.Where(s => s.value_inc_vat < config.AlwaysChargeBelowPrice))
             {
                 slot.PriceType = PriceType.BelowThreshold;
                 slot.PlanAction = SlotAction.Charge;
                 slot.ActionReason =
-                    $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge";
+                    $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge{extraReason}";
             }
 
             foreach (var slot in slots.Where(s => s.value_inc_vat < 0))
@@ -544,13 +588,15 @@ public class InverterManager(
                     }
                 }
             }
-
+            
             var firstSlot = slots.FirstOrDefault();
 
             if (firstSlot != null)
             {
-                // For any slots that are set to "charge if low battery", update them to 'charge' if the 
-                // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
+                // High precedence rule - if the 'Always charge below SOC' is set, we want to maintain
+                // a minimum charge level. So we always charge if the battery is below this SOC. 
+                // We check this every 30 minutes
+                // TODO: We should check this every 5 minutes.
                 if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
                 {
                    firstSlot.PlanAction = SlotAction.Charge;
