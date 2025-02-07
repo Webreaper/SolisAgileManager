@@ -183,6 +183,7 @@ public class SolisAPI
     
     /// <summary>
     /// Set the inverter to charge or discharge for a particular period
+    /// All parameters passed in are UTC. This method will convert.
     /// </summary>
     /// <returns></returns>
     public async Task SetCharge( DateTime? chargeStart, DateTime? chargeEnd, 
@@ -198,13 +199,13 @@ public class SolisAPI
 
         if (chargeStart != null && chargeEnd != null)
         {
-            chargeTimes = $"{chargeStart:HH:mm}-{chargeEnd:HH:mm}";
+            chargeTimes = $"{chargeStart.Value.ToLocalTime():HH:mm}-{chargeEnd.Value.ToLocalTime():HH:mm}";
             chargePower = config.MaxChargeRateAmps;
         }
         
         if (dischargeStart != null && dischargeEnd != null)
         {
-            dischargeTimes = $"{dischargeStart:HH:mm}-{dischargeEnd:HH:mm}";
+            dischargeTimes = $"{dischargeStart.Value.ToLocalTime():HH:mm}-{dischargeEnd.Value.ToLocalTime():HH:mm}";
             dischargePower = holdCharge ? 0 : config.MaxChargeRateAmps;
         }
         
