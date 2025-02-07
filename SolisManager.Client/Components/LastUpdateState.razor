@@ -2,8 +2,8 @@
 @if (InverterState != null)
 {
     <div class="@Style">
-        Last update: @InverterState.TimeStamp.DisplayDateTime(), 
-        last battery update: @InverterState.BatteryTimeStamp.DisplayDateTime(), 
+        Last inverter/battery update: @InverterState.BatteryTimeStamp.DisplayDateTime(),
+        last plan update: @InverterState.TimeStamp.DisplayDateTime(), 
         last Solcast update: @SolcastUpdate
     </div>
 }
