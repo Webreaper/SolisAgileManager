@@ -14,7 +14,17 @@ namespace SolisManager.APIWrappers;
 /// </summary>
 public class SolcastAPI(SolisManagerConfig config, ILogger<SolcastAPI> logger)
 {
-    public DateTime? lastAPIUpdate => responseCache?.sites.SelectMany(x => x.updates).Max(x => x.lastUpdate);
+    public DateTime? lastAPIUpdate
+    {
+        get
+        {
+            if (responseCache?.sites == null || !responseCache.sites.Any())
+                return null;
+
+            return responseCache?.sites.SelectMany(x => x.updates).Max(x => x.lastUpdate);
+        }
+    }
+
     private SolcastResponseCache? responseCache = null;
 
     private string DiskCachePath => Path.Combine(Program.ConfigFolder, $"Solcast-cache.json");
