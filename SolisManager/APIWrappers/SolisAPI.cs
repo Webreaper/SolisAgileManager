@@ -89,11 +89,14 @@ public class SolisAPI
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error reading inverter charging state");
+                    // These are only warnings - if this call fails it just means we'll explicitly
+                    // write to the inverter instead of doing a no-op if the inverter is already
+                    // in the right state.
+                    logger.LogWarning(ex, "Error reading inverter charge slot state");
                 }
             }
             else
-                logger.LogError("ERROR returned when reading inverter charging state");
+                logger.LogWarning("ERROR returned when reading inverter charging state");
         }
 
         return null;
