@@ -730,6 +730,8 @@ public class InverterManager(
                     InverterState.BatterySOC, InverterState.CurrentPVkW, InverterState.HouseLoadkW,
                     InverterState.TodayForecastKWH, InverterState.TomorrowForecastKWH);
             }
+            else
+                logger.LogError("No state returned from the inverter");
         }
         catch (Exception ex)
         {

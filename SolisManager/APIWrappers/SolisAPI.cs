@@ -46,6 +46,7 @@ public class SolisAPI
         var result = await Post<InverterDetails>(1,"inverterDetail", 
             new { sn = config.SolisInverterSerial
             });
+        
         return result;
     }
 
