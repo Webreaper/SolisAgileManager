@@ -729,14 +729,18 @@ public class InverterManager(
 
             if (solisState != null)
             {
-                InverterState.BatterySOC = solisState.data.batteryList
+                var latestBatterySOC = solisState.data.batteryList
                     .Select(x => x.batteryCapacitySoc)
                     .FirstOrDefault();
-                
-                if( InverterState.BatterySOC == 0)
+
+                if (latestBatterySOC != 0)
+                {
+                    InverterState.BatterySOC = latestBatterySOC;
+                    InverterState.BatteryTimeStamp = DateTime.UtcNow;
+                }
+                else
                     logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
                 
-                InverterState.BatteryTimeStamp = DateTime.UtcNow;
                 InverterState.CurrentPVkW = solisState.data.pac;
                 InverterState.TodayPVkWh = solisState.data.eToday;
                 InverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
