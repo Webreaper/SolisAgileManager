@@ -387,7 +387,20 @@ public class SolisAPI
     {
         var content = JsonSerializer.Serialize(body);
         var response = await Post($"/v{apiVersion}/api/{resource}", content);
-        return JsonSerializer.Deserialize<T>(response);
+        if (!string.IsNullOrEmpty(response))
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<T>(response);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deserializing inverter response: {R}", response);
+            }
+        }
+
+        logger.LogError("No response data returned from Solis API: Resource={R} Body={B}", resource, body);
+        return default;
     }
 
     private async Task<string> Post(string url, string content)
