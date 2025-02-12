@@ -536,23 +536,7 @@ public class InverterManager(
             }
         }
     }
-
-    private void EvaluateChargeIfLowBatteryRule(OctopusPriceSlot[] slots)
-    {
-        // For any slots that are set to "charge if low battery", update them to 'charge' if the 
-        // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
-        if (InverterState.BatterySOC < config.LowBatteryPercentage)
-        {
-            foreach (var slot in slots.Where(x => x.PlanAction == SlotAction.ChargeIfLowBattery)
-                         .Take(config.SlotsForFullBatteryCharge))
-            {
-                slot.PlanAction = SlotAction.Charge;
-                slot.ActionReason =
-                    $"Upcoming slot is set to charge if low battery; battery is currently at {InverterState.BatterySOC}%";
-            }
-        }
-    }
-
+    
     private void EvaluateScheduleActionRules(OctopusPriceSlot[] slots)
     {
         // Now apply any scheduled actions to the slots for the next 24-48 hours. 
@@ -577,6 +561,30 @@ public class InverterManager(
             }
         }
     }
+    
+    private void EvaluateChargeIfLowBatteryRule(OctopusPriceSlot[] slots)
+    {
+        // Very occasionally if there's an error, the inverter state
+        // returns zero as the SOC. So just ignore it and do nothing.
+        if (InverterState.BatterySOC == 0)
+        {
+            logger.LogWarning("SOC is zero, so skipping charge if low battery due to bad inverter state data");
+            return;
+        }
+
+        // For any slots that are set to "charge if low battery", update them to 'charge' if the 
+        // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
+        if (InverterState.BatterySOC < config.LowBatteryPercentage)
+        {
+            foreach (var slot in slots.Where(x => x.PlanAction == SlotAction.ChargeIfLowBattery)
+                         .Take(config.SlotsForFullBatteryCharge))
+            {
+                slot.PlanAction = SlotAction.Charge;
+                slot.ActionReason =
+                    $"Upcoming slot is set to charge if low battery; battery is currently at {InverterState.BatterySOC}%";
+            }
+        }
+    }
 
     private void EvaluateMaintainChargeRule(OctopusPriceSlot[] slots)
     {
@@ -584,6 +592,14 @@ public class InverterManager(
 
         if (firstSlot != null)
         {
+            // Very occasionally if there's an error, the inverter state
+            // returns zero as the SOC. So just ignore it and do nothing.
+            if (InverterState.BatterySOC == 0)
+            {
+                logger.LogWarning("SOC is zero, so skipping maintain charge rule due to bad inverter state data");
+                return;
+            }
+
             // High precedence rule - if the 'Always charge below SOC' is set, we want to maintain
             // a minimum charge level. So we always charge if the battery is below this SOC. 
             // We check this every 30 minutes
@@ -716,6 +732,10 @@ public class InverterManager(
                 InverterState.BatterySOC = solisState.data.batteryList
                     .Select(x => x.batteryCapacitySoc)
                     .FirstOrDefault();
+                
+                if( InverterState.BatterySOC == 0)
+                    logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
+                
                 InverterState.BatteryTimeStamp = DateTime.UtcNow;
                 InverterState.CurrentPVkW = solisState.data.pac;
                 InverterState.TodayPVkWh = solisState.data.eToday;
