@@ -142,23 +142,16 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         return response?.data?.obtainKrakenToken?.token;
     }
 
-    public async Task<KrakenPlannedDispatch[]?> GetIOGPlannedDispatches(string apiKey, string accountNumber)
+    public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
     {
         var token = await GetAuthToken(apiKey);
         
         var krakenQuery = """
                           query getData($input: String!) {
                               plannedDispatches(accountNumber: $input) {
-                                  startDt
-                                  endDt
-                                  meta {
-                                      location
-                                      source
-                                  }
-                              }
-                              completedDispatches(accountNumber: $input) {
-                                  startDt
-                                  endDt
+                                  start 
+                                  end
+                                  delta
                                   meta {
                                       location
                                       source
@@ -174,8 +167,19 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveJson<KrakenDispatchResponse>();
-        
-        return response?.data?.plannedDispatches;
+  
+        if( response?.data != null )
+        {
+            var smartChargeDispatches = response.data.plannedDispatches
+                        .Where(x => x.meta?.source == "smart-charge")
+                        .ToArray();
+            
+            logger.LogInformation("Found {N} IOG Smart-Charge slots via API", smartChargeDispatches.Length);
+
+            return smartChargeDispatches;
+        }
+
+        return [];
     }
 
     public record KrakenDispatchMeta(string? location, string? source);

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Humanizer;
+using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
@@ -218,7 +219,7 @@ public class InverterManager(
 
                 var octRatesTask = octopusAPI.GetOctopusRates(config.OctopusProductCode);
 
-                await Task.WhenAll(UpdateInverterState(), octRatesTask, LoadExecutionHistory(), GetIOGDispatches());
+                await Task.WhenAll(UpdateInverterState(), octRatesTask, LoadExecutionHistory());
 
                 // Stamp the last time we did an update
                 InverterState.TimeStamp = DateTime.UtcNow;
@@ -253,6 +254,9 @@ public class InverterManager(
             ApplyPreviouManualOverrides(slots, overrides);
 
             var processedSlots = EvaluateSlotActions(slots.ToArray());
+
+            // If the tariff is IOG, apply any charging when there's smart-charge slots
+            await ApplyIOGDispatches(slots);
 
             // Update the state
             InverterState.Prices = processedSlots;
@@ -798,23 +802,41 @@ public class InverterManager(
         return false;
     }
 
-    private async Task GetIOGDispatches()
+    private async Task ApplyIOGDispatches(IEnumerable<OctopusPriceSlot> slots)
     {
         if (config.OctopusProductCode.Contains("-INTELLI-VAR-"))
         {
-            logger.LogInformation("IOG Tariff - attempting to retrieve dispatches...");
             try
             {
-                var dispatches = await octopusAPI.GetIOGPlannedDispatches(config.OctopusAPIKey, config.OctopusAccountNumber);
+                var dispatches = await octopusAPI.GetIOGSmartChargeTimes(config.OctopusAPIKey, config.OctopusAccountNumber);
                 if (dispatches != null && dispatches.Any())
                 {
-                    logger.LogInformation("Found dispatches:");
-
+                    var iogChargeSlots = new Dictionary<DateTime, OctopusPriceSlot>();
+                    
                     foreach (var dispatch in dispatches)
-                        logger.LogInformation("  Dispatch: {J}", JsonSerializer.Serialize(dispatch));
+                    {
+                        foreach (var slot in slots)
+                        {
+                            if( slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
+                                iogChargeSlots.TryAdd(slot.valid_from, slot);
+                        }
+                    }
+
+                    if (iogChargeSlots.Any())
+                    {
+                        logger.LogInformation("Applying charge action to {N} slots for IOG Smart-Charge", iogChargeSlots.Count);
+
+                        foreach (var slot in iogChargeSlots.Values)
+                        {
+                            slot.PlanAction = SlotAction.Charge;
+                            slot.ActionReason = "IOG Smart-Charge period";
+                        }
+                    }
                 }
                 else
-                    logger.LogWarning("No dispatches returned from the octopus API");
+                {
+                    logger.LogInformation("No dispatches returned");
+                }
             }
             catch (Exception ex)
             {
