@@ -262,7 +262,8 @@ public class InverterManager(
     }
 
     /// <summary>
-    /// Where the actual work happens
+    /// Where the actual work happens - this gets evaluated every time a config
+    /// setting is changed, or otherwise every 5 minutes.
     /// </summary>
     private async Task RecalculateSlotPlan(IEnumerable<OctopusPriceSlot> sourceSlots)
     {
@@ -355,6 +356,11 @@ public class InverterManager(
         }
     }
     
+    /// <summary>
+    /// The main strategy calculation. Gets evaluated at least every 5 minutes
+    /// </summary>
+    /// <param name="slots"></param>
+    /// <returns></returns>
     private List<OctopusPriceSlot> EvaluateSlotActions(OctopusPriceSlot[]? slots)
     {
         if (slots == null)
@@ -620,7 +626,6 @@ public class InverterManager(
             // High precedence rule - if the 'Always charge below SOC' is set, we want to maintain
             // a minimum charge level. So we always charge if the battery is below this SOC. 
             // We check this every 30 minutes
-            // TODO: We should check this every 5 minutes.
             if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
             {
                 firstSlot.PlanAction = SlotAction.Charge;
