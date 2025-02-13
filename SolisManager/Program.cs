@@ -177,7 +177,7 @@ public class Program
         // same reason.
         app.Services.UseScheduler(s => s
             .Schedule<BatteryScheduler>()
-            .Cron("5,10,15,20,25,35,40,45,50,55 * * * *"));
+            .Cron("0,5,10,15,20,25,35,40,45,50,55 * * * *"));
 
         // Check if the Octopus tariff has changed every 4 hours
         app.Services.UseScheduler(s => s

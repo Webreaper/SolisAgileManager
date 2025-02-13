@@ -157,26 +157,41 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
                                       source
                                   }
                               }
+                              completedDispatches(accountNumber: $input) {
+                                  start 
+                                  end
+                                  delta
+                                  meta {
+                                      location
+                                      source
+                                  }
+                              }
                           }
                           """;
         var variables = new { input = accountNumber };
         var payload = new { query = krakenQuery, variables = variables };
 
-        var response = await "https://api.octopus.energy"
+        var responseStr = await "https://api.octopus.energy"
             .WithHeader("Authorization", token)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
-            .ReceiveJson<KrakenDispatchResponse>();
-  
-        if( response?.data != null )
-        {
-            var smartChargeDispatches = response.data.plannedDispatches
-                        .Where(x => x.meta?.source == "smart-charge")
-                        .ToArray();
-            
-            logger.LogInformation("Found {N} IOG Smart-Charge slots via API", smartChargeDispatches.Length);
+            .ReceiveString();
 
-            return smartChargeDispatches;
+        if (!string.IsNullOrEmpty(responseStr))
+        {
+            var response = JsonSerializer.Deserialize<KrakenDispatchResponse>(responseStr);
+
+            if (response?.data != null)
+            {
+                var smartChargeDispatches = response.data.plannedDispatches
+                    .Where(x => x.meta?.source == "smart-charge")
+                    .ToArray();
+
+                logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} dispatches)", 
+                                    smartChargeDispatches.Length, response.data.plannedDispatches.Length);
+
+                return smartChargeDispatches;
+            }
         }
 
         return [];
