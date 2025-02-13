@@ -252,14 +252,16 @@ public class Program
 
             config.WriteTo.Console(outputTemplate: template,
                     levelSwitch: logLevel)
-                  .WriteTo.File(logFilePattern,
+                .WriteTo.File(logFilePattern,
                     outputTemplate: template,
                     rollingInterval: RollingInterval.Day,
                     fileSizeLimitBytes: 104857600,
                     retainedFileCountLimit: 10,
                     levelSwitch: logLevel)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
+                .MinimumLevel.Override("Microsoft.AspNetCore.DataProtection", LogEventLevel.Fatal)
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning);
+
         }
         catch ( Exception ex )
         {
