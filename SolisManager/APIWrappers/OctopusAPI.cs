@@ -142,6 +142,47 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         return response?.data?.obtainKrakenToken?.token;
     }
 
+    public async Task<KrakenPlannedDispatch[]?> GetIOGPlannedDispatches(string apiKey, string accountNumber)
+    {
+        var token = await GetAuthToken(apiKey);
+        
+        var krakenQuery = """
+                          query getData($input: String!) {
+                              plannedDispatches(accountNumber: $input) {
+                                  startDt
+                                  endDt
+                                  meta {
+                                      location
+                                      source
+                                  }
+                              }
+                              completedDispatches(accountNumber: $input) {
+                                  startDt
+                                  endDt
+                                  meta {
+                                      location
+                                      source
+                                  }
+                              }
+                          }
+                          """;
+        var variables = new { input = accountNumber };
+        var payload = new { query = krakenQuery, variables = variables };
+
+        var response = await "https://api.octopus.energy"
+            .WithHeader("Authorization", token)
+            .AppendPathSegment("/v1/graphql/")
+            .PostJsonAsync(payload)
+            .ReceiveJson<KrakenDispatchResponse>();
+        
+        return response?.data?.plannedDispatches;
+    }
+
+    public record KrakenDispatchMeta(string? location, string? source);
+    public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string? startDt, string? endDt, double delta, KrakenDispatchMeta? meta);
+    public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches);
+    public record KrakenDispatchResponse(KrakenDispatchData data);
+    
     private record KrakenToken(string token);
     private record KrakenResponse(KrakenToken obtainKrakenToken);
 

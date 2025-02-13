@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Humanizer;
 using Octokit;
 using SolisManager.APIWrappers;
@@ -217,7 +218,7 @@ public class InverterManager(
 
                 var octRatesTask = octopusAPI.GetOctopusRates(config.OctopusProductCode);
 
-                await Task.WhenAll(UpdateInverterState(), octRatesTask, LoadExecutionHistory());
+                await Task.WhenAll(UpdateInverterState(), octRatesTask, LoadExecutionHistory(), GetIOGDispatches());
 
                 // Stamp the last time we did an update
                 InverterState.TimeStamp = DateTime.UtcNow;
@@ -795,6 +796,31 @@ public class InverterManager(
         }
 
         return false;
+    }
+
+    private async Task GetIOGDispatches()
+    {
+        if (config.OctopusProductCode.Contains("-INTELLI-VAR-"))
+        {
+            logger.LogInformation("IOG Tariff - attempting to retrieve dispatches...");
+            try
+            {
+                var dispatches = await octopusAPI.GetIOGPlannedDispatches(config.OctopusAPIKey, config.OctopusAccountNumber);
+                if (dispatches != null && dispatches.Any())
+                {
+                    logger.LogInformation("Found dispatches:");
+
+                    foreach (var dispatch in dispatches)
+                        logger.LogInformation("  Dispatch: {J}", JsonSerializer.Serialize(dispatch));
+                }
+                else
+                    logger.LogWarning("No dispatches returned from the octopus API");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unexpected exception during IOG Dispatch Query");
+            }
+        }
     }
 
     public async Task RefreshTariff()
