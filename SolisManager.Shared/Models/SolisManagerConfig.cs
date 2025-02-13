@@ -74,7 +74,7 @@ public record SolisManagerConfig
 
         if (string.IsNullOrEmpty(OctopusAPIKey) && string.IsNullOrEmpty(OctopusAccountNumber))
         {
-            if (string.IsNullOrEmpty(OctopusProductCode)) return false;
+            if (string.IsNullOrEmpty(OctopusProductCode))
                 return false;
         }
 
