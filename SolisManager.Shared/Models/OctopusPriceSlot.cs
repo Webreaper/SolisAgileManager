@@ -29,7 +29,8 @@ public record OctopusPriceSlot
         None,
         Manual,
         Scheduled,
-        NegativePrices
+        NegativePrices,
+        IOGDispatch
     };
     public decimal value_inc_vat { get; set;  }
     public DateTime valid_from { get; set;  }

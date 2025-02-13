@@ -193,7 +193,7 @@ public class InverterManager(
             await WriteExecutionHistory();
     }
     
-    private async Task RecalculateSlotPlan()
+    private async Task RefreshTariffDataAndRecalculate()
     {
         try
         {
@@ -247,24 +247,10 @@ public class InverterManager(
                 }
             }
 
-            // First, ensure the slots have the latest forecast data
-            EnrichWithSolcastData(slots);
-
             // Now reapply
             ApplyPreviouManualOverrides(slots, overrides);
 
-            var processedSlots = EvaluateSlotActions(slots.ToArray());
-
-            // If the tariff is IOG, apply any charging when there's smart-charge slots
-            await ApplyIOGDispatches(slots);
-
-            // Update the state
-            InverterState.Prices = processedSlots;
-
-            await ExecuteSlotChanges(processedSlots);
-
-            if (config.Simulate && simulationData == null)
-                simulationData = InverterState.Prices.ToList();
+            await RecalculateSlotPlan(slots);
 
             // Do this last, as it uses a lot of API calls
             await EnrichHistoryWithInverterData();
@@ -275,6 +261,32 @@ public class InverterManager(
         }
     }
 
+    /// <summary>
+    /// Where the actual work happens
+    /// </summary>
+    private async Task RecalculateSlotPlan(IEnumerable<OctopusPriceSlot> sourceSlots)
+    {
+        var slots = sourceSlots.Clone();
+        ArgumentNullException.ThrowIfNull(slots);
+        
+        // First, ensure the slots have the latest forecast data
+        EnrichWithSolcastData(slots);
+        
+        var processedSlots = EvaluateSlotActions(slots.ToArray());
+
+        // If the tariff is IOG, apply any charging when there's smart-charge slots
+        await ApplyIOGDispatches(processedSlots);
+
+        // Update the state
+        InverterState.Prices = processedSlots;
+
+        await ExecuteSlotChanges(processedSlots);
+
+        if (config.Simulate && simulationData == null)
+            simulationData = InverterState.Prices.ToList();
+
+    }
+    
     private IEnumerable<ChangeSlotActionRequest> GetExistingManualSlotOverrides()
     {
         return InverterState.Prices
@@ -723,11 +735,7 @@ public class InverterManager(
 
         try
         {
-            if (InverterState.Prices.Any() && InverterState.SolcastTimeStamp != solcastApi.lastAPIUpdate)
-            {
-                // First, ensure the slots have the latest forecast data
-                EnrichWithSolcastData(InverterState.Prices);
-            }
+            await RecalculateSlotPlan(InverterState.Prices);
 
             // Get the battery charge state from the inverter
             var solisState = await solisApi.InverterState();
@@ -770,7 +778,7 @@ public class InverterManager(
     
     public async Task RefreshAgileRates()
     {
-        await RecalculateSlotPlan();
+        await RefreshTariffDataAndRecalculate();
     }
 
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
@@ -832,10 +840,6 @@ public class InverterManager(
                             slot.ActionReason = "IOG Smart-Charge period";
                         }
                     }
-                }
-                else
-                {
-                    logger.LogInformation("No dispatches returned");
                 }
             }
             catch (Exception ex)
@@ -935,7 +939,7 @@ public class InverterManager(
         }
         newConfig.CopyPropertiesTo(config);
         await config.SaveToFile(Program.ConfigFolder);
-        await RecalculateSlotPlan();
+        await RefreshTariffDataAndRecalculate();
         
         return new ConfigSaveResponse{ Success = true };
     }
@@ -1029,7 +1033,7 @@ public class InverterManager(
             }
         }
 
-        await RecalculateSlotPlan();
+        await RecalculateSlotPlan(InverterState.Prices);
     }
     
     public async Task ClearManualOverrides()
@@ -1040,7 +1044,7 @@ public class InverterManager(
             slot.OverrideAction = null;
             slot.OverrideType = OctopusPriceSlot.SlotOverrideType.None;
         }
-        await RecalculateSlotPlan();
+        await RecalculateSlotPlan(InverterState.Prices);
     }
 
     public async Task AdvanceSimulation()
@@ -1048,7 +1052,7 @@ public class InverterManager(
         if (config.Simulate && simulationData is { Count: > 0 })
         {
             simulationData.RemoveAt(0);
-            await RecalculateSlotPlan();
+            await RecalculateSlotPlan(simulationData);
         }
     }
 
@@ -1057,7 +1061,7 @@ public class InverterManager(
         if (config.Simulate && simulationData is { Count: 0 })
         {
             simulationData = null;
-            await RecalculateSlotPlan();
+            await RecalculateSlotPlan(InverterState.Prices);
         }
     }
 

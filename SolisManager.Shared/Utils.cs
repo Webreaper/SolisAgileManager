@@ -1,3 +1,6 @@
+using System.Text.Json;
+using SolisManager.Shared.Models;
+
 namespace SolisManager.Shared;
 
 public static class Utils
@@ -32,7 +35,12 @@ public static class Utils
         }
 
     }
-    
+
+    public static T? Clone<T>(this T source)
+    {
+        var json = JsonSerializer.Serialize(source);
+        return JsonSerializer.Deserialize<T>(json);
+    }
     
     /// <summary>
     /// To identify the product code for a particular tariff, you can usually take off the first few letters of

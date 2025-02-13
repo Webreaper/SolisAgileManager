@@ -41,7 +41,7 @@ else
             </HeaderContent>
             <GroupHeaderTemplate>
                 <MudTh Class="mud-table-cell-custom-group date-row">
-                    <DateDisplay Date="@((DateTime)context.Key)"/>
+                    <DateDisplay Date="@((DateTime?)context.Key)"/>
                 </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row" title="Average price">

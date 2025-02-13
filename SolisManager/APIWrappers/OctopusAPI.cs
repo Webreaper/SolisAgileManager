@@ -254,7 +254,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
                     if (contract != null)
                     {
-                        logger.LogInformation("Found Octopus Product/Contract: {P}, Starts {S}",
+                        logger.LogInformation("Found Octopus Product/Contract: {P}, Starts {S:dd-MMM-yyyy}",
                             contract.tariff_code, contract.valid_from);
                         return contract.tariff_code;
                     }
