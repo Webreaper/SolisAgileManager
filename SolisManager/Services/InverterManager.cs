@@ -267,6 +267,7 @@ public class InverterManager(
     /// </summary>
     private async Task RecalculateSlotPlan(IEnumerable<OctopusPriceSlot> sourceSlots)
     {
+        // Take a copy so we can reprocess
         var slots = sourceSlots.Clone();
         ArgumentNullException.ThrowIfNull(slots);
         
@@ -281,11 +282,11 @@ public class InverterManager(
         // Update the state
         InverterState.Prices = processedSlots;
 
+        // And execute
         await ExecuteSlotChanges(processedSlots);
 
         if (config.Simulate && simulationData == null)
             simulationData = InverterState.Prices.ToList();
-
     }
     
     private IEnumerable<ChangeSlotActionRequest> GetExistingManualSlotOverrides()

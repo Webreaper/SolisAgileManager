@@ -71,6 +71,8 @@ public class Program
             .AddInteractiveWebAssemblyComponents()
             .AddInteractiveServerComponents();
 
+        builder.Services.AddAntiforgery(options => { options.Cookie.Expiration = TimeSpan.Zero;});
+
         builder.Services.AddDataProtection();
 
         builder.Services.AddSingleton<SolisManagerConfig>();
@@ -136,7 +138,7 @@ public class Program
         }
 
         app.UseExceptionHandler();
-        app.UseHttpsRedirection();
+        // app.UseHttpsRedirection();
 
         app.UseRouting();
         app.UseAntiforgery();
