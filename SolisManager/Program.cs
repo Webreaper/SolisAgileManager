@@ -71,7 +71,12 @@ public class Program
             .AddInteractiveWebAssemblyComponents()
             .AddInteractiveServerComponents();
 
-        builder.Services.AddAntiforgery(options => { options.Cookie.Expiration = TimeSpan.Zero;});
+        builder.Services.AddAntiforgery(options =>
+        {
+            options.Cookie.Expiration = TimeSpan.Zero;
+            options.SuppressXFrameOptionsHeader = true;
+            options.SuppressReadingTokenFromFormBody = true;
+        });
 
         builder.Services.AddDataProtection();
 
