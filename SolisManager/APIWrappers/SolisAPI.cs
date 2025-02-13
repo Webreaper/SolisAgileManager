@@ -421,6 +421,7 @@ public class SolisAPI
 
             request.Headers.Add("Time", date);
             request.Headers.Add("Authorization", auth);
+            request.Headers.Add("User-Agent", Program.UserAgent );
             request.Content.Headers.Add("Content-Md5", contentMd5);
 
             var result = await client.SendAsync(request);

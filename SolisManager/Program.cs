@@ -26,7 +26,7 @@ public class Program
     private const int solisManagerPort = 5169;
 
     public static string ConfigFolder => configFolder;
-    
+    public static string? UserAgent;
     private static string configFolder = "config";
 
     public static async Task Main(string[] args)
@@ -121,6 +121,8 @@ public class Program
         logger.LogInformation("===========================================================");
         logger.LogInformation("Application started. Build version v{V} Logs being written to {C}", version, ConfigFolder);
 
+        UserAgent = $"SolisAgileManager/{version}";
+        
         // First, load the config
         var config = app.Services.GetRequiredService<SolisManagerConfig>();
         if (!config.ReadFromFile(ConfigFolder))

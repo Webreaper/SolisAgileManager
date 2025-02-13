@@ -31,6 +31,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var result = await "https://api.octopus.energy"
+                .WithHeader("User-Agent", Program.UserAgent)
                 .AppendPathSegment("/v1/products")
                 .AppendPathSegment(product)
                 .AppendPathSegment("electricity-tariffs")
@@ -135,6 +136,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         var payload = new { query = krakenQuery, variables = variables };
 
         var response = await "https://api.octopus.energy"
+            .WithHeader("User-Agent", Program.UserAgent)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveJson<KrakenTokenResponse>();
@@ -173,6 +175,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
         var responseStr = await "https://api.octopus.energy"
             .WithHeader("Authorization", token)
+            .WithHeader("User-Agent", Program.UserAgent)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveString();
@@ -217,6 +220,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         {
             var response = await "https://api.octopus.energy/"
                 .WithHeader("Authorization", token)
+                .WithHeader("User-Agent", Program.UserAgent)
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
                 .GetStringAsync();
 
@@ -275,6 +279,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var response = await "https://api.octopus.energy/"
+                .WithHeader("User-Agent", Program.UserAgent)
                 .AppendPathSegment($"/v1/products/{code}")
                 .GetStringAsync();
 
@@ -303,6 +308,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var response = await "https://api.octopus.energy/"
+                .WithHeader("User-Agent", Program.UserAgent)
                 .AppendPathSegment($"/v1/products/")
                 .GetStringAsync();
 

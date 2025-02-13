@@ -146,6 +146,7 @@ public class SolcastAPI(SolisManagerConfig config, ILogger<SolcastAPI> logger)
         await LoadCachedSolcastDataFromDisk();
         
         var url = "https://api.solcast.com.au"
+            .WithHeader("User-Agent", Program.UserAgent)
             .AppendPathSegment("rooftop_sites")
             .AppendPathSegment(siteIdentifier)
             .AppendPathSegment("forecasts")
