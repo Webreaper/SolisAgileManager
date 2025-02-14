@@ -204,7 +204,7 @@ public class Program
         // Refresh and apply the octopus rates every 30 mins
         app.Services.UseScheduler(s => s
             .Schedule<RatesScheduler>()
-            .Cron("59,29 * * * *")
+            .Cron("0,30 * * * *")
             .RunOnceAtStart());
 
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
