@@ -11,10 +11,15 @@ namespace SolisManager.APIWrappers;
 
 public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 {
-    private readonly MemoryCacheEntryOptions _cacheOptions =
+    private readonly MemoryCacheEntryOptions _productCacheOptions =
         new MemoryCacheEntryOptions()
                     .SetSize(1)
                     .SetAbsoluteExpiration(TimeSpan.FromDays(7));
+    
+    private readonly MemoryCacheEntryOptions _authTokenCacheOptions =
+        new MemoryCacheEntryOptions()
+            .SetSize(1)
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
     public async Task<IEnumerable<OctopusPriceSlot>> GetOctopusRates(string tariffCode, DateTime? startTime = null)
     {
@@ -125,6 +130,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
     private async Task<string?> GetAuthToken(string apiKey)
     {
+        const string cacheKey = "octAuthToken";
+        
+        if (memoryCache.TryGetValue<string?>(cacheKey, out var token))
+            return token;
+
         var krakenQuery = """
                           mutation krakenTokenAuthentication($api: String!) {
                           obtainKrakenToken(input: {APIKey: $api}) {
@@ -141,7 +151,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
             .PostJsonAsync(payload)
             .ReceiveJson<KrakenTokenResponse>();
         
-        return response?.data?.obtainKrakenToken?.token;
+        token = response?.data?.obtainKrakenToken?.token;
+
+        memoryCache.Set(cacheKey, token, _authTokenCacheOptions);
+
+        return token;
     }
 
     public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
@@ -186,12 +200,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
             if (response?.data != null)
             {
+                // Pick out the ones with smart-charge, they're the ones we care about
                 var smartChargeDispatches = response.data.plannedDispatches
-                    .Where(x => x.meta?.source == "smart-charge")
+                    .Where(x => !string.IsNullOrEmpty(x.meta?.source ) && 
+                                        x.meta.source.Equals("smart-charge", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
 
-                logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} dispatches)", 
-                                    smartChargeDispatches.Length, response.data.plannedDispatches.Length);
+                logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned and {C} completed dispatches)", 
+                                    smartChargeDispatches.Length, response.data.plannedDispatches.Length, response.data.completedDispatches.Length);
 
                 return smartChargeDispatches;
             }
@@ -201,8 +217,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
     }
 
     public record KrakenDispatchMeta(string? location, string? source);
-    public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string? startDt, string? endDt, double delta, KrakenDispatchMeta? meta);
-    public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches);
+    public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string? startDt, string? endDt, string delta, KrakenDispatchMeta? meta);
+    public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches, KrakenPlannedDispatch[] completedDispatches);
     public record KrakenDispatchResponse(KrakenDispatchData data);
     
     private record KrakenToken(string token);
@@ -286,7 +302,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
             tariff = JsonSerializer.Deserialize<OctopusTariffResponse>(response);
             if (tariff != null)
             {
-                memoryCache.Set(cacheKey, tariff, _cacheOptions);
+                memoryCache.Set(cacheKey, tariff, _productCacheOptions);
                 return tariff;
             }
         }
@@ -316,7 +332,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
             if (products != null)
             {
-                memoryCache.Set(cacheKey, products, _cacheOptions);
+                memoryCache.Set(cacheKey, products, _productCacheOptions);
                 return products;
             }
         }
