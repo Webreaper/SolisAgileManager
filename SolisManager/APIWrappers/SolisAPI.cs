@@ -236,7 +236,7 @@ public class SolisAPI
         }
         else
         {
-            logger.LogInformation("Skipping charge request (Inverter state matches: {CA}, {DA}, {CT}, {DT})", 
+            logger.LogInformation("Inverter already in correct state ({CA}, {DA}, {CT}, {DT}) so no charge instructions need to be applied", 
                                                 chargePower, dischargePower, chargeTimes, dischargeTimes);
         }
     }

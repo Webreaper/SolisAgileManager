@@ -1,5 +1,5 @@
 
-@if (InverterState != null)
+@if (InverterState != null && InverterState.BatteryTimeStamp != DateTime.MinValue)
 {
     <div class="@Style">
         Last inverter/battery update: @InverterState.BatteryTimeStamp.DisplayDateTime(),

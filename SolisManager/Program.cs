@@ -186,12 +186,13 @@ public class Program
         // same reason.
         app.Services.UseScheduler(s => s
             .Schedule<BatteryScheduler>()
-            .Cron("0,5,10,15,20,25,35,40,45,50,55 * * * *"));
+            .Cron("0,5,10,15,20,25,35,40,45,50,55 * * * *")
+            .RunOnceAtStart());
 
         // Check if the Octopus tariff has changed every 4 hours
         app.Services.UseScheduler(s => s
             .Schedule<TariffScheduler>()
-            .Cron("0 */4 * * *")
+            .Cron("3 */4 * * *")
             .RunOnceAtStart());
 
         // Check for a new version periodically
@@ -203,7 +204,7 @@ public class Program
         // Refresh and apply the octopus rates every 30 mins
         app.Services.UseScheduler(s => s
             .Schedule<RatesScheduler>()
-            .Cron("0,30 * * * *")
+            .Cron("59,29 * * * *")
             .RunOnceAtStart());
 
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();

@@ -23,7 +23,7 @@ public class InverterManager(
     private const string executionHistoryFile = "SolisManagerExecutionHistory.csv";
     private NewVersionResponse appVersion = new();
     private List<OctopusPriceSlot>? simulationData;
-    
+    private const int maxExecutionHistory = 180 * 48;
     
     private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
     {
@@ -91,10 +91,16 @@ public class InverterManager(
     {
         var historyFilePath = Path.Combine(Program.ConfigFolder, executionHistoryFile);
 
+        var lines = executionHistory.TakeLast(maxExecutionHistory)
+                                                    .Select(x => x.GetAsCSV());
+
         // And write
-        await File.WriteAllLinesAsync(historyFilePath, executionHistory.Select(x => x.GetAsCSV()));
+        await File.WriteAllLinesAsync(historyFilePath, lines);
     }
     
+    /// <summary>
+    /// Loads the execution history from disk if it's not already available
+    /// </summary>
     private async Task LoadExecutionHistory()
     {
         try
@@ -108,7 +114,7 @@ public class InverterManager(
                     executionHistoryFile);
 
                 // At 48 slots per day, we store 180 days or 6 months of data
-                var entries = lines.TakeLast(180 * 48)
+                var entries = lines.TakeLast(maxExecutionHistory)
                     .Select(HistoryEntry.TryParse)
                     .DistinctBy(x => x?.Start)
                     .Where(x => x != null)
@@ -213,43 +219,20 @@ public class InverterManager(
             }
             else
             {
-                var lastSlot = InverterState.Prices?.MaxBy(x => x.valid_from);
-
                 logger.LogTrace("Refreshing data...");
 
-                var octRatesTask = octopusAPI.GetOctopusRates(config.OctopusProductCode);
-
-                await Task.WhenAll(UpdateInverterState(), octRatesTask, LoadExecutionHistory());
+                slots = await octopusAPI.GetOctopusRates(config.OctopusProductCode);
 
                 // Stamp the last time we did an update
                 InverterState.TimeStamp = DateTime.UtcNow;
-
-                // Now, process the octopus rates
-                slots = (await octRatesTask).ToList();
-
-                if (slots.Any())
-                {
-                    var newlatestSlot = slots.MaxBy(x => x.valid_from);
-
-                    if (newlatestSlot != null && (lastSlot == null || newlatestSlot.valid_from > lastSlot.valid_from))
-                    {
-                        var newslots = (lastSlot == null ? slots : slots.Where(x => x.valid_from > lastSlot.valid_from))
-                            .ToList();
-
-                        var newSlotCount = newslots.Count;
-                        var cheapest = newslots.Min(x => x.value_inc_vat);
-                        var peak = newslots.Max(x => x.value_inc_vat);
-
-                        logger.LogInformation(
-                            "{N} new Octopus rates available to {L:dd-MMM-yyyy HH:mm} (cheapest: {C}p/kWh, peak: {P}p/kWh)",
-                            newSlotCount, newlatestSlot.valid_to, cheapest, peak);
-                    }
-                }
+                
+                LogSlotUpdateDetails(slots);
             }
 
-            // Now reapply
+            // Now reapply the overrides to the updated slots
             ApplyPreviouManualOverrides(slots, overrides);
 
+            // And recalculate the plan
             await RecalculateSlotPlan(slots);
 
             // Do this last, as it uses a lot of API calls
@@ -261,6 +244,30 @@ public class InverterManager(
         }
     }
 
+    private void LogSlotUpdateDetails(IEnumerable<OctopusPriceSlot> slots)
+    {
+        if (slots.Any())
+        {
+            var lastSlot = InverterState.Prices?.MaxBy(x => x.valid_from);
+
+            var newlatestSlot = slots.MaxBy(x => x.valid_from);
+
+            if (newlatestSlot != null && (lastSlot == null || newlatestSlot.valid_from > lastSlot.valid_from))
+            {
+                var newslots = (lastSlot == null ? slots : slots.Where(x => x.valid_from > lastSlot.valid_from))
+                    .ToList();
+
+                var newSlotCount = newslots.Count;
+                var cheapest = newslots.Min(x => x.value_inc_vat);
+                var peak = newslots.Max(x => x.value_inc_vat);
+
+                logger.LogInformation(
+                    "{N} new Octopus rates available to {L:dd-MMM-yyyy HH:mm} (cheapest: {C}p/kWh, peak: {P}p/kWh)",
+                    newSlotCount, newlatestSlot.valid_to, cheapest, peak);
+            }
+        }        
+    }
+
     /// <summary>
     /// Where the actual work happens - this gets evaluated every time a config
     /// setting is changed, or otherwise every 5 minutes.
@@ -270,6 +277,8 @@ public class InverterManager(
         // Take a copy so we can reprocess
         var slots = sourceSlots.Clone();
         ArgumentNullException.ThrowIfNull(slots);
+
+        await LoadExecutionHistory();
         
         // First, ensure the slots have the latest forecast data
         EnrichWithSolcastData(slots);
@@ -741,8 +750,6 @@ public class InverterManager(
 
         try
         {
-            await RecalculateSlotPlan(InverterState.Prices);
-
             // Get the battery charge state from the inverter
             var solisState = await solisApi.InverterState();
 
