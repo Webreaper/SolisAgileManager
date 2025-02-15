@@ -88,7 +88,7 @@
         <div class="config-fields">
             <h5>Forecast Rules</h5>
             <ConfigSettingHelp HelpText="Enable this option and set a threshold for tomorrow's PV forecast. If the forecast is above the threshold, the overnight charge will be skipped.">
-                <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPosition="LabelPosition.End"/>
+                <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPosition="LabelPosition.End" class="wrapped-field"/>
                 <MudNumericField T="decimal" @bind-Value="@config.ForecastThreshold"  Label="If tomorrow's forecast exceeds (kWh)" Min="5" Max="100"
                                  Variant="UIConstants.MudVariant" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
             </ConfigSettingHelp>
