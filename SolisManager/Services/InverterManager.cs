@@ -825,7 +825,7 @@ public class InverterManager(
 
     private async Task ApplyIOGDispatches(IEnumerable<OctopusPriceSlot> slots)
     {
-        if (config.OctopusProductCode.Contains("-INTELLI-VAR-"))
+        if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })
         {
             try
             {

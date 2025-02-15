@@ -36,8 +36,8 @@
             </ConfigSettingHelp>
             @if (!manualProductKey)
             {
-                    <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" Variant="UIConstants.MudVariant"/>
-                    <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
             }
             else
             {
@@ -50,6 +50,16 @@
                 }
             }
         </div>
+        @if (config.TariffIsIntelligentGo)
+        {
+            <div class="config-fields">
+                <h5>Intelligent Go options</h5>
+                <ConfigSettingHelp HelpText="If your tariff is Intelligent Go, this option will attempt to charge the house battery when daytime cheap dispatch charge slots are provided by Octopus">
+                    <MudCheckBox Label="Intelligent Go Charging" @bind-Value="@config.IntelligentGoCharging" class="wrapped-field"
+                                 Disabled="@(!config.TariffIsIntelligentGo)"/>
+                </ConfigSettingHelp>
+            </div>
+        }
         <div class="config-fields">
             <h5>Solcast Settings</h5>
             <ConfigSettingHelp HelpText="Specify up to two Solcast comma-separated site identifiers (one for each string)">
@@ -103,6 +113,7 @@
                 </ConfigSettingHelp>
             </MudSlider>
             <div class="config-field-row">
+                <h5>Charging Options</h5>
                 <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
                     <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" Min="5" Max="95" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>

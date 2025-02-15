@@ -23,6 +23,8 @@ public record SolisManagerConfig
     public string SolcastSiteIdentifier { get; set; } = string.Empty;
     public decimal SolcastDampFactor { get; set; } = 1M; // Default to 100% of the solcast value
     public bool SolcastExtraUpdates { get; set; } = false;
+
+    public bool IntelligentGoCharging { get; set; } = false;
     
     // Solcast Rules
     public bool SkipOvernightCharge { get; set; }
@@ -80,4 +82,6 @@ public record SolisManagerConfig
 
         return true;
     }
+
+    public bool TariffIsIntelligentGo => OctopusProductCode.Contains("-INTELLI-VAR-");
 }
