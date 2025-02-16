@@ -844,7 +844,7 @@ public class InverterManager(
                         
                         foreach (var slot in slots)
                         {
-                            if( slot.valid_from <= dispatch.end && slot.valid_to >= dispatch.start)
+                            if( slot.valid_from < dispatch.end && slot.valid_to >= dispatch.start)
                                 iogChargeSlots.TryAdd(slot.valid_from, slot);
                         }
                     }
