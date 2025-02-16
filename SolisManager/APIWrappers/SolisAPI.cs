@@ -102,6 +102,29 @@ public class SolisAPI
         return null;
     }
 
+    private TimeOnly ParseTime(string time)
+    {
+        if (!TimeOnly.TryParse(time, out var result))
+        {
+            var parts = time.Split(':', 2);
+            int hours = int.Parse(parts[0]);
+            int minutes = int.Parse(parts[1]);
+
+            if (hours > 24)
+            {
+                logger.LogWarning("Time returned from inverter was {H}hrs - wrapping...", hours);
+                hours %= 24;
+                time = $"{hours:D2}:{minutes:D2}";
+                if (TimeOnly.TryParse(time, out result))
+                    return result;
+            }
+        }
+        else
+            return result;
+
+        throw new ArgumentException($"Invalid time pair {time}");
+    }
+
     /// <summary>
     /// Convert a time-slot string, e.g., "05:30-10:45" into an actual date time
     /// so we can compare it.
@@ -119,11 +142,8 @@ public class SolisAPI
         if (parts.Length != 2)
             throw new ArgumentException($"Invalid time pair {chargeTimePair}");
 
-        if (!TimeOnly.TryParse(parts[0], out var startTime))
-            throw new ArgumentException($"Invalid time pair {chargeTimePair}");
-
-        if (!TimeOnly.TryParse(parts[1], out var endTime))
-            throw new ArgumentException($"Invalid time pair {chargeTimePair}");
+        var startTime = ParseTime(parts[0]);
+        var endTime = ParseTime(parts[1]);
 
         var start = new DateTime(now, startTime);
         var end = new DateTime(now, endTime);
@@ -161,10 +181,11 @@ public class SolisAPI
         if (currentChargeState == null)
             return true;
         
-        var newchargeTime = ConvertToRealDates(chargeTimes);
-        var newdischargeTime = ConvertToRealDates(dischargeTimes);
         var currchargeTime = ConvertToRealDates(currentChargeState.chargeTimes);
         var currdischargeTime = ConvertToRealDates(currentChargeState.dischargeTimes);
+
+        var newchargeTime = ConvertToRealDates(chargeTimes);
+        var newdischargeTime = ConvertToRealDates(dischargeTimes);
         
         bool chargeIsEquivalent = newchargeTime.start >= currchargeTime.start &&
                                   newchargeTime.start <= currchargeTime.end &&

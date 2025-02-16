@@ -855,8 +855,12 @@ public class InverterManager(
 
                         foreach (var slot in iogChargeSlots.Values)
                         {
-                            slot.PlanAction = SlotAction.Charge;
-                            slot.ActionReason = "IOG Smart-Charge period";
+                            if (slot.PlanAction != SlotAction.Charge)
+                            {
+                                slot.PlanAction = SlotAction.Charge;
+                                slot.ActionReason = "IOG Smart-Charge period";
+                                slot.PriceType = PriceType.IOGDispatch;
+                            }
                         }
                     }
                 }

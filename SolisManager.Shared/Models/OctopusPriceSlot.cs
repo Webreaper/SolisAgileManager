@@ -10,7 +10,8 @@ public enum PriceType
     BelowAverage,
     Dropping,
     MostExpensive,
-    Negative
+    Negative,
+    IOGDispatch
 }
 
 public enum SlotAction
@@ -29,8 +30,7 @@ public record OctopusPriceSlot
         None,
         Manual,
         Scheduled,
-        NegativePrices,
-        IOGDispatch
+        NegativePrices
     };
     public decimal value_inc_vat { get; set;  }
     public DateTime valid_from { get; set;  }
