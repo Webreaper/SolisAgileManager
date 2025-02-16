@@ -208,7 +208,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
                 logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned and {C} completed dispatches)", 
                                     smartChargeDispatches.Length, response.data.plannedDispatches.Length, response.data.completedDispatches.Length);
-                logger.LogInformation("  SmartCharge Dispatches: {S}", JsonSerializer.Serialize(smartChargeDispatches) );
+                if( smartChargeDispatches.Any() )
+                    logger.LogInformation("SmartCharge Dispatches: {S}", JsonSerializer.Serialize(smartChargeDispatches) );
                 
                 return smartChargeDispatches;
             }
