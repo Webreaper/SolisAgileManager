@@ -19,7 +19,7 @@
 
 @code {
 
-    [CascadingParameter] MudDialogInstance? MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
 
     [Parameter] public OctopusPriceSlot? Slot { get; set; }
     [Parameter] public SlotAction[]? AvailableActions { get; set; }
@@ -28,9 +28,6 @@
     
     protected override Task OnInitializedAsync()
     {
-        if( MudDialog != null )
-            MudDialog.Options.NoHeader = false;
-    
         if( Slot != null)
             title = $"Manual Action for {Slot.valid_from:HH:mm} - {Slot.valid_to:HH:mm}";
 

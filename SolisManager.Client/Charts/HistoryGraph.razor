@@ -4,7 +4,7 @@
 
 @inherits ChartBase<HistoryEntry>
 
-@if (Options != null && HistoryData != null)
+@if (Options != null && HistoryData != null && HistoryData.Any())
 {
     <div class="chart-area">
         <GraphActionLegend ChartTitle="Charging History">
@@ -17,8 +17,7 @@
                    TItem="HistoryEntry"
                    XAxisType="XAxisType.Datetime"
                    Options="@Options"
-                   Height="@("100%")"
-                   FormatYAxisLabel="@FormatYAxisLabel">
+                   Height="@("100%")">
             
             <ApexPointSeries TItem="HistoryEntry"
                              Items="FilteredHistoryData"
@@ -63,7 +62,7 @@
     public IEnumerable<HistoryEntry>? HistoryData { get; set; }
     
     private int? defaultDays = 3;
-    private IEnumerable<HistoryEntry>? FilteredHistoryData => HistoryData?.Where(x => x.Start > DateTime.UtcNow.AddDays(-1 * (defaultDays ?? 7)));
+    private IEnumerable<HistoryEntry> FilteredHistoryData => HistoryData?.Where(x => x.Start > DateTime.UtcNow.AddDays(-1 * (defaultDays ?? 7))) ?? [];
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
     private string GetBatteryColor(HistoryEntry slot) => "darkred";
@@ -110,28 +109,27 @@
 
     protected override void SetOptions( ApexChartOptions<HistoryEntry> optionsToSet )
     {
-        var yAxis = new List<YAxis>();
-
-        yAxis.Add(new YAxis
+        var yAxis = new List<YAxis>
         {
-            Title = new AxisTitle { Text = "Price (p/kWh)" },
-            SeriesName = "Price",
-            DecimalsInFloat = 2
-        });
-
-        yAxis.Add(new YAxis
-        {
-            Title = new AxisTitle { Text = "Battery SOC (%)" },
-            SeriesName = "SOC (%)",
-            DecimalsInFloat = 0,
-            Opposite = true, 
-        });
-
-        yAxis.Add(new YAxis
-        {
-            SeriesName = ["PV Yield (kWh)", "PV Forecast (kWh)"],
-            DecimalsInFloat = 0,
-        });
+            new()
+            {
+                Title = new AxisTitle { Text = "Price (p/kWh)" },
+                SeriesName = "Price",
+                DecimalsInFloat = 2
+            },
+            new()
+            {
+                Title = new AxisTitle { Text = "Battery SOC (%)" },
+                SeriesName = "SOC (%)",
+                DecimalsInFloat = 0,
+                Opposite = true, 
+            },
+            new()
+            {
+                SeriesName = ["PV Yield (kWh)", "PV Forecast (kWh)"],
+                DecimalsInFloat = 0,
+            }
+        };
 
         optionsToSet.Yaxis = yAxis;
     }

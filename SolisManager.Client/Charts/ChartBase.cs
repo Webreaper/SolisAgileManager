@@ -15,20 +15,14 @@ public abstract class ChartBase<T> : ComponentBase where T : class
     protected override void OnInitialized()
     {
         InitOptions();
-        base.OnInitialized();
-    }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-            await InvokeAsync( InitChart );
-        
-        await base.OnAfterRenderAsync(firstRender);
+        base.OnInitialized();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        await InvokeAsync( InitChart );
+        await InitChart();
+        
         await base.OnParametersSetAsync();
     }
 

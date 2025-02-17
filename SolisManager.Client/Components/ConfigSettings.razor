@@ -16,7 +16,7 @@
             <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolisAPISecret" Immediate="true" Variant="UIConstants.MudVariant"/>
             <MudTextField T="string" Label="Solis Inverter Serial Number" @bind-Value="@config.SolisInverterSerial" Immediate="true" Variant="UIConstants.MudVariant"/>
             <ConfigSettingHelp HelpText="Enabling this setting will automatically update the inverter's clock every day at 2am, to avoid time drift">
-                <MudCheckBox Label="Auto Update Inverter Time" LabelPosition="LabelPosition.End" @bind-Value="@config.AutoAdjustInverterTime"/>
+                <MudCheckBox Label="Auto Update Inverter Time" LabelPlacement="Placement.End" @bind-Value="@config.AutoAdjustInverterTime"/>
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">
@@ -81,14 +81,14 @@
                     mean that you're more likely to hit your API rate limit.
                 </HelpContent>
                 <ChildContent>
-                    <MudCheckBox Label="Extra Solcast update" LabelPosition="LabelPosition.End" @bind-Value="@config.SolcastExtraUpdates"/>
+                    <MudCheckBox Label="Extra Solcast update" LabelPlacement="Placement.End" @bind-Value="@config.SolcastExtraUpdates"/>
                 </ChildContent>
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">
             <h5>Forecast Rules</h5>
             <ConfigSettingHelp HelpText="Enable this option and set a threshold for tomorrow's PV forecast. If the forecast is above the threshold, the overnight charge will be skipped.">
-                <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPosition="LabelPosition.End" class="wrapped-field"/>
+                <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPlacement="Placement.End" class="wrapped-field"/>
                 <MudNumericField T="decimal" @bind-Value="@config.ForecastThreshold"  Label="If tomorrow's forecast exceeds (kWh)" Min="5" Max="100"
                                  Variant="UIConstants.MudVariant" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
             </ConfigSettingHelp>
@@ -135,7 +135,7 @@
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Simulation mode allows you to see the charging strategy without actually making changes to the inverter, including stepping forwards through time.">
-                    <MudCheckBox Label="Simulation Mode" LabelPosition="LabelPosition.End" @bind-Value="@config.Simulate"/>
+                    <MudCheckBox Label="Simulation Mode" LabelPlacement="Placement.End" @bind-Value="@config.Simulate"/>
                 </ConfigSettingHelp>
             </div>
         </div>

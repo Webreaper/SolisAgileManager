@@ -2,14 +2,13 @@
 
 @inherits ChartBase<OctopusPriceSlot>
 
-@if (Options != null && ChartData != null)
+@if (Options != null && ChartData != null && ChartData.Any())
 {
     <div class="chart-area">
         <GraphActionLegend ChartTitle="Charging Strategy Graph"/>
         <ApexChart @ref="chart" TItem="OctopusPriceSlot" 
                    XAxisType="XAxisType.Datetime"
                    Options="@Options"
-                   FormatYAxisLabel="@FormatYAxisLabel"
                    Height="@("100%")">
 
             <ApexPointSeries TItem="OctopusPriceSlot"
@@ -25,8 +24,7 @@
 }
 
 @code {
-    [Parameter]
-    public IEnumerable<OctopusPriceSlot>? ChartData { get; set; }
+    [Parameter] public IEnumerable<OctopusPriceSlot> ChartData { get; set; } = [];
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
 
@@ -53,14 +51,16 @@
 
     protected override void SetOptions(ApexChartOptions<OctopusPriceSlot> options)
     {
-        var yAxis = new List<YAxis>();
-
-        yAxis.Add(new YAxis
+        var yAxis = new List<YAxis>
         {
-            Title = new AxisTitle { Text = "Price (p/kWh)" },
-            SeriesName = "Price",
-            DecimalsInFloat = 2
-        });
+            new()
+            {
+                Title = new AxisTitle { Text = "Price (p/kWh)" },
+                SeriesName = "Price",
+                DecimalsInFloat = 2
+            }
+        };
+
         options.Yaxis = yAxis;
     }
 }
