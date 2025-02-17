@@ -23,6 +23,13 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 <img width="300" src="https://github.com/user-attachments/assets/8bce3207-1c9d-4047-a5ff-f1540e288521"/>
 <img width="300" src="https://github.com/user-attachments/assets/f9f5e92b-a881-43ec-87af-16d83e195322"/>
 
+### Referral Link
+
+If you don't already use Octopus, but like the sound of this app and want to sign up to an Octopus tariff,
+please use my referral link, and we'll both get £50!
+
+* [https://share.octopus.energy/wise-dog-4](https://share.octopus.energy/wise-dog-4)
+
 ### Warranty / Disclaimer 
 
 **PLEASE NOTE:** This application is provided as-is, with no guarantees; I accept no liability for any issues that arise with 

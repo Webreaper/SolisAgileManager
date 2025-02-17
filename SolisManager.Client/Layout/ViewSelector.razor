@@ -17,14 +17,17 @@
         Chart
     };
 
-    [Parameter]
-    public string? SettingName { get; set; }
+    [CascadingParameter] public bool DarkMode { get; set; }
+    
+    [Parameter] public string? SettingName { get; set; }
 
     [Parameter] public ViewType SelectedView { get; set; } = ViewType.Chart;
     
     [Parameter] public EventCallback<ViewType> SelectedViewChanged { get; set; }
     
-    private string SelectionClass(ViewType type) => SelectedView == type ? "selected-view" : "deselected-view";
+    private string SelectionClass(ViewType type) => SelectedView == type ? 
+                                        "selected-view" + (DarkMode ? " selected-view-dark" : ""): 
+                                        "deselected-view";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

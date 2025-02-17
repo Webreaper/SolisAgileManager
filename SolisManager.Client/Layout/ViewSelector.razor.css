@@ -13,9 +13,18 @@
     border-radius: 4px;
 }
 
+.selected-view-dark {
+    color: lightgray;
+    border: 2px solid lightgray;
+}
+
 .selected-view:hover {
     background-color: lightgray;
     transition: background-color 0.5s ease-in;
+}
+
+.selected-view-dark:hover {
+    background-color: rgb(100, 100, 100);
 }
 
 .deselected-view {
@@ -26,6 +35,6 @@
 }
 
 .deselected-view:hover {
-    background-color: lightgray;
+    background-color: rgba(150, 150, 150, 0.7);
     transition: background-color 0.5s ease-in;
 }
