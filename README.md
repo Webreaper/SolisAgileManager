@@ -159,6 +159,23 @@ You'll also need to set some other config settings that control the way the char
 * Simulate-only - if checked, the app will run and simulate what it _would have done_ without actually making
   any changes to the behaviour.
 
+### Intelligent Go Dispatch Management
+
+Octopus Intelligent Go is an advanced tariff that manages your Electric Vehicle (EV) charging automatically. 
+One advantage it provides is that if you need to charge your EV at any time of day to prepare for a journey,
+you can call for an 'IOG Dispatch' which will charge the vehicle at the cheap rate (7p/kWh or so) at *any* 
+time of day. 
+
+So even if you're in the normal peak period of 4pm-7pm, you get a charge slot at a significantly
+reduced rates - and because of the way smart-meters work, this means that the electricity for the entire house
+is also provided at that cheap rate for the duration of the IOG Dispatch. 
+
+Solis Manager now detects these cheap slots and can be configured to always charge the house battery while 
+they are in progress - giving you a cheap boost to your battery at the reduced IOG rate. During the IOG
+Dispatch period, Solis Manager checks the state every 5 minutes to ensure the cheap charge rate is still 
+available, and will cancel the house charge if it ends (because, for example, the EV reaches 100% charge,
+or you unplug your EV from the charger).
+
 ### Avoiding Time Drift
 
 The application has a setting that will, every day at 2am, update the inverter time to match internet time.
@@ -330,9 +347,11 @@ PredBat with a Solis Inverter, solely using the Solis API. This means that there
 * The only way to get ModBus working **and** continue to use SolisCloud, is to use custom hardware, and that's not a road
   I'm interested in going down.
 
-As soon as somebody writes an add-in / configuration for Predbat that supports Solis via the SolisCloud API, and which also
-implements API control conflation to reduce EEPROM writes on the inverter (see below), then I will probably switch to using 
-PredBat, as it's a far superior product. At that point, I'll likely archive this project.
+There is another factor: Home Assistant can be an unwieldy platform to install and maintain. It's amazing in terms of what
+it can do, and the community is extremely spirited, but hassle of keeping an instance updated (there's no auto-updates for
+integrations and plugins) combined with the unfriendliness of configuration of many components, means that while I run HA,
+I'm not a fan of it. In particular, for less technical users the idea of just installing an EXE or docker image and running
+it without complex setup and configuration is very appealing.
 
 #### Avoiding Solcast Rate-limiting
 
