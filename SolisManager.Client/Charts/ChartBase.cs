@@ -18,7 +18,21 @@ public abstract class ChartBase<T> : ComponentBase where T : class
         base.OnInitialized();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await InvokeAsync( InitChart );
+        
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     protected override async Task OnParametersSetAsync()
+    {
+        await InvokeAsync( InitChart );
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task InitChart()
     {
         if (chart != null)
         {
@@ -32,8 +46,6 @@ public abstract class ChartBase<T> : ComponentBase where T : class
 
             await GraphStateChanged();
         }
-
-        await base.OnParametersSetAsync();
     }
 
     protected async Task GraphStateChanged()
