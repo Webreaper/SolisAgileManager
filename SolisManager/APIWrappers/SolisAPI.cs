@@ -423,21 +423,11 @@ public class SolisAPI
         logger.LogError("No response data returned from Solis API: Resource={R} Body={B}", resource, body);
         return default;
     }
-
-    private static Random random = new Random();
-    
-    private async Task Jitter()
-    {
-        var timeMs = random.Next(50, 3000);
-        await Task.Delay(timeMs);
-    }
     
     private async Task<string> Post(string url, string content)
     {
         try
         {
-            await Jitter();
-            
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             var date = DateTime.UtcNow.ToString("ddd, d MMM yyyy HH:mm:ss 'GMT'");
 
