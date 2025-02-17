@@ -17,6 +17,8 @@
     [Parameter] public bool WithLabel { get; set;  }
 
     [Parameter] public Size Size { get; set; } = Size.Medium;
+    
+    [Parameter] public bool IsEVCharge { get; set; }
 
     private string divStyle = "slot-icon";
     
@@ -67,7 +69,7 @@
     private string Icon => Action switch
     {
         SlotAction.DoNothing => Icons.Material.Filled.PauseCircle,
-        SlotAction.Charge => Icons.Material.Filled.Bolt,
+        SlotAction.Charge => IsEVCharge ? Icons.Material.Filled.ElectricCar : Icons.Material.Filled.Bolt,
         SlotAction.Discharge => Icons.Material.Filled.Battery0Bar,
         SlotAction.ChargeIfLowBattery => Icons.Material.Filled.BatteryUnknown,
         SlotAction.Hold => Icons.Material.Filled.StopCircle,

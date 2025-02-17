@@ -3,7 +3,7 @@
 @if (Slot != null)
 {
     <div class="action-icon" title="@Slot.ActionReason">
-        <ActionIcon Action="Slot.ActionToExecute" Pulse="@isCurrentSlot" />
+        <ActionIcon Action="Slot.ActionToExecute" Pulse="@isCurrentSlot" IsEVCharge="@(Slot.PriceType == PriceType.IOGDispatch)"/>
         <ToolTipPopover ToolTip="@Slot.ActionReason" PointerCursor="true">
             @Slot.ActionToExecute.Description()
         </ToolTipPopover>
