@@ -183,6 +183,8 @@ Dispatch period, Solis Manager checks the state every 5 minutes to ensure the ch
 available, and will cancel the house charge if it ends (because, for example, the EV reaches 100% charge,
 or you unplug your EV from the charger).
 
+![IOGSlots](https://github.com/user-attachments/assets/41a3b945-a6e5-4598-a420-a818a8bebf78)
+
 ### Avoiding Time Drift
 
 The application has a setting that will, every day at 2am, update the inverter time to match internet time.
