@@ -7,6 +7,28 @@ This app is designed to optimally manage the battery charging for your Solar/PV/
 used with the Octopus Smart tariffs. The idea is that it will analyse upcoming prices for Agile, Cosy, Go, etc, 
 and then apply an opinionated strategy to manage your battery based on the cheapest periods.
 
+### Features:
+
+* Manages the charging (and discharging) of your battery to ensure optimal use of Octopus Tariffs
+* Adaptive desktop and mobile UI, with Dark Mode
+* Cross platform (runs on Linux, Windows, Mac, RaspPi, and docker). Very simple installation and setup
+* Works with all Octopus Smart Tariffs (Agile, Cosy, Intelligent Go, Go, Flux, etc)
+* SolCast PV forecasting to add charge/discharge strategy
+* Scheduled actions let you charge/discharge/hold the battery SOC for particular times every day
+* Simple manual overrides - Charge or Discharge your battery with a simple click (no SolisCloud login/password)
+* Comparison Feature to track relative prices between your current tariff and alternatives, for tariff-hoppers
+* Auto-Detection of Tariff Switches with auto-adjusting charging strategy
+* 'Dump-And-Recharge' feature for when Agile prices go negative
+* History view showing forecast/actual PV generation
+* Simulation Mode, so you can see how the charging strategy will work as you step through the day
+
+### Referral Link
+
+If you don't already use Octopus, but like the sound of this app and want to sign up to an Octopus tariff,
+please use my referral link, and we'll both get £50!
+
+* [https://share.octopus.energy/wise-dog-4](https://share.octopus.energy/wise-dog-4)
+
 ### Screenshots:
 
 <img width="1168" alt="PlanTable" src="https://github.com/user-attachments/assets/46c927e5-2d2e-4c29-a19b-a2bde24155b2" />
@@ -22,13 +44,6 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 <img width="300" src="https://github.com/user-attachments/assets/946e6a3b-4261-4915-8ebf-3ff4b0e69db1"/>
 <img width="300" src="https://github.com/user-attachments/assets/8bce3207-1c9d-4047-a5ff-f1540e288521"/>
 <img width="300" src="https://github.com/user-attachments/assets/f9f5e92b-a881-43ec-87af-16d83e195322"/>
-
-### Referral Link
-
-If you don't already use Octopus, but like the sound of this app and want to sign up to an Octopus tariff,
-please use my referral link, and we'll both get £50!
-
-* [https://share.octopus.energy/wise-dog-4](https://share.octopus.energy/wise-dog-4)
 
 ### Warranty / Disclaimer 
 
