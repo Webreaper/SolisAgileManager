@@ -777,7 +777,7 @@ public class InverterManager(
             // Get the battery charge state from the inverter
             var solisState = await solisApi.InverterState();
 
-            if (solisState != null)
+            if (solisState?.data != null)
             {
                 var latestBatterySOC = solisState.data.batteryList
                     .Select(x => x.batteryCapacitySoc)

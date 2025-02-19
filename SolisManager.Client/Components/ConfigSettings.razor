@@ -66,7 +66,7 @@
                 <MudTextField T="string" Label="Solcast API Key" @bind-Value="@config.SolcastAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp HelpText="Set your Solcast Site Identifier here. If you have multiple strings, add the site IDs separated by a comma.">
-                <MudTextField T="string" Label="Solcast Site ID" @bind-Value="@config.SolcastSiteIdentifier" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Solcast Site ID / Resource ID" @bind-Value="@config.SolcastSiteIdentifier" Immediate="true" Variant="UIConstants.MudVariant"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp HelpText="Damping factor for Solcast (e.g., if Solcast estimates are double actual yield, set this to 50%). A value of 100% will use the raw solcast data">
                 <MudNumericField T="int" Label="Solcast Damping/Reduction %" @bind-Value="@DampingPercentageProxy" Min="0" Max="100" Variant="UIConstants.MudVariant"/>

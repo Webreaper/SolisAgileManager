@@ -78,7 +78,7 @@ public class SolisAPI
             new { inverterSn = config.SolisInverterSerial, 
                 cid = CommandIDs.ReadChargeState });
 
-        if (result != null && !string.IsNullOrEmpty(result.data.msg))
+        if (result?.data != null && !string.IsNullOrEmpty(result.data.msg))
         {
             if (result.data.msg != "ERROR")
             {
@@ -514,7 +514,7 @@ public record Data<T>(Page<T> page);
 public record Page<T>(int current, int pages, List<T> records);
 
 public record AtReadData(string msg);
-public record AtReadResponse(AtReadData data);
+public record AtReadResponse(AtReadData? data);
 
 public record ChargeStateData( int chargeAmps, int dischargeAmps, string chargeTimes, string dischargeTimes)
 {
