@@ -199,7 +199,7 @@ public class InverterManager(
             await WriteExecutionHistory();
     }
     
-    private async Task RefreshTariffDataAndRecalculate()
+    private async Task RefreshTariffDataAndRecalculate(bool force)
     {
         try
         {
@@ -213,7 +213,7 @@ public class InverterManager(
             // Our working set
             IEnumerable<OctopusPriceSlot> slots;
 
-            if (config.Simulate && simulationData != null)
+            if (! force && config.Simulate && simulationData != null)
             {
                 slots = simulationData;
             }
@@ -335,32 +335,47 @@ public class InverterManager(
             if (!config.Simulate)
                 await AddToExecutionHistory(firstSlot);
 
-            var matchedSlots = slots.TakeWhile(x => x.ActionToExecute == firstSlot.ActionToExecute).ToList();
-
-            if (matchedSlots.Any())
+            if (config.Simulate)
             {
-                logger.LogDebug("Found {N} slots with matching action to conflate", matchedSlots.Count);
+                var rnd= new Random();
 
-                // The timespan is from the start of the first slot, to the end of the last slot.
-                var start = matchedSlots.First().valid_from;
-                var end = matchedSlots.Last().valid_to;
+                InverterState.BatterySOC = firstSlot.PlanAction switch
+                {
+                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge, 100),
+                    SlotAction.DoNothing => Math.Max(InverterState.BatterySOC -= rnd.Next(5, 9), 20),
+                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge, 20),
+                    _ => InverterState.BatterySOC
+                };
+            }
+            else
+            {
+                var matchedSlots = slots.TakeWhile(x => x.ActionToExecute == firstSlot.ActionToExecute).ToList();
 
-                if (firstSlot.ActionToExecute == SlotAction.Charge)
+                if (matchedSlots.Any())
                 {
-                    await solisApi.SetCharge(start, end, null, null, false, config.Simulate);
-                }
-                else if (firstSlot.ActionToExecute == SlotAction.Discharge)
-                {
-                    await solisApi.SetCharge(null, null, start, end, false, config.Simulate);
-                }
-                else if (firstSlot.ActionToExecute == SlotAction.Hold)
-                {
-                    await solisApi.SetCharge(null, null, start, end, true, config.Simulate);
-                }
-                else
-                {
-                    // Clear the charge
-                    await solisApi.SetCharge(null, null, null, null, false, config.Simulate);
+                    logger.LogDebug("Found {N} slots with matching action to conflate", matchedSlots.Count);
+
+                    // The timespan is from the start of the first slot, to the end of the last slot.
+                    var start = matchedSlots.First().valid_from;
+                    var end = matchedSlots.Last().valid_to;
+
+                    if (firstSlot.ActionToExecute == SlotAction.Charge)
+                    {
+                        await solisApi.SetCharge(start, end, null, null, false, config.Simulate);
+                    }
+                    else if (firstSlot.ActionToExecute == SlotAction.Discharge)
+                    {
+                        await solisApi.SetCharge(null, null, start, end, false, config.Simulate);
+                    }
+                    else if (firstSlot.ActionToExecute == SlotAction.Hold)
+                    {
+                        await solisApi.SetCharge(null, null, start, end, true, config.Simulate);
+                    }
+                    else
+                    {
+                        // Clear the charge
+                        await solisApi.SetCharge(null, null, null, null, false, config.Simulate);
+                    }
                 }
             }
         }
@@ -387,30 +402,39 @@ public class InverterManager(
             OctopusPriceSlot[]? cheapestSlots = null;
             OctopusPriceSlot[]? priciestSlots = null;
 
-            // Calculate how many slots we'd need to charge from full starting *right now*
-            int chargeSlotsNeeededNow = (int)Math.Round(config.SlotsForFullBatteryCharge * config.PeakPeriodBatteryUse, MidpointRounding.ToPositiveInfinity);
-
-            // First, find the cheapest period for charging the battery. This is the set of contiguous
-            // slots, long enough when combined that they can charge the battery from empty to full, and
-            // that has the cheapest average price for that period. This will typically be around 1am in 
-            // the morning, but can shift around a bit. 
-            for (var i = 0; i <= slots.Length - config.SlotsForFullBatteryCharge; i++)
+            // See what the difference is between the target SOC and what we need now.
+            decimal chargeNeededForPeak = config.PeakPeriodBatteryUse - (InverterState.BatterySOC / 100.0M);
+            int chargeSlotsNeeededNow = 0;
+            
+            // See if we actually need a charge
+            if (chargeNeededForPeak > 0)
             {
-                var chargePeriod = slots[i .. (i + config.SlotsForFullBatteryCharge)];
-                var chargePeriodTotal = chargePeriod.Sum(x => x.value_inc_vat);
+                // Calculate how many slots we'd need to charge from full starting *right now*
+                chargeSlotsNeeededNow = (int)Math.Round(config.SlotsForFullBatteryCharge * chargeNeededForPeak,
+                    MidpointRounding.ToPositiveInfinity);
 
-                if (cheapestSlots == null || chargePeriodTotal < cheapestSlots.Sum(x => x.value_inc_vat))
-                    cheapestSlots = chargePeriod;
-            }
+                // First, find the cheapest period for charging the battery. This is the set of contiguous
+                // slots, long enough when combined that they can charge the battery from empty to full, and
+                // that has the cheapest average price for that period. This will typically be around 1am in 
+                // the morning, but can shift around a bit. 
+                for (var i = 0; i <= slots.Length - chargeSlotsNeeededNow; i++)
+                {
+                    var chargePeriod = slots[i .. (i + chargeSlotsNeeededNow)];
+                    var chargePeriodTotal = chargePeriod.Sum(x => x.value_inc_vat);
 
-            if (cheapestSlots != null && cheapestSlots.First().valid_from == slots[0].valid_from)
-            {
-                // If the cheapest period starts *right now* then reduce the number of slots
-                // required down based on the battery SOC. E.g., if we've got 6 slots, but
-                // the battery is 50% full, we don't need all six. So take the n cheapest. 
-                cheapestSlots = cheapestSlots.OrderBy(x => x.value_inc_vat)
-                                             .Take(chargeSlotsNeeededNow)
-                                             .ToArray();
+                    if (cheapestSlots == null || chargePeriodTotal < cheapestSlots.Sum(x => x.value_inc_vat))
+                        cheapestSlots = chargePeriod;
+                }
+
+                if (cheapestSlots != null && cheapestSlots.First().valid_from == slots[0].valid_from)
+                {
+                    // If the cheapest period starts *right now* then reduce the number of slots
+                    // required down based on the battery SOC. E.g., if we've got 6 slots, but
+                    // the battery is 50% full, we don't need all six. So take the n cheapest. 
+                    cheapestSlots = cheapestSlots.OrderBy(x => x.value_inc_vat)
+                        .Take(chargeSlotsNeeededNow)
+                        .ToArray();
+                }
             }
 
             // Similar calculation for the peak period.
@@ -791,7 +815,7 @@ public class InverterManager(
     
     public async Task RefreshAgileRates()
     {
-        await RefreshTariffDataAndRecalculate();
+        await RefreshTariffDataAndRecalculate(false);
     }
 
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
@@ -962,7 +986,11 @@ public class InverterManager(
         }
         newConfig.CopyPropertiesTo(config);
         await config.SaveToFile(Program.ConfigFolder);
-        await RefreshTariffDataAndRecalculate();
+        
+        if (config.Simulate)
+            await ResetSimulation();
+        
+        await RefreshTariffDataAndRecalculate(true);
         
         return new ConfigSaveResponse{ Success = true };
     }
