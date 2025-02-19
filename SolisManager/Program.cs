@@ -84,6 +84,7 @@ public class Program
         builder.Services.AddSingleton<InverterManager>();
         builder.Services.AddSingleton<IInverterService>(x => x.GetRequiredService<InverterManager>());
         builder.Services.AddSingleton<IInverterRefreshService>(x => x.GetRequiredService<InverterManager>());
+        builder.Services.AddSingleton<IToolsService, RestartService>();
 
         builder.Services.AddSingleton<BatteryScheduler>();
         builder.Services.AddSingleton<RatesScheduler>();
@@ -93,6 +94,7 @@ public class Program
         builder.Services.AddSingleton<TariffScheduler>();
         builder.Services.AddSingleton<InverterTimeAdjustScheduler>();
 
+        builder.Services.AddSingleton<RestartService>();
         builder.Services.AddSingleton<SolisAPI>();
         builder.Services.AddSingleton<SolcastAPI>();
         builder.Services.AddSingleton<OctopusAPI>();

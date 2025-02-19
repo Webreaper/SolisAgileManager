@@ -198,7 +198,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         {
             var response = JsonSerializer.Deserialize<KrakenDispatchResponse>(responseStr);
 
-            if (response?.data != null)
+            if (response?.data?.plannedDispatches != null)
             {
                 // Pick out the ones with smart-charge, they're the ones we care about
                 var smartChargeDispatches = response.data.plannedDispatches

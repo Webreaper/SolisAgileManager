@@ -2,7 +2,9 @@
 
 @inject IInverterService clientInverterService
 @inject NavigationManager navManager
+@inject IDialogService dialogService
 @inject ISnackbar snackBar
+@inject IToolsService toolsService
 
 <PageTitle>Solis Manager Tools</PageTitle>
 
@@ -12,9 +14,22 @@
     <MudButton OnClick="DishargeBattery" Variant="UIConstants.MudVariant">Discharge the Battery</MudButton>
     <MudButton OnClick="DumpAndChargeBattery" Variant="UIConstants.MudVariant">Dump and Recharge the Battery</MudButton>
 </div>
+<h2>Application Tools</h2>
+<div class="tool-buttons">
+    <MudButton OnClick="RestartApp" Variant="UIConstants.MudVariant">Restart SolisManager</MudButton>
+</div>
 
 @code {
-
+    private async Task RestartApp()
+    {
+        var result = await dialogService.ShowMessageBox("Restart Solis Manager?", "Do you really want to shut down and restart the app?", "Shutdown & Restart", "Cancel");
+        if (result != null && result.Value)
+        {
+            snackBar.Add("Application will be restarted", Severity.Warning);
+            await toolsService.RestartApplication();
+        }
+    }
+    
     private async Task ChargeBattery()
     {
         await clientInverterService.ChargeBattery();

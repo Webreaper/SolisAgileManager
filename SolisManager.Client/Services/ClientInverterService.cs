@@ -109,6 +109,11 @@ public class ClientInverterService( HttpClient httpClient ) : IInverterService
         return result;
     }
 
+    public async Task RestartApplication()
+    {
+        await httpClient.GetAsync("inverter/restartapplication");
+    }
+
     public async Task<OctopusProductResponse?> GetOctopusProducts()
     {
         var result = await httpClient.GetFromJsonAsync<OctopusProductResponse>("inverter/octopusproducts");

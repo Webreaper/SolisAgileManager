@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using SolisManager.Client.Pages;
+using SolisManager.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Models;
 
@@ -123,6 +124,13 @@ public static class EndpointMapper
             async  ([FromServices] IInverterService service) =>
             {
                 await service.ResetSimulation();
+                return TypedResults.Ok();
+            });
+
+        group.MapGet("restartapplication",
+            ([FromServices] RestartService service) =>
+            {
+                service.RestartApplication();
                 return TypedResults.Ok();
             });
         return group;
