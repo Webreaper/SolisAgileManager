@@ -25,14 +25,11 @@ public class RestartService(IHostApplicationLifetime appLifetime, ILogger<Restar
         {
             try
             {
-                var psi = new ProcessStartInfo(
-                    cmdLineArgs[0],
-                    cmdLineArgs[1])
+                var psi = new ProcessStartInfo(cmdLineArgs[0], cmdLineArgs[1])
                 {
-                    UseShellExecute = true, 
+                    UseShellExecute = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
                 };
-                
-                psi.WorkingDirectory = Directory.GetCurrentDirectory();
 
                 logger.LogWarning("Starting new instance of SolisManager...");
                 Process.Start(psi);
