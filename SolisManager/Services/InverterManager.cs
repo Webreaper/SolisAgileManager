@@ -199,7 +199,7 @@ public class InverterManager(
             await WriteExecutionHistory();
     }
     
-    private async Task RefreshTariffDataAndRecalculate(bool force)
+    private async Task RefreshTariffDataAndRecalculate()
     {
         try
         {
@@ -213,7 +213,7 @@ public class InverterManager(
             // Our working set
             IEnumerable<OctopusPriceSlot> slots;
 
-            if (! force && config.Simulate && simulationData != null)
+            if (config.Simulate && simulationData != null)
             {
                 slots = simulationData;
             }
@@ -288,14 +288,36 @@ public class InverterManager(
         // If the tariff is IOG, apply any charging when there's smart-charge slots
         await ApplyIOGDispatches(processedSlots);
 
-        // Update the state
         InverterState.Prices = processedSlots;
+
+        // Update the state
+        if (config.Simulate)
+            simulationData = processedSlots;
 
         // And execute
         await ExecuteSlotChanges(processedSlots);
+    }
 
-        if (config.Simulate && simulationData == null)
-            simulationData = InverterState.Prices.ToList();
+    private void ExecuteSimulationUpdates(IEnumerable<OctopusPriceSlot> slots)
+    {
+        if (config.Simulate)
+        {
+            var rnd = new Random();
+            var firstSlot = slots.FirstOrDefault();
+
+            if (firstSlot != null)
+            {
+                InverterState.BatterySOC = firstSlot.PlanAction switch
+                {
+                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge,
+                        100),
+                    SlotAction.DoNothing => Math.Max(InverterState.BatterySOC -= rnd.Next(4, 7), 20),
+                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge,
+                        20),
+                    _ => InverterState.BatterySOC
+                };
+            }
+        }
     }
     
     private IEnumerable<ChangeSlotActionRequest> GetExistingManualSlotOverrides()
@@ -335,47 +357,32 @@ public class InverterManager(
             if (!config.Simulate)
                 await AddToExecutionHistory(firstSlot);
 
-            if (config.Simulate)
+            var matchedSlots = slots.TakeWhile(x => x.ActionToExecute == firstSlot.ActionToExecute).ToList();
+
+            if (matchedSlots.Any())
             {
-                var rnd= new Random();
+                logger.LogDebug("Found {N} slots with matching action to conflate", matchedSlots.Count);
 
-                InverterState.BatterySOC = firstSlot.PlanAction switch
+                // The timespan is from the start of the first slot, to the end of the last slot.
+                var start = matchedSlots.First().valid_from;
+                var end = matchedSlots.Last().valid_to;
+
+                if (firstSlot.ActionToExecute == SlotAction.Charge)
                 {
-                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge, 100),
-                    SlotAction.DoNothing => Math.Max(InverterState.BatterySOC -= rnd.Next(5, 9), 20),
-                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge, 20),
-                    _ => InverterState.BatterySOC
-                };
-            }
-            else
-            {
-                var matchedSlots = slots.TakeWhile(x => x.ActionToExecute == firstSlot.ActionToExecute).ToList();
-
-                if (matchedSlots.Any())
+                    await solisApi.SetCharge(start, end, null, null, false, config.Simulate);
+                }
+                else if (firstSlot.ActionToExecute == SlotAction.Discharge)
                 {
-                    logger.LogDebug("Found {N} slots with matching action to conflate", matchedSlots.Count);
-
-                    // The timespan is from the start of the first slot, to the end of the last slot.
-                    var start = matchedSlots.First().valid_from;
-                    var end = matchedSlots.Last().valid_to;
-
-                    if (firstSlot.ActionToExecute == SlotAction.Charge)
-                    {
-                        await solisApi.SetCharge(start, end, null, null, false, config.Simulate);
-                    }
-                    else if (firstSlot.ActionToExecute == SlotAction.Discharge)
-                    {
-                        await solisApi.SetCharge(null, null, start, end, false, config.Simulate);
-                    }
-                    else if (firstSlot.ActionToExecute == SlotAction.Hold)
-                    {
-                        await solisApi.SetCharge(null, null, start, end, true, config.Simulate);
-                    }
-                    else
-                    {
-                        // Clear the charge
-                        await solisApi.SetCharge(null, null, null, null, false, config.Simulate);
-                    }
+                    await solisApi.SetCharge(null, null, start, end, false, config.Simulate);
+                }
+                else if (firstSlot.ActionToExecute == SlotAction.Hold)
+                {
+                    await solisApi.SetCharge(null, null, start, end, true, config.Simulate);
+                }
+                else
+                {
+                    // Clear the charge
+                    await solisApi.SetCharge(null, null, null, null, false, config.Simulate);
                 }
             }
         }
@@ -815,7 +822,7 @@ public class InverterManager(
     
     public async Task RefreshAgileRates()
     {
-        await RefreshTariffDataAndRecalculate(false);
+        await RefreshTariffDataAndRecalculate();
     }
 
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
@@ -990,7 +997,7 @@ public class InverterManager(
         if (config.Simulate)
             await ResetSimulation();
         
-        await RefreshTariffDataAndRecalculate(true);
+        await RefreshTariffDataAndRecalculate();
         
         return new ConfigSaveResponse{ Success = true };
     }
@@ -1102,8 +1109,11 @@ public class InverterManager(
     {
         if (config.Simulate && simulationData is { Count: > 0 })
         {
+            // Apply some charging or discharging for the slot that's about to drop off
+            ExecuteSimulationUpdates(simulationData);
+
             simulationData.RemoveAt(0);
-            await RecalculateSlotPlan(simulationData);
+            await RefreshTariffDataAndRecalculate();
         }
     }
 

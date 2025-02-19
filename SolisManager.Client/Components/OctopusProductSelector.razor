@@ -3,9 +3,10 @@
 <div class="product-selector">
     @if (products != null)
     {
-        @if (selectedRegion == null && RegionCode != null && regions != null && string.IsNullOrEmpty(TariffCode))
+        @if (selectedRegion == null && regions != null && string.IsNullOrEmpty(TariffCode))
         {
-            <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" Label="Region" Variant="UIConstants.MudVariant" Dense="true">
+            <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" @bind-Value:after="SelectedRegionChanged" 
+                                        Label="Region" Variant="UIConstants.MudVariant" Dense="true">
                 @foreach (var region in regions.Values)
                 {
                     <MudSelectItem T="OctopusRegion" Value="@region">@region.fullName</MudSelectItem>
@@ -60,9 +61,26 @@
 
     private Dictionary<char, OctopusRegion>? regions;
     
-    private void ClearRegion()
+    private async Task ClearRegion()
     {
         selectedRegion = null;
+        RegionCode = null;
+        TariffCode = null;
+
+        await SelectedProductChanged();
+    }
+
+    private async Task SelectedRegionChanged()
+    {
+        if (selectedRegion == null)
+        {
+            TariffCode = null;
+            RegionCode = null;
+        }
+        else
+        {
+            RegionCode = selectedRegion.code[0];
+        }
     }
 
     private async Task SelectedProductChanged()
@@ -132,7 +150,7 @@
             { 'E', new OctopusRegion("E", "W Mids", "West Midlands") },
             { 'F', new OctopusRegion("F", "NE", "North East England") },
             { 'G', new OctopusRegion("G", "NW", "North West England") },
-            { 'H', new OctopusRegion("H", "South", "Soutern England") },
+            { 'H', new OctopusRegion("H", "South", "Southern England") },
             { 'J', new OctopusRegion("J", "SE", "South East England") },
             { 'K', new OctopusRegion("K", "S Wales", "South Wales") },
             { 'L', new OctopusRegion("L", "SW", "South West England") },
