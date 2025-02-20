@@ -1107,13 +1107,20 @@ public class InverterManager(
 
     public async Task AdvanceSimulation()
     {
-        if (config.Simulate && simulationData is { Count: > 0 })
+        if (config.Simulate)
         {
-            // Apply some charging or discharging for the slot that's about to drop off
-            ExecuteSimulationUpdates(simulationData);
+            if (simulationData is { Count: > 0 })
+            {
+                // Apply some charging or discharging for the slot that's about to drop off
+                ExecuteSimulationUpdates(simulationData);
 
-            simulationData.RemoveAt(0);
-            await RefreshTariffDataAndRecalculate();
+                simulationData.RemoveAt(0);
+                await RefreshTariffDataAndRecalculate();
+            }
+            else
+            {
+                await ResetSimulation();
+            }
         }
     }
 
