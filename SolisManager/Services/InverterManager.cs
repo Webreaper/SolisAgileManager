@@ -444,6 +444,8 @@ public class InverterManager(
                 }
             }
 
+            decimal cheapestPrice = 100, mostExpensivePrice = 0;
+            
             // Similar calculation for the peak period.
             int peakPeriodLength = 7; // Peak period is usually 4pm - 7:30pm, so 7 slots.
             for (var i = 0; i <= slots.Length - peakPeriodLength; i++)
@@ -462,6 +464,9 @@ public class InverterManager(
                 {
                     slot.PriceType = PriceType.MostExpensive;
                     slot.ActionReason = "Peak price slot - avoid charging";
+                    
+                    if( slot.value_inc_vat > mostExpensivePrice )
+                        mostExpensivePrice = slot.value_inc_vat;
                 }
             }
 
@@ -476,9 +481,27 @@ public class InverterManager(
                     slot.PriceType = PriceType.Cheapest;
                     slot.PlanAction = SlotAction.Charge;
                     slot.ActionReason = "This is the cheapest set of slots, to fully charge the battery";
+
+                    if( slot.value_inc_vat < cheapestPrice )
+                        cheapestPrice = slot.value_inc_vat;
                 }
             }
 
+            foreach (var slot in slots)
+            {
+                if (slot.value_inc_vat == cheapestPrice)
+                {
+                    slot.PriceType = PriceType.Cheapest;
+                    slot.ActionReason = "This is the cheapest set of slots, to fully charge the battery";
+                }
+
+                if (slot.value_inc_vat == mostExpensivePrice)
+                {
+                    slot.PriceType = PriceType.MostExpensive;
+                    slot.ActionReason = "Peak price slot - avoid charging";
+                }
+            }
+            
             // Now, we've calculated the cheapest and most expensive slots. From the remaining slots, calculate
             // the average rate across them. We then use that average rate to determine if any other slots across
             // the day are a bit cheaper. So look for anything that's 90% of the average, or below, and mark it
