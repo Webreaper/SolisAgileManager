@@ -208,8 +208,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
                 logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned and {C} completed dispatches)", 
                                     smartChargeDispatches.Length, response.data.plannedDispatches.Length, response.data.completedDispatches.Length);
-                if( smartChargeDispatches.Any() )
-                    logger.LogInformation("SmartCharge Dispatches: {S}", JsonSerializer.Serialize(smartChargeDispatches) );
+
+                if (smartChargeDispatches.Any())
+                {
+                    var logLines = smartChargeDispatches
+                                .Select( x => $"  Time: {x.start:HH:mm} - {x.end:HH:mm}, Type: {x.meta?.source}, Delta: {x.delta}")
+                                .ToArray();
+                    logger.LogInformation("SmartCharge Dispatches:\n{L}", string.Join("\n", logLines) );
+                }
                 
                 return smartChargeDispatches;
             }
@@ -219,7 +225,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
     }
 
     public record KrakenDispatchMeta(string? location, string? source);
-    public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string? startDt, string? endDt, string delta, KrakenDispatchMeta? meta);
+    public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string delta, KrakenDispatchMeta? meta);
     public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches, KrakenPlannedDispatch[] completedDispatches);
     public record KrakenDispatchResponse(KrakenDispatchData data);
     
