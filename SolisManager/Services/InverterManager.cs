@@ -1119,10 +1119,10 @@ public class InverterManager(
 
     public async Task ResetSimulation()
     {
-        if (config.Simulate && simulationData is { Count: 0 })
+        if (config.Simulate)
         {
             simulationData = null;
-            await RecalculateSlotPlan(InverterState.Prices);
+            await RefreshTariffDataAndRecalculate();
         }
     }
 
