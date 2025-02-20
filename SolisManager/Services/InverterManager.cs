@@ -408,7 +408,8 @@ public class InverterManager(
             
             OctopusPriceSlot[]? cheapestSlots = null;
             OctopusPriceSlot[]? priciestSlots = null;
-
+            decimal cheapestPrice = 100, mostExpensivePrice = 0;
+            
             // See what the difference is between the target SOC and what we need now.
             decimal chargeNeededForPeak = config.PeakPeriodBatteryUse - (InverterState.BatterySOC / 100.0M);
             int chargeSlotsNeeededNow = 0;
@@ -444,8 +445,6 @@ public class InverterManager(
                 }
             }
 
-            decimal cheapestPrice = 100, mostExpensivePrice = 0;
-            
             // Similar calculation for the peak period.
             int peakPeriodLength = 7; // Peak period is usually 4pm - 7:30pm, so 7 slots.
             for (var i = 0; i <= slots.Length - peakPeriodLength; i++)
