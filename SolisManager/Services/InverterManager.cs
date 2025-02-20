@@ -487,6 +487,10 @@ public class InverterManager(
                 }
             }
 
+            // We've calculated the most expensive price and the cheapest price. So go through and
+            // find any slots which have the same peak or cheap price and categorise them the same.
+            // This will make it more consisten for all tariffs - those like Go and Cosy will show
+            // all cheapest and most expensive categorisations.
             foreach (var slot in slots)
             {
                 if (slot.value_inc_vat == cheapestPrice)
