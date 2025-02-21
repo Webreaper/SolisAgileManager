@@ -4,5 +4,6 @@
         <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
         <TargetFramework>net9.0</TargetFramework>
         <LangVersion>latest</LangVersion>
+        <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
 </Project>
