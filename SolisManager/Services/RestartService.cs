@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 
 namespace SolisManager.Services;
 

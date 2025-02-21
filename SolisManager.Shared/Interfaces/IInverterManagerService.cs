@@ -1,8 +1,8 @@
 using SolisManager.Shared.Models;
 
-namespace SolisManager.Shared;
+namespace SolisManager.Shared.Interfaces;
 
-public interface IInverterService
+public interface IInverterManagerService
 {
     public SolisManagerState InverterState { get; }
     public Task RefreshInverterState();

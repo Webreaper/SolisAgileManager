@@ -1,6 +1,7 @@
 ﻿@page "/tools"
+@using SolisManager.Shared.Interfaces
 
-@inject IInverterService clientInverterService
+@inject IInverterManagerService clientInverterManagerService
 @inject NavigationManager navManager
 @inject IDialogService dialogService
 @inject ISnackbar snackBar
@@ -32,21 +33,21 @@
     
     private async Task ChargeBattery()
     {
-        await clientInverterService.ChargeBattery();
+        await clientInverterManagerService.ChargeBattery();
         snackBar.Add("Battery set to charge manually", Severity.Info);
         navManager.NavigateTo("/");
     }
     
     private async Task DishargeBattery()
     {
-        await clientInverterService.DischargeBattery();
+        await clientInverterManagerService.DischargeBattery();
         snackBar.Add("Battery set to discharge manually", Severity.Info);
         navManager.NavigateTo("/");
     }
 
     private async Task DumpAndChargeBattery()
     {
-        await clientInverterService.DumpAndChargeBattery();
+        await clientInverterManagerService.DumpAndChargeBattery();
         snackBar.Add("Battery set to dump to the grid and then recharge", Severity.Info);
         navManager.NavigateTo("/");
     }

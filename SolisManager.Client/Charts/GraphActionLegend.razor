@@ -1,4 +1,5 @@
-@inject IInverterService inverterService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService inverterManagerService
 
 <div class="title-row">
     <h5>@ChartTitle</h5>
@@ -37,7 +38,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        config = await inverterService.GetConfig();
+        config = await inverterManagerService.GetConfig();
 
         await base.OnInitializedAsync();
     }

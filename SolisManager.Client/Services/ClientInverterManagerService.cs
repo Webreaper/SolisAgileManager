@@ -1,11 +1,12 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.Client.Services;
 
-public class ClientInverterService( HttpClient httpClient ) : IInverterService
+public class ClientInverterManagerService( HttpClient httpClient ) : IInverterManagerService
 {
     public SolisManagerState InverterState { get; private set; } = new();
 

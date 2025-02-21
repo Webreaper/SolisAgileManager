@@ -6,6 +6,7 @@ using MudBlazor.Services;
 using SolisManager.Client.Constants;
 using SolisManager.Client.Services;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 
 namespace SolisManager.Client;
 
@@ -20,7 +21,7 @@ class Program
             BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
         });
 
-        builder.Services.AddScoped<IInverterService, ClientInverterService>();
+        builder.Services.AddScoped<IInverterManagerService, ClientInverterManagerService>();
         builder.Services.AddScoped<IToolsService, ClientToolsService>();
         
         builder.Services.AddMudServices();

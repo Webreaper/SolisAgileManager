@@ -10,6 +10,7 @@ public record SolisManagerConfig
     public string SolisAPIKey { get; set; } = string.Empty;
     public string SolisAPISecret { get; set; } = string.Empty;
     public string SolisInverterSerial { get; set; } = string.Empty;
+    public int MaxChargeRateAmps { get; set; } = 50;
     public string OctopusAccountNumber { get; set; } = string.Empty;
     public string OctopusAPIKey { get; set; } = string.Empty;
     public string OctopusProductCode { get; set; } = String.Empty;
@@ -17,8 +18,6 @@ public record SolisManagerConfig
     public int AlwaysChargeBelowPrice { get; set; } = 10;
     public int? AlwaysChargeBelowSOC { get; set; } = null;
     public int LowBatteryPercentage { get; set; } = 25;
-    public int MaxChargeRateAmps { get; set; } = 50;
-
     public string SolcastAPIKey { get; set; } = string.Empty;  
     public string SolcastSiteIdentifier { get; set; } = string.Empty;
     public decimal SolcastDampFactor { get; set; } = 1M; // Default to 100% of the solcast value

@@ -4,6 +4,8 @@ using System.Text.Json;
 using Flurl;
 using Flurl.Http;
 using SolisManager.Extensions;
+using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 using static SolisManager.Extensions.EnergyExtensions;
 namespace SolisManager.APIWrappers;
@@ -12,7 +14,7 @@ namespace SolisManager.APIWrappers;
 /// https://docs.solcast.com.au/#api-authentication
 /// https://docs.solcast.com.au/#155071c9-3457-47ea-a689-88fa894b0f51
 /// </summary>
-public class SolcastAPI(SolisManagerConfig config, ILogger<SolcastAPI> logger)
+public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentProvider, ILogger<SolcastAPI> logger)
 {
     public DateTime? lastAPIUpdate
     {
@@ -146,7 +148,7 @@ public class SolcastAPI(SolisManagerConfig config, ILogger<SolcastAPI> logger)
         await LoadCachedSolcastDataFromDisk();
         
         var url = "https://api.solcast.com.au"
-            .WithHeader("User-Agent", Program.UserAgent)
+            .WithHeader("User-Agent", userAgentProvider.UserAgent)
             .AppendPathSegment("rooftop_sites")
             .AppendPathSegment(siteIdentifier)
             .AppendPathSegment("forecasts")

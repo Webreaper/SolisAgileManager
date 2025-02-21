@@ -15,8 +15,10 @@ using Serilog.Events;
 using SolisManager.Client.Constants;
 using SolisManager.Client.Services;
 using SolisManager.Extensions;
+using SolisManager.Inverters.Solis;
 using SolisManager.Services;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
 namespace SolisManager;
@@ -26,7 +28,6 @@ public class Program
     private const int solisManagerPort = 5169;
 
     public static string ConfigFolder => configFolder;
-    public static string? UserAgent;
     private static string configFolder = "config";
 
     public static async Task Main(string[] args)
@@ -80,9 +81,10 @@ public class Program
 
         builder.Services.AddDataProtection();
 
+        builder.Services.AddSingleton<IUserAgentProvider, UserAgentProvider>();
         builder.Services.AddSingleton<SolisManagerConfig>();
         builder.Services.AddSingleton<InverterManager>();
-        builder.Services.AddSingleton<IInverterService>(x => x.GetRequiredService<InverterManager>());
+        builder.Services.AddSingleton<IInverterManagerService>(x => x.GetRequiredService<InverterManager>());
         builder.Services.AddSingleton<IInverterRefreshService>(x => x.GetRequiredService<InverterManager>());
         builder.Services.AddSingleton<IToolsService, RestartService>();
 
@@ -123,8 +125,6 @@ public class Program
         logger.LogInformation("===========================================================");
         logger.LogInformation("Application started. Build version v{V} Logs being written to {C}", version, ConfigFolder);
 
-        UserAgent = $"SolisAgileManager/{version}";
-        
         // First, load the config
         var config = app.Services.GetRequiredService<SolisManagerConfig>();
         if (!config.ReadFromFile(ConfigFolder))

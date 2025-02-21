@@ -1,4 +1,4 @@
-namespace SolisManager.Shared;
+namespace SolisManager.Shared.Interfaces;
 
 public interface IToolsService
 {

@@ -1,6 +1,7 @@
 @using Humanizer
 @using SolisManager.Client.Layout
-@inject IInverterService clientInverterService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService clientInverterManagerService
 @inject IDialogService dialogService
 
 <PageTitle>Solis Manager</PageTitle>
@@ -101,8 +102,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        config = await clientInverterService.GetConfig();
-        historyEntries = await clientInverterService.GetHistory();
+        config = await clientInverterManagerService.GetConfig();
+        historyEntries = await clientInverterManagerService.GetHistory();
 
         await base.OnInitializedAsync();
     }

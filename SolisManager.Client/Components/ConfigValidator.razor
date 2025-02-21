@@ -1,4 +1,5 @@
-@inject IInverterService inverterService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService inverterManagerService
 @inject IDialogService dialogService 
 
 @if (ConfigIsValid)
@@ -47,7 +48,7 @@ else
     
     private async Task CheckValidState()
     {
-        var config = await inverterService.GetConfig();
+        var config = await inverterManagerService.GetConfig();
 
         bool newState = config.IsValid();
 

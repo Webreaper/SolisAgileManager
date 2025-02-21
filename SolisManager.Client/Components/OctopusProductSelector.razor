@@ -1,4 +1,5 @@
-@inject IInverterService service
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService managerService
 
 <div class="product-selector">
     @if (products != null)
@@ -70,7 +71,7 @@
         await SelectedProductChanged();
     }
 
-    private async Task SelectedRegionChanged()
+    private void SelectedRegionChanged()
     {
         if (selectedRegion == null)
         {
@@ -87,7 +88,7 @@
     {
         if (selectedProduct != null && selectedRegion != null)
         {
-            tariffs = await service.GetOctopusTariffs(selectedProduct.code);
+            tariffs = await managerService.GetOctopusTariffs(selectedProduct.code);
 
             if (tariffs != null && tariffs.single_register_electricity_tariffs.TryGetValue($"_{selectedRegion.code}", out var tariff))
             {
@@ -129,7 +130,7 @@
         if (Disabled)
             RegionClearable = false;
 
-        var octProducts = await service.GetOctopusProducts();
+        var octProducts = await managerService.GetOctopusProducts();
 
         if (octProducts != null)
             products = octProducts.results.Where(x => x is { brand: "OCTOPUS_ENERGY", direction: "IMPORT" }).ToList();

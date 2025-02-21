@@ -1,4 +1,5 @@
-@inject IInverterService invService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService invManagerService
 
 @if (@ChildContent != null && appVersion != null && appVersion.UpgradeAvailable)
 {
@@ -12,7 +13,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        appVersion = await invService.GetVersionInfo();
+        appVersion = await invManagerService.GetVersionInfo();
 
         await base.OnInitializedAsync();
     }

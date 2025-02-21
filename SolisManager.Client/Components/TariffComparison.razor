@@ -1,6 +1,7 @@
 @using ApexCharts
+@using SolisManager.Shared.Interfaces
 @using Size = MudBlazor.Size
-@inject IInverterService inverterService
+@inject IInverterManagerService inverterManagerService
 
 <PageTitle>Solis Manager</PageTitle>
 
@@ -32,11 +33,11 @@ else
     {
         if (! string.IsNullOrEmpty(currentTariff) && ! string.IsNullOrEmpty(selectedTariff))
         {
-            var config = await inverterService.GetConfig();
+            var config = await inverterManagerService.GetConfig();
             config.LastComparisonTariff = selectedTariff;
-            await inverterService.SaveConfig(config);
+            await inverterManagerService.SaveConfig(config);
             
-            comparison = await inverterService.GetTariffComparisonData(currentTariff, selectedTariff);
+            comparison = await inverterManagerService.GetTariffComparisonData(currentTariff, selectedTariff);
             
             StateHasChanged();
         }
@@ -44,7 +45,7 @@ else
     
     protected override async Task OnInitializedAsync()
     {
-        var config = await inverterService.GetConfig();
+        var config = await inverterManagerService.GetConfig();
         currentTariff = config.OctopusProductCode;
         selectedTariff = config.LastComparisonTariff;
 

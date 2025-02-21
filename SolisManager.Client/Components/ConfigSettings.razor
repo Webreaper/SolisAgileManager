@@ -1,4 +1,5 @@
-@inject IInverterService inverterService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService inverterManagerService
 @inject IDialogService dialogService
 @inject ISnackbar snackbar
 @inject NavigationManager navManager
@@ -177,7 +178,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        config = await inverterService.GetConfig();
+        config = await inverterManagerService.GetConfig();
         originalConfigJson = JsonSerializer.Serialize(config);
         
         await base.OnInitializedAsync();
@@ -199,7 +200,7 @@
     {
         if (config != null)
         {
-            var response = await inverterService.SaveConfig(config);
+            var response = await inverterManagerService.SaveConfig(config);
 
             if (response.Success)
             {
@@ -225,7 +226,7 @@
         if (result != null && result.Value)
         {
             await SaveConfig();
-            await inverterService.TestCharge();
+            await inverterManagerService.TestCharge();
 
             snackbar.Add("Config Settings Updated and Test Charge Initiated", Severity.Warning);
         }

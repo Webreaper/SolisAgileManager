@@ -4,15 +4,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
-namespace SolisManager.APIWrappers;
+namespace SolisManager.Inverters.Solis;
 
 /// A wrapper for the Solis API Based on Jon Glass's implementation
 /// here: https://github.com/jmg48/solis-cloud
 /// But extended to support setting charges (based on
 /// https://github.com/stevegal/solis-control
-public class SolisAPI
+public class SolisAPI : IInverter
 {
     private readonly MemoryCacheEntryOptions _cacheOptions =
         new MemoryCacheEntryOptions()
@@ -22,6 +24,7 @@ public class SolisAPI
     private readonly HttpClient client = new();
     private readonly ILogger<SolisAPI> logger;
     private readonly SolisManagerConfig config;
+    private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
 
     private string simulatedChargeState = string.Empty;
@@ -33,8 +36,9 @@ public class SolisAPI
         ReadChargeState = 4643
     }
     
-    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, ILogger<SolisAPI> _logger)
+    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
     {
+        userAgentProvider = _userAgentProvider;
         config = _config;
         logger = _logger;
         memoryCache = _cache;
@@ -50,7 +54,7 @@ public class SolisAPI
         return result;
     }
 
-    public async Task<IReadOnlyList<UserStation>> UserStationList(int pageNo, int pageSize)
+    private async Task<IReadOnlyList<UserStation>> UserStationList(int pageNo, int pageSize)
     {
         var result = await Post<ListResponse<UserStation>>(1,"userStationList", new UserStationListRequest(pageNo, pageSize));
         if(result != null)
@@ -59,7 +63,7 @@ public class SolisAPI
         return [];
     }
 
-    public async Task<IReadOnlyList<Inverter>> InverterList(int pageNo, int pageSize, int? stationId)
+    private async Task<IReadOnlyList<Inverter>> InverterList(int pageNo, int pageSize, int? stationId)
     {
         var result = await Post<ListResponse<Inverter>>(1,"inverterList", new InverterListRequest(pageNo, pageSize, stationId));
         if( result != null )
@@ -262,13 +266,13 @@ public class SolisAPI
         }
     }
 
-    public async Task<IEnumerable<InverterFiveMinData>?> GetInverterDay(int dayOffset = 0)
+    public async Task<IEnumerable<InverterFiveMinData>?> GetHistoricData(int dayOffset = 0)
     {
         var dayToQuery = DateTime.UtcNow.AddDays(-1 * dayOffset);
-        return await GetInverterDay(dayToQuery);
+        return await GetHistoricData(dayToQuery);
     }
 
-    public async Task<IEnumerable<InverterFiveMinData>?> GetInverterDay(DateTime dayToQuery)
+    public async Task<IEnumerable<InverterFiveMinData>?> GetHistoricData(DateTime dayToQuery)
     {
         var cacheKey = $"inverterDay-{dayToQuery:yyyyMMdd}";
 
@@ -347,7 +351,7 @@ public class SolisAPI
     /// Get the historic graph data for the inverter
     /// </summary>
     /// <returns></returns>
-    public async Task<StationEnergyDayResponse?> GetStationEnergyDay(int dayOffset = 0)
+    private async Task<StationEnergyDayResponse?> GetStationEnergyDay(int dayOffset = 0)
     {
         var dayToQuery = DateTime.UtcNow.AddDays(-1 * dayOffset);
         var cacheKey = $"stationDayEnergyList-{dayToQuery:yyyyMMdd}";
@@ -442,7 +446,7 @@ public class SolisAPI
 
             request.Headers.Add("Time", date);
             request.Headers.Add("Authorization", auth);
-            request.Headers.Add("User-Agent", Program.UserAgent );
+            request.Headers.Add("User-Agent", userAgentProvider.UserAgent );
             request.Content.Headers.Add("Content-Md5", contentMd5);
 
             var result = await client.SendAsync(request);
@@ -473,18 +477,6 @@ public record StationEnergyRecord(
 public record StationEnergyDayResponse(string msg, StationEnergyDayRecords data);
 
 public record StationEnergyDayRecords(IEnumerable<StationEnergyRecord> recordss);
-
-public record InverterFiveMinData(
-    DateTime Start,
-    decimal BatterySOC,
-    decimal BatteryChargePowerKW,
-    decimal CurrentPVYieldKW,
-    decimal CurrentHouseLoadKW,
-    decimal HomeLoadKWH,
-    decimal PVYieldKWH,
-    decimal ImportKWH,
-    decimal ExportKWH
-);
 
 public record InverterDayRecord(
     string timeStr,

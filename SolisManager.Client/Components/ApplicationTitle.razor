@@ -1,5 +1,6 @@
 @using Humanizer
-@inject IInverterService inverterService
+@using SolisManager.Shared.Interfaces
+@inject IInverterManagerService inverterManagerService
 
 <text>Solis @TariffName Manager</text>
 
@@ -8,7 +9,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        var config = await inverterService.GetConfig();
+        var config = await inverterManagerService.GetConfig();
 
         var product = config.OctopusProductCode.GetProductFromTariffCode();
         

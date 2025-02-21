@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
+using SolisManager.Inverters.Solis;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.Services;
@@ -15,7 +17,7 @@ public class InverterManager(
     OctopusAPI octopusAPI,
     SolisAPI solisApi,
     SolcastAPI solcastApi,
-    ILogger<InverterManager> logger) : IInverterService, IInverterRefreshService
+    ILogger<InverterManager> logger) : IInverterManagerService, IInverterRefreshService
 {
     public SolisManagerState InverterState { get; } = new();
 
@@ -155,7 +157,7 @@ public class InverterManager(
 
         foreach (var day in daysToProcess)
         {
-            var data = await solisApi.GetInverterDay(day);
+            var data = await solisApi.GetHistoricData(day);
 
             if (data != null && data.Any())
                 allData.AddRange(data);
@@ -958,7 +960,7 @@ public class InverterManager(
         for (int i = 0; i < 7; i++)
         {
             // Call this to prime the cache with the last 7 days' inverter data
-            await solisApi.GetInverterDay(i);
+            await solisApi.GetHistoricData(i);
             // Max 3 calls every 5 seconds
             await Task.Delay(1750);
         }
@@ -1225,7 +1227,7 @@ public class InverterManager(
 
         for (int i = 0; i < 7; i++)
         {
-            var result = await solisApi.GetInverterDay(i);
+            var result = await solisApi.GetHistoricData(i);
 
             if (result != null)
             {

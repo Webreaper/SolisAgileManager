@@ -5,11 +5,12 @@ using Flurl;
 using Flurl.Http;
 using Microsoft.Extensions.Caching.Memory;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.APIWrappers;
 
-public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
+public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IUserAgentProvider userAgentProvider)
 {
     private readonly MemoryCacheEntryOptions _productCacheOptions =
         new MemoryCacheEntryOptions()
@@ -36,7 +37,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var result = await "https://api.octopus.energy"
-                .WithHeader("User-Agent", Program.UserAgent)
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment("/v1/products")
                 .AppendPathSegment(product)
                 .AppendPathSegment("electricity-tariffs")
@@ -146,7 +147,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         var payload = new { query = krakenQuery, variables = variables };
 
         var response = await "https://api.octopus.energy"
-            .WithHeader("User-Agent", Program.UserAgent)
+            .WithHeader("User-Agent", userAgentProvider.UserAgent)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveJson<KrakenTokenResponse>();
@@ -189,7 +190,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
 
         var responseStr = await "https://api.octopus.energy"
             .WithHeader("Authorization", token)
-            .WithHeader("User-Agent", Program.UserAgent)
+            .WithHeader("User-Agent", userAgentProvider.UserAgent)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveString();
@@ -244,7 +245,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         {
             var response = await "https://api.octopus.energy/"
                 .WithHeader("Authorization", token)
-                .WithHeader("User-Agent", Program.UserAgent)
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
                 .GetStringAsync();
 
@@ -303,7 +304,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var response = await "https://api.octopus.energy/"
-                .WithHeader("User-Agent", Program.UserAgent)
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/{code}")
                 .GetStringAsync();
 
@@ -332,7 +333,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger)
         try
         {
             var response = await "https://api.octopus.energy/"
-                .WithHeader("User-Agent", Program.UserAgent)
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/")
                 .GetStringAsync();
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SolisManager.Client.Pages;
 using SolisManager.Services;
 using SolisManager.Shared;
+using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.APIWrappers;
@@ -24,28 +25,28 @@ public static class EndpointMapper
     private static RouteGroupBuilder MapInverterAPI(this RouteGroupBuilder group)
     {
         group.MapGet("refreshinverterdata",
-            async ([FromServices] IInverterService service) =>
+            async ([FromServices] IInverterManagerService service) =>
             {
                 await service.RefreshInverterState();
                 return TypedResults.Ok(service.InverterState);
             });
         
         group.MapGet("versioninfo",
-            async ([FromServices] IInverterService service) =>
+            async ([FromServices] IInverterManagerService service) =>
             {
                 var info = await service.GetVersionInfo();
                 return TypedResults.Ok(info);
             });
         
         group.MapGet("history",
-            async ([FromServices] IInverterService service) =>
+            async ([FromServices] IInverterManagerService service) =>
             {
                 var history = await service.GetHistory();
                 return TypedResults.Ok(history);
             });
 
         group.MapGet("testcharge",
-            async ([FromServices] IInverterService service) =>
+            async ([FromServices] IInverterManagerService service) =>
             {
                 await service.TestCharge();
                 return TypedResults.Ok();
@@ -53,7 +54,7 @@ public static class EndpointMapper
 
         group.MapPost("overrideslotaction",
             async (ChangeSlotActionRequest req, 
-                [FromServices] IInverterService service) =>
+                [FromServices] IInverterManagerService service) =>
             {
                 await service.OverrideSlotAction(req);
                 return TypedResults.Ok();
@@ -62,7 +63,7 @@ public static class EndpointMapper
 
         group.MapGet("tariffcomparison/{tariffA}/{tariffB}",
             async (string tariffA, string tariffB, 
-                [FromServices] IInverterService service) =>
+                [FromServices] IInverterManagerService service) =>
             {
                 var result = await service.GetTariffComparisonData(tariffA, tariffB);
                 return TypedResults.Ok(result);
@@ -74,7 +75,7 @@ public static class EndpointMapper
     private static RouteGroupBuilder MapGetConfigAPI(this RouteGroupBuilder group)
     {
         group.MapGet("getconfig",
-           async  ([FromServices] IInverterService service) =>
+           async  ([FromServices] IInverterManagerService service) =>
             {
                 var config = await service.GetConfig();
                 return TypedResults.Ok(config);
@@ -86,42 +87,42 @@ public static class EndpointMapper
     private static RouteGroupBuilder MapToolsAPI(this RouteGroupBuilder group)
     {
         group.MapGet("chargebattery",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.ChargeBattery();
                 return TypedResults.Ok();
             });
 
         group.MapGet("dischargebattery",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.DischargeBattery();
                 return TypedResults.Ok();
             });
 
         group.MapGet("dumpandchargebattery",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.DumpAndChargeBattery();
                 return TypedResults.Ok();
             });
 
         group.MapGet("clearoverrides",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.ClearManualOverrides();
                 return TypedResults.Ok();
             });
 
         group.MapGet("advancesimulation",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.AdvanceSimulation();
                 return TypedResults.Ok();
             });
 
         group.MapGet("resetsimulation",
-            async  ([FromServices] IInverterService service) =>
+            async  ([FromServices] IInverterManagerService service) =>
             {
                 await service.ResetSimulation();
                 return TypedResults.Ok();
@@ -160,7 +161,7 @@ public static class EndpointMapper
     {
         group.MapPost("saveconfig",
             async (string configJson, 
-                [FromServices] IInverterService inverterService) =>
+                [FromServices] IInverterManagerService inverterService) =>
             {
                 var configToSave = JsonSerializer.Deserialize<SolisManagerConfig>(configJson);
                 ArgumentNullException.ThrowIfNull(configToSave);
