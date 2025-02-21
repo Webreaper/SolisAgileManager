@@ -1,7 +1,6 @@
 
 using System.Net;
 using System.Text.Json;
-using Flurl;
 using Flurl.Http;
 using Microsoft.Extensions.Caching.Memory;
 using SolisManager.Shared;

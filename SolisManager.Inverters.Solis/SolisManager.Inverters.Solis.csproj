@@ -1,23 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Serilog" />
-        <PackageReference Include="Serilog.AspNetCore" />
-        <PackageReference Include="Serilog.Sinks.Console" />
-        <PackageReference Include="Serilog.Sinks.File" />
-        <PackageReference Include="Coravel" />
-        <PackageReference Include="Flurl" />
-        <PackageReference Include="Flurl.Http" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+      <ProjectReference Include="..\SolisManager.Shared\SolisManager.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\SolisManager.Shared\SolisManager.Shared.csproj" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     </ItemGroup>
 
 </Project>

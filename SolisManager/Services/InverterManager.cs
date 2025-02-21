@@ -1,7 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
-using Humanizer;
-using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
@@ -12,20 +9,39 @@ using SolisManager.Shared.Models;
 
 namespace SolisManager.Services;
 
-public class InverterManager(
-    SolisManagerConfig config,
-    OctopusAPI octopusAPI,
-    SolisAPI solisApi,
-    SolcastAPI solcastApi,
-    ILogger<InverterManager> logger) : IInverterManagerService, IInverterRefreshService
+public class InverterManager : IInverterManagerService, IInverterRefreshService
 {
     public SolisManagerState InverterState { get; } = new();
 
     private readonly List<HistoryEntry> executionHistory = [];
     private const string executionHistoryFile = "SolisManagerExecutionHistory.csv";
-    private NewVersionResponse appVersion = new();
+    private readonly NewVersionResponse appVersion = new();
     private List<OctopusPriceSlot>? simulationData;
     private const int maxExecutionHistory = 180 * 48;
+
+    private readonly SolisManagerConfig config;
+    private readonly OctopusAPI octopusAPI;
+    private readonly IInverter inverterAPI;
+    private readonly SolcastAPI solcastApi;
+    private readonly ILogger<InverterManager> logger;
+    
+    public InverterManager(
+        SolisManagerConfig _config,
+        OctopusAPI _octopusAPI,
+        InverterFactory _inverterFactory,
+        SolcastAPI _solcastApi,
+        ILogger<InverterManager> _logger)
+    {
+        config = _config;
+        octopusAPI = _octopusAPI;
+        solcastApi = _solcastApi; 
+        logger = _logger;
+
+        var inverterImplementation = _inverterFactory.GetInverter();
+        
+        if( inverterImplementation != null )
+            inverterAPI = inverterImplementation;
+    }
     
     private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
     {
@@ -157,7 +173,7 @@ public class InverterManager(
 
         foreach (var day in daysToProcess)
         {
-            var data = await solisApi.GetHistoricData(day);
+            var data = await inverterAPI.GetHistoricData(day);
 
             if (data != null && data.Any())
                 allData.AddRange(data);
@@ -371,20 +387,20 @@ public class InverterManager(
 
                 if (firstSlot.ActionToExecute == SlotAction.Charge)
                 {
-                    await solisApi.SetCharge(start, end, null, null, false, config.Simulate);
+                    await inverterAPI.SetCharge(start, end, null, null, false, config.Simulate);
                 }
                 else if (firstSlot.ActionToExecute == SlotAction.Discharge)
                 {
-                    await solisApi.SetCharge(null, null, start, end, false, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, start, end, false, config.Simulate);
                 }
                 else if (firstSlot.ActionToExecute == SlotAction.Hold)
                 {
-                    await solisApi.SetCharge(null, null, start, end, true, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, start, end, true, config.Simulate);
                 }
                 else
                 {
                     // Clear the charge
-                    await solisApi.SetCharge(null, null, null, null, false, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, null, null, false, config.Simulate);
                 }
             }
         }
@@ -810,37 +826,15 @@ public class InverterManager(
         try
         {
             // Get the battery charge state from the inverter
-            var solisState = await solisApi.InverterState();
-
-            if (solisState?.data != null)
+            if (await inverterAPI.UpdateInverterState(InverterState))
             {
-                var latestBatterySOC = solisState.data.batteryList
-                    .Select(x => x.batteryCapacitySoc)
-                    .FirstOrDefault();
-
-                if (latestBatterySOC != 0)
-                {
-                    InverterState.BatterySOC = latestBatterySOC;
-                    InverterState.BatteryTimeStamp = DateTime.UtcNow;
-                }
-                else
-                    logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
-                
-                InverterState.CurrentPVkW = solisState.data.pac;
-                InverterState.TodayPVkWh = solisState.data.eToday;
-                InverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
-                InverterState.TodayExportkWh = solisState.data.gridSellEnergy;
-                InverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
-                InverterState.StationId = solisState.data.stationId;
-                InverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
-
                 logger.LogInformation(
                     "Refreshed state: SOC = {S}%, Current PV = {PV}kW, House Load = {L}kW, Forecast today: {F}kWh, tomorrow: {T}kWh",
                     InverterState.BatterySOC, InverterState.CurrentPVkW, InverterState.HouseLoadkW,
                     InverterState.TodayForecastKWH, InverterState.TomorrowForecastKWH);
             }
             else
-                logger.LogError("No state returned from the inverter");
+                logger.LogWarning("Unable to read state from inverter");
         }
         catch (Exception ex)
         {
@@ -946,7 +940,7 @@ public class InverterManager(
         {
             if (config.AutoAdjustInverterTime)
             {
-                await solisApi.UpdateInverterTime();
+                await inverterAPI.UpdateInverterTime();
             }
         }
         catch (Exception ex)
@@ -960,7 +954,7 @@ public class InverterManager(
         for (int i = 0; i < 7; i++)
         {
             // Call this to prime the cache with the last 7 days' inverter data
-            await solisApi.GetHistoricData(i);
+            await inverterAPI.GetHistoricData(i);
             // Max 3 calls every 5 seconds
             await Task.Delay(1750);
         }
@@ -1061,7 +1055,7 @@ public class InverterManager(
         logger.LogInformation("Starting test charge for 5 minutes");
         var start = DateTime.UtcNow;
         var end = start.AddMinutes(5);
-        await solisApi.SetCharge(start, end, null, null, false, false);
+        await inverterAPI.SetCharge(start, end, null, null, false, false);
     }
 
     public async Task ChargeBattery()
@@ -1227,7 +1221,7 @@ public class InverterManager(
 
         for (int i = 0; i < 7; i++)
         {
-            var result = await solisApi.GetHistoricData(i);
+            var result = await inverterAPI.GetHistoricData(i);
 
             if (result != null)
             {

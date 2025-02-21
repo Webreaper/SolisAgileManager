@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+using System.Xml.Linq;
 using Blazored.LocalStorage;
 using SolisManager.APIWrappers;
 using SolisManager.Components;
@@ -19,7 +22,9 @@ using SolisManager.Inverters.Solis;
 using SolisManager.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
+using SolisManager.Shared.InverterConfigs;
 using SolisManager.Shared.Models;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace SolisManager;
 
@@ -97,9 +102,10 @@ public class Program
         builder.Services.AddSingleton<InverterTimeAdjustScheduler>();
 
         builder.Services.AddSingleton<RestartService>();
-        builder.Services.AddSingleton<SolisAPI>();
         builder.Services.AddSingleton<SolcastAPI>();
         builder.Services.AddSingleton<OctopusAPI>();
+
+        builder.Services.AddSingleton<InverterFactory>();
 
         builder.Services.AddScheduler();
         builder.Services.AddMudServices();
@@ -124,7 +130,7 @@ public class Program
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         logger.LogInformation("===========================================================");
         logger.LogInformation("Application started. Build version v{V} Logs being written to {C}", version, ConfigFolder);
-
+        
         // First, load the config
         var config = app.Services.GetRequiredService<SolisManagerConfig>();
         if (!config.ReadFromFile(ConfigFolder))
@@ -132,6 +138,13 @@ public class Program
             config.OctopusProductCode = "E-1R-AGILE-24-10-01-J";
             config.SlotsForFullBatteryCharge = 6;
             config.AlwaysChargeBelowPrice = 10;
+        }
+        else
+        {
+            if (config.InverterConfig == null)
+            {
+                await UpgradeConfig(config, logger);
+            }
         }
 
         // Configure the HTTP request pipeline.
@@ -220,6 +233,25 @@ public class Program
         {
             logger.LogError(ex, "Unexpected exception in app.RunAdync!");
         }
+    }
+
+    private static async Task UpgradeConfig(SolisManagerConfig config, ILogger logger)
+    {
+        config.InverterConfig = new InverterConfigSolis
+        {
+            SolisAPIKey = config.SolisAPIKey ?? string.Empty,
+            SolisInverterSerial = config.SolisInverterSerial ?? string.Empty,
+            SolisAPISecret = config.SolisAPISecret ?? string.Empty,
+            MaxChargeRateAmps = config.MaxChargeRateAmps ?? 50
+        };
+
+        logger.LogInformation("Upgrading config to new format...");
+        config.SolisAPIKey = null;
+        config.SolisInverterSerial = null;
+        config.SolisAPISecret = null;
+        config.MaxChargeRateAmps = null;
+
+        await config.SaveToFile(Program.ConfigFolder);
     }
 
     private const string template = "[{Timestamp:HH:mm:ss.fff}-{ThreadID}-{Level:u3}] {Message:lj}{NewLine}{Exception}";

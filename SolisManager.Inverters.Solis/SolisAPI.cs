@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SolisManager.Shared.Interfaces;
+using SolisManager.Shared.InverterConfigs;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.Inverters.Solis;
@@ -23,7 +24,8 @@ public class SolisAPI : IInverter
     
     private readonly HttpClient client = new();
     private readonly ILogger<SolisAPI> logger;
-    private readonly SolisManagerConfig config;
+    private readonly InverterConfigSolis config;
+    private readonly bool simulateMode = false;
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
 
@@ -38,8 +40,12 @@ public class SolisAPI : IInverter
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
     {
+        var solisConfig = _config.InverterConfig as InverterConfigSolis;
+        ArgumentNullException.ThrowIfNull(solisConfig);
+        
         userAgentProvider = _userAgentProvider;
-        config = _config;
+        config = solisConfig;
+        simulateMode = _config.Simulate;
         logger = _logger;
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
@@ -73,7 +79,7 @@ public class SolisAPI : IInverter
 
     private async Task<ChargeStateData?> ReadChargingState()
     {
-        if (config.Simulate && !string.IsNullOrEmpty(simulatedChargeState))
+        if (simulateMode && !string.IsNullOrEmpty(simulatedChargeState))
         { 
             return ChargeStateData.FromChargeStateData(simulatedChargeState);
         }
@@ -207,6 +213,41 @@ public class SolisAPI : IInverter
         if (!dischargeIsEquivalent)
             return true;
         
+        return false;
+    }
+    
+    public async Task<bool> UpdateInverterState(SolisManagerState inverterState)
+    {
+        // Get the battery charge state from the inverter
+        var solisState = await InverterState();
+
+        if (solisState?.data != null)
+        {
+            var latestBatterySOC = solisState.data.batteryList
+                .Select(x => x.batteryCapacitySoc)
+                .FirstOrDefault();
+
+            if (latestBatterySOC != 0)
+            {
+                inverterState.BatterySOC = latestBatterySOC;
+                inverterState.BatteryTimeStamp = DateTime.UtcNow;
+            }
+            else
+                logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
+            
+            inverterState.CurrentPVkW = solisState.data.pac;
+            inverterState.TodayPVkWh = solisState.data.eToday;
+            inverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
+            inverterState.TodayExportkWh = solisState.data.gridSellEnergy;
+            inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
+            inverterState.StationId = solisState.data.stationId;
+            inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
+
+            return true;
+        }
+
+        logger.LogError("No state returned from the inverter");
+
         return false;
     }
     
@@ -397,7 +438,7 @@ public class SolisAPI : IInverter
             value = payload
         };
         
-        if (config.Simulate)
+        if (simulateMode)
         {
             logger.LogInformation("Simulated inverter control request: {B}", requestBody);
         }
@@ -527,6 +568,7 @@ public record ChargeStateData( int chargeAmps, int dischargeAmps, string chargeT
 }
 
 public record InverterDetails(InverterData data);
+
 public record InverterData(IEnumerable<Battery> batteryList, 
     decimal eToday, 
     decimal pac, // Power

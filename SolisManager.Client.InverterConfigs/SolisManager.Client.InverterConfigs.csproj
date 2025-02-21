@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>SolisManager.Inverters.Solis</RootNamespace>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <SupportedPlatform Include="browser"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
+        <PackageReference Include="MudBlazor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\SolisManager.Inverters.Solis\SolisManager.Inverters.Solis.csproj" />
+      <ProjectReference Include="..\SolisManager.Shared\SolisManager.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Microsoft.Extensions.Caching.Abstractions">
+        <HintPath>..\..\..\..\..\..\..\usr\local\share\dotnet\shared\Microsoft.AspNetCore.App\9.0.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>

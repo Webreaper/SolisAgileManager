@@ -12,10 +12,7 @@
     @if (config != null)
     {
         <div class="config-fields">
-            <h5>Solis Inverter Settings</h5>
-            <MudTextField T="string" Label="Solis API Key" @bind-Value="@config.SolisAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
-            <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolisAPISecret" Immediate="true" Variant="UIConstants.MudVariant"/>
-            <MudTextField T="string" Label="Solis Inverter Serial Number" @bind-Value="@config.SolisInverterSerial" Immediate="true" Variant="UIConstants.MudVariant"/>
+            <SolisInverterConfig />
             <ConfigSettingHelp HelpText="Enabling this setting will automatically update the inverter's clock every day at 2am, to avoid time drift">
                 <MudCheckBox Label="Auto Update Inverter Time" LabelPlacement="Placement.End" @bind-Value="@config.AutoAdjustInverterTime"/>
             </ConfigSettingHelp>
@@ -117,10 +114,6 @@
                 <h5>Charging Options</h5>
             </div>
             <div class="config-field-row">
-                <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
-                    <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" Min="5" Max="95" 
-                                     Variant="UIConstants.MudVariant" class="wrapped-field"/>
-                </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Target SOC percentage to be achieved prior to the highest-priced peak period in the day.">
                     <MudNumericField T="int" Label="Battery % for Peak Period" @bind-Value="@PeakPercentageProxy" Min="20" Max="100" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>

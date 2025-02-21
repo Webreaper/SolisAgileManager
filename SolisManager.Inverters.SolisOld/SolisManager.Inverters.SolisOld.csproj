@@ -1,30 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-        <InvariantGlobalization>true</InvariantGlobalization>
+        <Nullable>enable</Nullable>
+        <RootNamespace>SolisManager.Inverters.Solis</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Octokit" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Sinks.Console" />
         <PackageReference Include="Serilog.Sinks.File" />
-        <ProjectReference Include="..\SolisManager.Client\SolisManager.Client.csproj" />
         <PackageReference Include="Coravel" />
         <PackageReference Include="Flurl" />
         <PackageReference Include="Flurl.Http" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
-        <ProjectReference Include="..\SolisManager.Client.InverterConfigs\SolisManager.Client.InverterConfigs.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+      <ProjectReference Include="..\SolisManager.Shared\SolisManager.Shared.csproj" />
     </ItemGroup>
 
 </Project>

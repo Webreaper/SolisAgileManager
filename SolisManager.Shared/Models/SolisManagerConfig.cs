@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using SolisManager.Shared.Interfaces;
 
 namespace SolisManager.Shared.Models;
 
@@ -7,10 +9,7 @@ public record SolisManagerConfig
 {
     private static string settingsFileName = "SolisManagerConfig.json";
     
-    public string SolisAPIKey { get; set; } = string.Empty;
-    public string SolisAPISecret { get; set; } = string.Empty;
-    public string SolisInverterSerial { get; set; } = string.Empty;
-    public int MaxChargeRateAmps { get; set; } = 50;
+    public InverterConfigBase? InverterConfig { get; set; } = null;
     public string OctopusAccountNumber { get; set; } = string.Empty;
     public string OctopusAPIKey { get; set; } = string.Empty;
     public string OctopusProductCode { get; set; } = String.Empty;
@@ -40,7 +39,8 @@ public record SolisManagerConfig
     public async Task SaveToFile(string folder)
     {
         var configPath = Path.Combine(folder, settingsFileName);
-        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true, 
+                                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         await File.WriteAllTextAsync(configPath, json);
     }
     
@@ -52,7 +52,6 @@ public record SolisManagerConfig
         {
             var content = File.ReadAllText(configPath);
             var settings = JsonSerializer.Deserialize<SolisManagerConfig>(content);
-            
             settings.CopyPropertiesTo(this);
             return true;
         }
@@ -69,9 +68,8 @@ public record SolisManagerConfig
 
     public bool IsValid()
     {
-        if (string.IsNullOrEmpty(SolisAPIKey)) return false;
-        if (string.IsNullOrEmpty(SolisAPISecret)) return false;
-        if (string.IsNullOrEmpty(SolisInverterSerial)) return false;
+        if (InverterConfig is not { IsValid: true })
+            return false;
 
         if (string.IsNullOrEmpty(OctopusAPIKey) && string.IsNullOrEmpty(OctopusAccountNumber))
         {
@@ -83,4 +81,14 @@ public record SolisManagerConfig
     }
 
     public bool TariffIsIntelligentGo => OctopusProductCode.Contains("-INTELLI-VAR-");
+    
+    [Obsolete]
+    public string? SolisAPIKey { get; set; }
+    [Obsolete]
+    public string? SolisAPISecret { get; set; }
+    [Obsolete]
+    public string? SolisInverterSerial { get; set; }
+    [Obsolete]
+    public int? MaxChargeRateAmps { get; set; }
+
 }

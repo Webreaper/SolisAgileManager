@@ -1,0 +1,42 @@
+<h5>Solis Inverter Settings</h5>
+@if (config != null)
+{
+    <MudTextField T="string" Label="Solis API Key" @bind-Value="@config.SolisAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
+    <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolisAPISecret" Immediate="true" Variant="UIConstants.MudVariant"/>
+    <MudTextField T="string" Label="Solis Inverter Serial Number" @bind-Value="@config.SolisInverterSerial" Immediate="true" Variant="UIConstants.MudVariant"/>
+    <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
+        <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" Min="5" Max="95"
+                         Variant="UIConstants.MudVariant" class="wrapped-field"/>
+    </ConfigSettingHelp>
+}
+
+@code {
+    [Parameter]
+    public InverterConfigBase? InverterConfig { get; set; }
+
+    [Parameter]
+    public EventCallback<InverterConfigBase?> InverterConfigChanged { get; set; }
+    
+    private InverterConfigSolis? config;
+    
+    protected override void OnInitialized()
+    {
+        if (InverterConfig != null)
+        {
+            config = InverterConfig as InverterConfigSolis;
+            ArgumentNullException.ThrowIfNull(config);
+        }
+        else
+        {
+            config = new InverterConfigSolis();
+            InverterConfig = config;
+        }
+        
+        base.OnInitialized();
+    }
+
+    private async Task ConfigChanged()
+    {
+        await InverterConfigChanged.InvokeAsync(InverterConfig);
+    }
+}
