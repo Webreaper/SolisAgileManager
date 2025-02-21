@@ -1,3 +1,4 @@
+@using SolisManager.Client.Pages
 @inject IInverterManagerService inverterManagerService
 @inject IDialogService dialogService
 @inject ISnackbar snackbar
@@ -11,7 +12,10 @@
     @if (config != null)
     {
         <div class="config-fields">
+            <InverterTypeSelector @bind-InverterConfig="config.InverterConfig"/>
+
             @InverterSettings()
+
             <ConfigSettingHelp HelpText="Enabling this setting will automatically update the inverter's clock every day at 2am, to avoid time drift">
                 <MudCheckBox Label="Auto Update Inverter Time" LabelPlacement="Placement.End" @bind-Value="@config.AutoAdjustInverterTime"/>
             </ConfigSettingHelp>
@@ -153,7 +157,7 @@
     private bool manualProductKey = false;
     private string DarkModeStyle => DarkMode ? "config-settings-dark" : string.Empty;
     private string originalConfigJson = string.Empty;
-    
+
     private bool AutomaticAccount => config != null && !string.IsNullOrEmpty(config.OctopusAccountNumber) && !string.IsNullOrEmpty(config.OctopusAPIKey);
     
     private int PeakPercentageProxy
@@ -226,12 +230,13 @@
 
     private RenderFragment? InverterSettings()
     {
-        if (config == null)
+        if (config?.InverterConfig == null)
             return null;
-
+        
         return config.InverterConfig switch
         {
             InverterConfigSolis _ => @<SolisInverterConfig @bind-InverterConfig="config.InverterConfig" />,
+            InverterConfigSolarEdge _ => @<SolarEdgeInverterConfig @bind-InverterConfig="config.InverterConfig" />,
             _ => @<div>No config options found for this inverter type. Please raise an issue on Github.</div>
         };
     }

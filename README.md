@@ -428,6 +428,27 @@ Then the actual calls are conflated to the following:
 This optimisation means that the absolute minimum number of `control` API calls are made (from about 17,000 per
 year down to around 2,000), and hence the minimum number of Inverter EEPROM writes are carried out.
 
+### Adding Support for Other Inverters
+
+Although the app was originally developed for Solis Inverters, there's no reason why it can't support Other inverter
+types. However, I won't be able to develop them because it's impossible to test - so would need others to collaborate
+and contribute implementations for other inverters.
+
+If you'd like to consider contributing, the steps are generally something like this:
+
+1. Add a new project similar to the `SolisManager.Inverters.Solis` one in the project, for your inverter, which has 
+   a class that implements the `IInverter` interface (with methods to set a charge, and retrieve SOC and other 
+   state from the inverter).
+2. Extend the `SolisManager.InverterFactory` class to return an instance of the `IInverter` implementation, based
+   on the config type passed in.
+3. Create a new config class for the inverter to collect and settings that are required, similar to `InverterConfigSolis`.
+   You'll also need to add the `JsonDerivedType` attribute for the new type in `InverterConfigBase`.
+4. Create a new component to collect the configuration, similar to the `SolisInverterConfig.razor` component.
+5. Extend the `ConfigSettings.razor` `InverterSettings()` method to return the new config component
+
+That should be most of what's required. I may create a couple of skeleton implementations for the more popular inverter
+types to get people started....
+
 ### Other Things I've Written
 
 If you like this app, please check out some of my other applications, including a Photo Management system 

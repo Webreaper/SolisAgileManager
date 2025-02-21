@@ -1,0 +1,15 @@
+
+@inherits InverterConfigComponentBase<InverterConfigSolarEdge>
+
+<h5>Solis Inverter Settings</h5>
+@if (config != null)
+{
+    <MudTextField T="string" Label="Solis API Key" @bind-Value="@config.SolarEdgeAPIKey" @bind-Value:after="ConfigChanged" 
+                    Immediate="true" Variant="UIConstants.MudVariant"/>
+    <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolarEdgeAPISecret"  @bind-Value:after="ConfigChanged"
+                  Immediate="true" Variant="UIConstants.MudVariant"/>
+}
+
+@code {
+
+}

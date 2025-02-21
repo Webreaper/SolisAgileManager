@@ -1,0 +1,63 @@
+@if (inverterConfigTypes.Length > 1)
+{
+    <MudSelect T="Type?" @bind-Value="selectedInverterConfigType" @bind-Value:after="InverterTypeChanged"
+               Label="Inverter Type" Variant="UIConstants.MudVariant" Dense="true">
+        @foreach (var choice in inverterConfigTypes)
+        {
+            <MudSelectItem T="Type?" Value="@choice">@GetInverterTypeName(choice)</MudSelectItem>
+        }
+    </MudSelect>
+}
+
+@code {
+    [Parameter]
+    public InverterConfigBase? InverterConfig { get; set; }
+
+    [Parameter]
+    public EventCallback<InverterConfigBase?> InverterConfigChanged { get; set; }
+
+    private Type? selectedInverterConfigType;
+
+    private Type[] inverterConfigTypes = [
+        typeof(InverterConfigSolis),
+       // typeof(InverterConfigSolarEdge)
+    ];
+
+    private string GetInverterTypeName(Type type) => type.Name.Replace("InverterConfig", string.Empty);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (inverterConfigTypes.Length == 1 && InverterConfig == null)
+        {
+            var defaultType = inverterConfigTypes.First();
+            InverterConfig = (InverterConfigBase)Activator.CreateInstance(defaultType);
+            await InverterConfigChanged.InvokeAsync(InverterConfig);
+        }
+        
+        await base.OnInitializedAsync();
+    }
+
+    private async Task InverterTypeChanged()
+    {
+        if (selectedInverterConfigType == null && inverterConfigTypes.Length > 1)
+        {
+            InverterConfig = null;
+        }
+        else if (InverterConfig != null && InverterConfig.GetType().Name != selectedInverterConfigType.Name)
+        {
+            InverterConfig = (InverterConfigBase)Activator.CreateInstance(selectedInverterConfigType);
+        }
+
+        await InverterConfigChanged.InvokeAsync(InverterConfig);
+    }
+    
+    protected override void OnParametersSet()
+    {
+        if (InverterConfig != null)
+            selectedInverterConfigType = InverterConfig.GetType();
+        else
+            selectedInverterConfigType = null;
+
+        base.OnParametersSet();
+    }
+}

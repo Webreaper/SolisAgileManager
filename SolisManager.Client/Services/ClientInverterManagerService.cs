@@ -6,7 +6,7 @@ using SolisManager.Shared.Models;
 
 namespace SolisManager.Client.Services;
 
-public class ClientInverterManagerService( HttpClient httpClient ) : IInverterManagerService
+public class ClientInverterManagerService( HttpClient httpClient, ILogger<ClientInverterManagerService> logger ) : IInverterManagerService
 {
     public SolisManagerState InverterState { get; private set; } = new();
 
@@ -55,7 +55,16 @@ public class ClientInverterManagerService( HttpClient httpClient ) : IInverterMa
     {
         // TODO - investigate why passing the object directly, rather than the json
         // as a queryparam, doesn't work. 
-        var json = JsonSerializer.Serialize(config);
+        string json;
+        try
+        {
+            json = JsonSerializer.Serialize(config);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to serialize config - did you add the JsonDerived on InverterConfigBase?");
+            throw;
+        }
         var response = await httpClient.PostAsync($"inverter/saveconfig?configJson={json}", null);
 
         if (response.IsSuccessStatusCode)
