@@ -18,7 +18,6 @@ using Serilog.Events;
 using SolisManager.Client.Constants;
 using SolisManager.Client.Services;
 using SolisManager.Extensions;
-using SolisManager.Inverters.Solis;
 using SolisManager.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
@@ -237,6 +236,7 @@ public class Program
 
     private static async Task UpgradeConfig(SolisManagerConfig config, ILogger logger)
     {
+#pragma warning disable 612,618
         config.InverterConfig = new InverterConfigSolis
         {
             SolisAPIKey = config.SolisAPIKey ?? string.Empty,
@@ -250,6 +250,7 @@ public class Program
         config.SolisInverterSerial = null;
         config.SolisAPISecret = null;
         config.MaxChargeRateAmps = null;
+#pragma warning restore 612,618
 
         await config.SaveToFile(Program.ConfigFolder);
     }

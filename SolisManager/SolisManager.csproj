@@ -18,7 +18,7 @@
         <PackageReference Include="Flurl" />
         <PackageReference Include="Flurl.Http" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
-        <ProjectReference Include="..\SolisManager.Client.InverterConfigs\SolisManager.Client.InverterConfigs.csproj" />
+        <ProjectReference Include="..\SolisManager.Inverters.Solis\SolisManager.Inverters.Solis.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using SolisManager.Inverters.Solis;
 using SolisManager.Shared.Interfaces;

@@ -6,8 +6,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolisManager.Client", "Soli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolisManager.Shared", "SolisManager.Shared\SolisManager.Shared.csproj", "{5FC71B01-F948-4991-A861-9848BC2F93C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolisManager.Client.InverterConfigs", "SolisManager.Client.InverterConfigs\SolisManager.Client.InverterConfigs.csproj", "{C8BC1B00-0E91-494A-96BC-6BB8DBEDECE8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolisManager.Inverters.Solis", "SolisManager.Inverters.Solis\SolisManager.Inverters.Solis.csproj", "{A15C1203-1598-427C-92D9-0BF0095265F0}"
 EndProject
 Global
@@ -28,10 +26,6 @@ Global
 		{5FC71B01-F948-4991-A861-9848BC2F93C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5FC71B01-F948-4991-A861-9848BC2F93C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5FC71B01-F948-4991-A861-9848BC2F93C0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C8BC1B00-0E91-494A-96BC-6BB8DBEDECE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8BC1B00-0E91-494A-96BC-6BB8DBEDECE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8BC1B00-0E91-494A-96BC-6BB8DBEDECE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8BC1B00-0E91-494A-96BC-6BB8DBEDECE8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A15C1203-1598-427C-92D9-0BF0095265F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A15C1203-1598-427C-92D9-0BF0095265F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A15C1203-1598-427C-92D9-0BF0095265F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
