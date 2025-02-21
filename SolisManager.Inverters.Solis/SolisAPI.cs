@@ -25,7 +25,7 @@ public class SolisAPI : IInverter
     private readonly HttpClient client = new();
     private readonly ILogger<SolisAPI> logger;
     private readonly InverterConfigSolis config;
-    private readonly bool simulateMode = false;
+    private readonly bool simulateMode;
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
 
@@ -51,7 +51,7 @@ public class SolisAPI : IInverter
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
     }
 
-    public async Task<InverterDetails?> InverterState()
+    private async Task<InverterDetails?> InverterState()
     {
         var result = await Post<InverterDetails>(1,"inverterDetail", 
             new { sn = config.SolisInverterSerial
@@ -506,86 +506,3 @@ public class SolisAPI : IInverter
         return string.Empty;
     }
 }
-
-
-public record StationEnergyRecord(
-    decimal energy,
-    string date,
-    decimal gridPurchasedEnergy,
-    decimal gridSellEnergy
-);
-
-public record StationEnergyDayResponse(string msg, StationEnergyDayRecords data);
-
-public record StationEnergyDayRecords(IEnumerable<StationEnergyRecord> recordss);
-
-public record InverterDayRecord(
-    string timeStr,
-    string dataTimestamp,
-    decimal batteryCapacitySoc, // Battery charge level
-    decimal batteryPower, // Battery Charge power
-    decimal pSum, // Current PV Output
-    decimal familyLoadPower, // House load
-    decimal homeLoadTodayEnergy, // Total house load today
-    decimal gridPurchasedTodayEnergy, // Cumulative import kwh
-    decimal gridSellTodayEnergy, // Cumulative export kwh
-    decimal pac, // PV output 
-    string pacStr,
-    decimal eToday // Today PV total
-);
-
-public record InverterDayResponse(string msg, IEnumerable<InverterDayRecord> data);
-
-public record UserStationListRequest(int pageNo, int pageSize);
-
-public record InverterListRequest(int pageNo, int pageSize, int? stationId);
-
-public record ListResponse<T>(Data<T> data);
-
-public record Data<T>(Page<T> page);
-
-public record Page<T>(int current, int pages, List<T> records);
-
-public record AtReadData(string msg);
-public record AtReadResponse(AtReadData? data);
-
-public record ChargeStateData( int chargeAmps, int dischargeAmps, string chargeTimes, string dischargeTimes)
-{
-    public static ChargeStateData FromChargeStateData(string msg)
-    {
-        var parts = msg.Split(',', 5, StringSplitOptions.TrimEntries);
-        if (parts.Length == 5)
-        {
-            return new ChargeStateData(
-                int.Parse(parts[0]),
-                int.Parse(parts[1]),
-                parts[2],
-                parts[3]);
-        }
-
-        throw new AggregateException($"Unable to parse atRead response: {msg}");
-    }
-}
-
-public record InverterDetails(InverterData data);
-
-public record InverterData(IEnumerable<Battery> batteryList, 
-    decimal eToday, 
-    decimal pac, // Power
-    string stationId, 
-    decimal batteryPower,
-    decimal gridSellEnergy, // Today export KWH
-    decimal homeLoadEnergy, // Today load KWH
-    decimal gridPurchasedEnergy, // Today import KWH
-    decimal psum);
-
-public record Battery(int batteryCapacitySoc);
-public record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,
-    double dayEnergy1, double dayIncome, double gridPurchasedTodayEnergy, double gridPurchasedTotalEnergy,
-    double gridSellTodayEnergy, double gridSellTotalEnergy, double homeLoadTodayEnergy, double homeLoadTotalEnergy,
-    double monthEnergy1, double power1, double yearEnergy1);
-
-public record Inverter(string id, string collectorId, string collectorSn, string dataTimestamp, string dataTimestampStr,
-    double etoday1, double etotal1, double familyLoadPower, double gridPurchasedTodayEnergy, double gridSellTodayEnergy,
-    double homeLoadTodayEnergy, double pac1, double pow1, double pow2, double power1, double totalFullHour,
-    double totalLoadPower);

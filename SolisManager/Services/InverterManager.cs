@@ -1281,10 +1281,4 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             logger.LogInformation("PV forecast power {D:dd-MMM-yyyy} = {Y:F2} kW", d.Date, d.Energy);
         }
     }
-
-    private record SlotTotals
-    {
-        public List<InverterDayRecord> day { get; init; } = new();
-        public decimal totalPowerKWH { get; set; }
-    }
 }
