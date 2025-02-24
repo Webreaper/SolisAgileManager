@@ -41,13 +41,13 @@ public class SolisAPI : IInverter
         ReadChargeState = 4643,
 
         // CIDs for the newer firmware
-        ChargeSlot1_SOC = 5928,
-        ChargeSlot1_Amps = 5948,
         ChargeSlot1_Time = 5946,
+        ChargeSlot1_Amps = 5948,
+        ChargeSlot1_SOC = 5928,
         
-        DischargeSlot1_SOC = 5965,
-        DischargeSlot1_Amps = 5967,
         DischargeSlot1_Time = 5964,
+        DischargeSlot1_Amps = 5967,
+        DischargeSlot1_SOC = 5965,
     }
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
