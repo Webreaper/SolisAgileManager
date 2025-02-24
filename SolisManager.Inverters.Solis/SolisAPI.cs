@@ -380,6 +380,10 @@ public class SolisAPI : IInverter
             }
             else
             {
+                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
+                    simulateOnly ? "mock inverter" : "Solis Inverter",
+                    chargePower, dischargePower, chargeTimes, dischargeTimes);
+
                 if(newFirmWare)
                 {
                     // TODO: can we set these once and then leave alone? Do we need to set them at all?
@@ -394,10 +398,6 @@ public class SolisAPI : IInverter
                 }
                 else
                 {
-                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
-                        simulateOnly ? "mock inverter" : "Solis Inverter",
-                        chargePower, dischargePower, chargeTimes, dischargeTimes);
-
                     await SendControlRequest(CommandIDs.SetCharge, chargeValues, simulateOnly);
                 }
             }
