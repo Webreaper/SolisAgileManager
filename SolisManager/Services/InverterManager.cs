@@ -940,7 +940,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             if (config.AutoAdjustInverterTime)
             {
-                await inverterAPI.UpdateInverterTime();
+                await inverterAPI.UpdateInverterTime(config.Simulate);
             }
         }
         catch (Exception ex)

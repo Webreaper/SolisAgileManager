@@ -25,7 +25,6 @@ public class SolisAPI : IInverter
     private readonly HttpClient client = new();
     private readonly ILogger<SolisAPI> logger;
     private readonly InverterConfigSolis config;
-    private readonly bool simulateMode;
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
 
@@ -35,7 +34,12 @@ public class SolisAPI : IInverter
     {
         SetInverterTime = 56,
         SetCharge = 103,
-        ReadChargeState = 4643
+        ReadChargeState = 4643,
+        CheckFirmware = 6798,
+        ReadChargeStatev4B = 5936,
+        ChargeSlot1_Amps = 5948,
+        ChargeSlot1_Time = 5946,
+        ChargeSlot1_SOC = 5965
     }
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
@@ -45,7 +49,6 @@ public class SolisAPI : IInverter
         
         userAgentProvider = _userAgentProvider;
         config = solisConfig;
-        simulateMode = _config.Simulate;
         logger = _logger;
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
@@ -59,7 +62,9 @@ public class SolisAPI : IInverter
         
         return result;
     }
-
+    
+    // version = 1D001 Martin, Mine B9004C
+    
     private async Task<IReadOnlyList<UserStation>> UserStationList(int pageNo, int pageSize)
     {
         var result = await Post<ListResponse<UserStation>>(1,"userStationList", new UserStationListRequest(pageNo, pageSize));
@@ -77,25 +82,76 @@ public class SolisAPI : IInverter
         return [];
     }
 
-    private async Task<ChargeStateData?> ReadChargingState()
+    private bool? newFirmwareVersion;
+    private async Task<bool> IsNewFirmwareVersion()
     {
-        if (simulateMode && !string.IsNullOrEmpty(simulatedChargeState))
-        { 
-            return ChargeStateData.FromChargeStateData(simulatedChargeState);
+        if( newFirmwareVersion.HasValue )
+            return newFirmwareVersion.Value;
+
+        var result = await ReadControlState(CommandIDs.CheckFirmware);
+        
+        if (int.TryParse(result, out var firmwareVersion))
+        {
+            var hex = firmwareVersion.ToString("X");
+            if (hex == "AA55")
+            {
+                // It's the new firmware version
+                newFirmwareVersion = true;
+                logger.LogInformation("Detected new firmware version: {V} ({H})", firmwareVersion, hex);
+                return newFirmwareVersion.Value;
+            }
         }
         
-        var result = await Post<AtReadResponse>(2, "atRead", 
-            new { inverterSn = config.SolisInverterSerial, 
-                cid = CommandIDs.ReadChargeState });
+        // Assume it's the old one.
+        newFirmwareVersion = false;
+        return newFirmwareVersion.Value;
+    }
+
+    private async Task<string?> ReadControlState(CommandIDs cid)
+    {
+        var result = await Post<AtReadResponse>(2, "atRead",
+            new { inverterSn = config.SolisInverterSerial, cid });
 
         if (result?.data != null && !string.IsNullOrEmpty(result.data.msg))
         {
             if (result.data.msg != "ERROR")
             {
-                simulatedChargeState = result.data.msg;
+                return result.data.msg;
+            }
+
+            logger.LogWarning("ERROR reading control state (CID = {C})", cid);
+        }
+        else
+            logger.LogWarning("No data returned reading control state (CID = {C})", cid);
+
+        return null;
+    }
+
+    private async Task<ChargeStateData?> ReadChargingState()
+    {
+        if (!string.IsNullOrEmpty(simulatedChargeState))
+        { 
+            return ChargeStateData.FromChargeStateData(simulatedChargeState);
+        }
+
+        if (await IsNewFirmwareVersion())
+        {
+            var soc = await ReadControlState(CommandIDs.ChargeSlot1_SOC);
+            var amps = await ReadControlState(CommandIDs.ChargeSlot1_Amps);
+            var time = await ReadControlState(CommandIDs.ChargeSlot1_Time);
+            
+            logger.LogInformation("Current charge time: {T}", time);
+        }
+        else
+        {
+            var result = await ReadControlState(CommandIDs.ReadChargeState);
+
+            if (!string.IsNullOrEmpty(result))
+            {
+                simulatedChargeState = result;
                 try
                 {
-                    return ChargeStateData.FromChargeStateData(result.data.msg);
+                    return ChargeStateData.FromChargeStateData(result);
                 }
                 catch (Exception ex)
                 {
@@ -105,8 +161,6 @@ public class SolisAPI : IInverter
                     logger.LogWarning(ex, "Error reading inverter charge slot state");
                 }
             }
-            else
-                logger.LogWarning("ERROR returned when reading inverter charging state");
         }
 
         return null;
@@ -262,6 +316,8 @@ public class SolisAPI : IInverter
     {
         const string clearChargeSlot = "00:00-00:00";
 
+        bool newFirmWare = await IsNewFirmwareVersion();
+        
         var chargeTimes = clearChargeSlot;
         var dischargeTimes = clearChargeSlot;
         int chargePower = 0;
@@ -284,20 +340,35 @@ public class SolisAPI : IInverter
         // we can do for longevity, the better.
         if (await InverterNeedsUpdating(chargePower, dischargePower, chargeTimes, dischargeTimes))
         {
-            string chargeValues = $"{chargePower},{dischargePower},{chargeTimes},{dischargeTimes},0,0,00:00-00:00,00:00-00:00,0,0,00:00-00:00,00:00-00:00";
+            // This is only used for the old FW
+            var chargeValues = $"{chargePower},{dischargePower},{chargeTimes},{dischargeTimes},0,0,00:00-00:00,00:00-00:00,0,0,00:00-00:00,00:00-00:00";
             
-
-            logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
-                            simulateOnly ? "mock inverter" : "Solis Inverter",
-                            chargePower, dischargePower, chargeTimes, dischargeTimes);
-
             if (simulateOnly)
             {
                 simulatedChargeState = chargeValues;
             }
             else
             {
-                await SendControlRequest(CommandIDs.SetCharge, chargeValues);
+                if(newFirmWare)
+                {
+                    logger.LogInformation("Setting charge Amps to {T}A for slot 1", chargePower);
+                    await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower.ToString(), simulateOnly);
+                    logger.LogInformation("Setting charge Amps to 100% for slot 1");
+                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, "100", simulateOnly);
+                    logger.LogInformation("Setting charge time to {T} for slot 1", chargeTimes);
+                    await SendControlRequest(CommandIDs.ChargeSlot1_Time, chargeTimes, simulateOnly);
+
+                    var time = await ReadControlState(CommandIDs.ChargeSlot1_Time);
+                }
+                else
+                {
+
+                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
+                        simulateOnly ? "mock inverter" : "Solis Inverter",
+                        chargePower, dischargePower, chargeTimes, dischargeTimes);
+
+                    await SendControlRequest(CommandIDs.SetCharge, chargeValues, simulateOnly);
+                }
             }
         }
         else
@@ -416,12 +487,12 @@ public class SolisAPI : IInverter
         return result;
     }
     
-    public async Task UpdateInverterTime()
+    public async Task UpdateInverterTime(bool simulateOnly)
     {
         logger.LogInformation("Updating inverter time to avoid drift...");
         
         var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        await SendControlRequest(CommandIDs.SetInverterTime, time);
+        await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly);
     }
 
     /// <summary>
@@ -429,7 +500,7 @@ public class SolisAPI : IInverter
     /// </summary>
     /// <param name="cmdId"></param>
     /// <param name="payload"></param>
-    private async Task SendControlRequest(CommandIDs cmdId, string payload)
+    private async Task SendControlRequest(CommandIDs cmdId, string payload, bool simulateOnly)
     {
         var requestBody = new
         {
@@ -438,7 +509,7 @@ public class SolisAPI : IInverter
             value = payload
         };
         
-        if (simulateMode)
+        if (simulateOnly)
         {
             logger.LogInformation("Simulated inverter control request: {B}", requestBody);
         }
@@ -447,6 +518,13 @@ public class SolisAPI : IInverter
             // Actually submit it. 
             await Post<object>(2, "control", requestBody);
         }
+
+        await Task.Delay(100);
+
+        var result = await ReadControlState(cmdId);
+        
+        if( ! simulateOnly && result != payload )
+            logger.LogInformation("Inverter control request did not stick: CID: {C}, Value: {V}", cmdId, payload);
     }
 
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)

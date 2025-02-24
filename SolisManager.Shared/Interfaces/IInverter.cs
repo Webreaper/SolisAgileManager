@@ -5,7 +5,7 @@ namespace SolisManager.Shared.Interfaces;
 
 public interface IInverter
 {
-    public Task UpdateInverterTime();
+    public Task UpdateInverterTime(bool simulateOnly);
 
     public Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd,
         DateTime? dischargeStart, DateTime? dischargeEnd,

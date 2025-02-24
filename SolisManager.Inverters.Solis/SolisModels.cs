@@ -61,7 +61,8 @@ internal record ChargeStateData( int chargeAmps, int dischargeAmps, string charg
 
 internal record InverterDetails(InverterData data);
 
-internal record InverterData(IEnumerable<Battery> batteryList, 
+internal record InverterData(
+    IEnumerable<Battery> batteryList, 
     decimal eToday, 
     decimal pac, // Power
     string stationId, 
@@ -69,7 +70,8 @@ internal record InverterData(IEnumerable<Battery> batteryList,
     decimal gridSellEnergy, // Today export KWH
     decimal homeLoadEnergy, // Today load KWH
     decimal gridPurchasedEnergy, // Today import KWH
-    decimal psum);
+    decimal psum,
+    string version);
 
 internal record Battery(int batteryCapacitySoc);
 internal record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,
