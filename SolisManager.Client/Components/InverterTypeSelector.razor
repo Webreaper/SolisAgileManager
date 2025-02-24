@@ -30,7 +30,7 @@
         if (inverterConfigTypes.Length == 1 && InverterConfig == null)
         {
             var defaultType = inverterConfigTypes.First();
-            InverterConfig = (InverterConfigBase)Activator.CreateInstance(defaultType);
+            InverterConfig = (InverterConfigBase?)Activator.CreateInstance(defaultType);
             await InverterConfigChanged.InvokeAsync(InverterConfig);
         }
         
@@ -45,7 +45,7 @@
         }
         else if (InverterConfig != null && InverterConfig.GetType().Name != selectedInverterConfigType.Name)
         {
-            InverterConfig = (InverterConfigBase)Activator.CreateInstance(selectedInverterConfigType);
+            InverterConfig = (InverterConfigBase?)Activator.CreateInstance(selectedInverterConfigType);
         }
 
         await InverterConfigChanged.InvokeAsync(InverterConfig);
