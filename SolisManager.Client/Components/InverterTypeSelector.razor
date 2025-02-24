@@ -43,7 +43,7 @@
         {
             InverterConfig = null;
         }
-        else if (InverterConfig != null && InverterConfig.GetType().Name != selectedInverterConfigType.Name)
+        else if (InverterConfig != null && selectedInverterConfigType != null && InverterConfig.GetType().Name != selectedInverterConfigType.Name)
         {
             InverterConfig = (InverterConfigBase?)Activator.CreateInstance(selectedInverterConfigType);
         }

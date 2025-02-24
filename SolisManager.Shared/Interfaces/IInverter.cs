@@ -5,11 +5,12 @@ namespace SolisManager.Shared.Interfaces;
 
 public interface IInverter
 {
+    public void SetInverterConfig(SolisManagerConfig config);
+    
     public Task UpdateInverterTime(bool simulateOnly);
 
     public Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd,
-        DateTime? dischargeStart, DateTime? dischargeEnd,
-        bool holdCharge, bool simulateOnly);
+        DateTime? dischargeStart, DateTime? dischargeEnd, bool holdCharge);
 
     public Task<bool> UpdateInverterState(SolisManagerState inverterState);
 

@@ -387,20 +387,20 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                 if (firstSlot.ActionToExecute == SlotAction.Charge)
                 {
-                    await inverterAPI.SetCharge(start, end, null, null, false, config.Simulate);
+                    await inverterAPI.SetCharge(start, end, null, null, false);
                 }
                 else if (firstSlot.ActionToExecute == SlotAction.Discharge)
                 {
-                    await inverterAPI.SetCharge(null, null, start, end, false, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, start, end, false);
                 }
                 else if (firstSlot.ActionToExecute == SlotAction.Hold)
                 {
-                    await inverterAPI.SetCharge(null, null, start, end, true, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, start, end, true);
                 }
                 else
                 {
                     // Clear the charge
-                    await inverterAPI.SetCharge(null, null, null, null, false, config.Simulate);
+                    await inverterAPI.SetCharge(null, null, null, null, false);
                 }
             }
         }
@@ -1016,6 +1016,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         newConfig.CopyPropertiesTo(config);
         await config.SaveToFile(Program.ConfigFolder);
         
+        // Update the inverter with the new config
+        inverterAPI.SetInverterConfig(config);
+        
         if (config.Simulate)
             await ResetSimulation();
         
@@ -1055,7 +1058,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         logger.LogInformation("Starting test charge for 5 minutes");
         var start = DateTime.UtcNow;
         var end = start.AddMinutes(5);
-        await inverterAPI.SetCharge(start, end, null, null, false, false);
+        await inverterAPI.SetCharge(start, end, null, null, false);
     }
 
     public async Task ChargeBattery()

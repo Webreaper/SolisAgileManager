@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -24,10 +25,12 @@ public class SolisAPI : IInverter
     
     private readonly HttpClient client = new();
     private readonly ILogger<SolisAPI> logger;
-    private readonly InverterConfigSolis config;
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
+    private InverterConfigSolis config;
+
     private bool? newFirmwareVersion;
+    private bool simulateOnly = true;
 
     private string simulatedChargeState = string.Empty;
 
@@ -52,16 +55,22 @@ public class SolisAPI : IInverter
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
     {
-        var solisConfig = _config.InverterConfig as InverterConfigSolis;
-        ArgumentNullException.ThrowIfNull(solisConfig);
-        
+        SetInverterConfig(_config);
+
         userAgentProvider = _userAgentProvider;
-        config = solisConfig;
         logger = _logger;
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
     }
 
+    public void SetInverterConfig(SolisManagerConfig newConfig)
+    {
+        var solisConfig = newConfig.InverterConfig as InverterConfigSolis;
+        ArgumentNullException.ThrowIfNull(solisConfig);
+        config = solisConfig;
+        simulateOnly = newConfig.Simulate;
+    }
+    
     private async Task<InverterDetails?> InverterState()
     {
         var result = await Post<InverterDetails>(1,"inverterDetail", 
@@ -71,25 +80,6 @@ public class SolisAPI : IInverter
         return result;
     }
     
-    // version = 1D001 Martin, Mine B9004C
-    
-    private async Task<IReadOnlyList<UserStation>> UserStationList(int pageNo, int pageSize)
-    {
-        var result = await Post<ListResponse<UserStation>>(1,"userStationList", new UserStationListRequest(pageNo, pageSize));
-        if(result != null)
-            return result.data.page.records;
-
-        return [];
-    }
-
-    private async Task<IReadOnlyList<Inverter>> InverterList(int pageNo, int pageSize, int? stationId)
-    {
-        var result = await Post<ListResponse<Inverter>>(1,"inverterList", new InverterListRequest(pageNo, pageSize, stationId));
-        if( result != null )
-            return result.data.page.records;
-        return [];
-    }
-
     private async Task<bool> IsNewFirmwareVersion()
     {
         if( newFirmwareVersion.HasValue )
@@ -341,9 +331,9 @@ public class SolisAPI : IInverter
     /// All parameters passed in are UTC. This method will convert.
     /// </summary>
     /// <returns></returns>
-    public async Task SetCharge( DateTime? chargeStart, DateTime? chargeEnd, 
+    public async Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd, 
                                           DateTime? dischargeStart, DateTime? dischargeEnd, 
-                                          bool holdCharge, bool simulateOnly )
+                                          bool holdCharge )
     {
         const string clearChargeSlot = "00:00-00:00";
 
@@ -490,34 +480,6 @@ public class SolisAPI : IInverter
         return result;
     }
     
-    /// <summary>
-    /// Get the historic graph data for the inverter
-    /// </summary>
-    /// <returns></returns>
-    private async Task<StationEnergyDayResponse?> GetStationEnergyDay(int dayOffset = 0)
-    {
-        var dayToQuery = DateTime.UtcNow.AddDays(-1 * dayOffset);
-        var cacheKey = $"stationDayEnergyList-{dayToQuery:yyyyMMdd}";
-        
-        if( memoryCache.TryGetValue(cacheKey, out StationEnergyDayResponse? inverterDay))
-            return inverterDay;
-
-        logger.LogInformation("Getting inverter stats for {D:dd-MMM-yyyy}...", dayToQuery);
-
-        var result = await Post<StationEnergyDayResponse>(1, "stationDayEnergyList",
-            new
-            {
-                pageNo = 0,
-                pageSize = 100,
-                time = $"{dayToQuery:yyyy-MM-dd}",
-            });
-
-        if (result != null)
-            memoryCache.Set(cacheKey, result, _cacheOptions);
-
-        return result;
-    }
-    
     public async Task UpdateInverterTime(bool simulateOnly)
     {
         logger.LogInformation("Updating inverter time to avoid drift...");
@@ -531,6 +493,7 @@ public class SolisAPI : IInverter
     /// </summary>
     /// <param name="cmdId"></param>
     /// <param name="payload"></param>
+    /// <param name="simulateOnly"></param>
     private async Task SendControlRequest(CommandIDs cmdId, string payload, bool simulateOnly)
     {
         var requestBody = new
@@ -613,5 +576,50 @@ public class SolisAPI : IInverter
         }
 
         return string.Empty;
+    }
+    
+    private async Task<IReadOnlyList<UserStation>> UserStationList(int pageNo, int pageSize)
+    {
+        var result = await Post<ListResponse<UserStation>>(1,"userStationList", new UserStationListRequest(pageNo, pageSize));
+        if(result != null)
+            return result.data.page.records;
+
+        return [];
+    }
+
+    private async Task<IReadOnlyList<Inverter>> InverterList(int pageNo, int pageSize, int? stationId)
+    {
+        var result = await Post<ListResponse<Inverter>>(1,"inverterList", new InverterListRequest(pageNo, pageSize, stationId));
+        if( result != null )
+            return result.data.page.records;
+        return [];
+    }
+
+    /// <summary>
+    /// Get the historic graph data for the inverter
+    /// </summary>
+    /// <returns></returns>
+    private async Task<StationEnergyDayResponse?> GetStationEnergyDay(int dayOffset = 0)
+    {
+        var dayToQuery = DateTime.UtcNow.AddDays(-1 * dayOffset);
+        var cacheKey = $"stationDayEnergyList-{dayToQuery:yyyyMMdd}";
+        
+        if( memoryCache.TryGetValue(cacheKey, out StationEnergyDayResponse? inverterDay))
+            return inverterDay;
+
+        logger.LogInformation("Getting inverter stats for {D:dd-MMM-yyyy}...", dayToQuery);
+
+        var result = await Post<StationEnergyDayResponse>(1, "stationDayEnergyList",
+            new
+            {
+                pageNo = 0,
+                pageSize = 100,
+                time = $"{dayToQuery:yyyy-MM-dd}",
+            });
+
+        if (result != null)
+            memoryCache.Set(cacheKey, result, _cacheOptions);
+
+        return result;
     }
 }
