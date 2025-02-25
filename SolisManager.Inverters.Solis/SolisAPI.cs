@@ -365,25 +365,31 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             }
             else
             {
-                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
-                    simulateOnly ? "mock inverter" : "Solis Inverter",
-                    chargePower, dischargePower, chargeTimes, dischargeTimes);
-
                 if(newFirmWare)
                 {
                     // To discharge, it seems you have to make the Charge SOC lower than the current SOC
-                    var ChargeSOC = dischargePower > 0 ? 15 : 100;
-                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{ChargeSOC}", simulateOnly);
+                    var chargeSOC = dischargePower > 0 ? 15 : 100;
+                    var dischargeSOC = 15;
+
+                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
+                        simulateOnly ? "mock inverter" : "Solis Inverter",
+                        chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
+
+                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
                     await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
 
                     // Now, set the actual state.
-                    await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower.ToString(), simulateOnly);
+                    await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
                     await SendControlRequest(CommandIDs.ChargeSlot1_Time, chargeTimes, simulateOnly);
-                    await SendControlRequest(CommandIDs.DischargeSlot1_Amps, dischargePower.ToString(), simulateOnly);
+                    await SendControlRequest(CommandIDs.DischargeSlot1_Amps, dischargePower, simulateOnly);
                     await SendControlRequest(CommandIDs.DischargeSlot1_Time, dischargeTimes, simulateOnly);
                 }
                 else
                 {
+                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
+                        simulateOnly ? "mock inverter" : "Solis Inverter",
+                        chargePower, dischargePower, chargeTimes, dischargeTimes);
+
                     await SendControlRequest(CommandIDs.SetCharge, chargeValues, simulateOnly);
                 }
             }
@@ -486,13 +492,18 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly);
     }
 
+    private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly)
+    {
+        await SendControlRequest(cmdId, value.ToString(), simulateOnly);
+    }
+
     /// <summary>
     /// Send the actual control request to the inverter. 
     /// </summary>
     /// <param name="cmdId"></param>
-    /// <param name="payload"></param>
+    /// <param name="value"></param>
     /// <param name="simulateOnly"></param>
-    private async Task SendControlRequest(CommandIDs cmdId, string payload, bool simulateOnly)
+    private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly)
     {
         ArgumentNullException.ThrowIfNull(inverterConfig);
 
@@ -500,7 +511,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             inverterSn = inverterConfig.SolisInverterSerial,
             cid = (int)cmdId,
-            value = payload
+            value
         };
         
         if (simulateOnly)
@@ -517,8 +528,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         var result = await ReadControlState(cmdId);
         
-        if( ! simulateOnly && result != payload )
-            logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V}", cmdId, payload);
+        if( ! simulateOnly && result != value )
+            logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V}", cmdId, value);
     }
 
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)
