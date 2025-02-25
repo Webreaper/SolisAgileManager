@@ -202,7 +202,9 @@ or you unplug your EV from the charger).
 
 #### How does it work?
 
-If Octopus sends you a smart-charge slot you'll see something like this in the logs:
+First, check the 'Intelligent Go Charging' checkbox in the Settings screen, and save the settings.
+
+Then if Octopus sends you a smart-charge slot you'll see something like this in the logs:
 
 ```
   Found 2 IOG Smart-Charge slots (out of a total of 2 planned and 3 completed dispatches)"
