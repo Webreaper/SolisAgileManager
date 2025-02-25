@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -6,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.InverterConfigs;
 using SolisManager.Shared.Models;
@@ -16,7 +16,7 @@ namespace SolisManager.Inverters.Solis;
 /// here: https://github.com/jmg48/solis-cloud
 /// But extended to support setting charges (based on
 /// https://github.com/stevegal/solis-control
-public class SolisAPI : IInverter
+public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 {
     private readonly MemoryCacheEntryOptions _cacheOptions =
         new MemoryCacheEntryOptions()
@@ -24,11 +24,9 @@ public class SolisAPI : IInverter
             .SetAbsoluteExpiration(TimeSpan.FromDays(7));
     
     private readonly HttpClient client = new();
-    private readonly ILogger<SolisAPI> logger;
+    private readonly ILogger logger;
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
-    private InverterConfigSolis config;
-
     private bool? newFirmwareVersion;
 
     private string simulatedChargeState = string.Empty;
@@ -52,7 +50,7 @@ public class SolisAPI : IInverter
         DischargeSlot1_SOC = 5965,
     }
     
-    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
+    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger _logger)
     {
         SetInverterConfig(_config);
 
@@ -61,18 +59,13 @@ public class SolisAPI : IInverter
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
     }
-
-    public void SetInverterConfig(SolisManagerConfig newConfig)
-    {
-        var solisConfig = newConfig.InverterConfig as InverterConfigSolis;
-        ArgumentNullException.ThrowIfNull(solisConfig);
-        config = solisConfig;
-    }
     
     private async Task<InverterDetails?> InverterState()
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
         var result = await Post<InverterDetails>(1,"inverterDetail", 
-            new { sn = config.SolisInverterSerial
+            new { sn = inverterConfig.SolisInverterSerial
             });
         
         return result;
@@ -295,8 +288,10 @@ public class SolisAPI : IInverter
     /// <param name="cid"></param>
     private async Task<string?> ReadControlState(CommandIDs cid)
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
         var result = await Post<AtReadResponse>(2, "atRead",
-            new { inverterSn = config.SolisInverterSerial, cid });
+            new { inverterSn = inverterConfig.SolisInverterSerial, cid });
 
         if (result?.data != null && !string.IsNullOrEmpty(result.data.msg))
         {
@@ -333,6 +328,8 @@ public class SolisAPI : IInverter
                                           DateTime? dischargeStart, DateTime? dischargeEnd, 
                                           bool holdCharge, bool simulateOnly )
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+        
         const string clearChargeSlot = "00:00-00:00";
 
         bool newFirmWare = await IsNewFirmwareVersion();
@@ -345,13 +342,13 @@ public class SolisAPI : IInverter
         if (chargeStart != null && chargeEnd != null)
         {
             chargeTimes = $"{chargeStart.Value.ToLocalTime():HH:mm}-{chargeEnd.Value.ToLocalTime():HH:mm}";
-            chargePower = config.MaxChargeRateAmps;
+            chargePower = inverterConfig.MaxChargeRateAmps;
         }
         
         if (dischargeStart != null && dischargeEnd != null)
         {
             dischargeTimes = $"{dischargeStart.Value.ToLocalTime():HH:mm}-{dischargeEnd.Value.ToLocalTime():HH:mm}";
-            dischargePower = holdCharge ? 0 : config.MaxChargeRateAmps;
+            dischargePower = holdCharge ? 0 : inverterConfig.MaxChargeRateAmps;
         }
         
         // Now check if we actually need to do anything. No point making a write call to the 
@@ -464,10 +461,12 @@ public class SolisAPI : IInverter
     /// <returns></returns>
     private async Task<InverterDayResponse?> GetInverterDayInternal(DateTime dayToQuery)
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
         var result = await Post<InverterDayResponse>(1, "inverterDay",
             new
             {
-                sn = config.SolisInverterSerial,
+                sn = inverterConfig.SolisInverterSerial,
                 money = "UKP",
                 time = $"{dayToQuery:yyyy-MM-dd}",
                 timezone = 0
@@ -495,9 +494,11 @@ public class SolisAPI : IInverter
     /// <param name="simulateOnly"></param>
     private async Task SendControlRequest(CommandIDs cmdId, string payload, bool simulateOnly)
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
         var requestBody = new
         {
-            inverterSn = config.SolisInverterSerial,
+            inverterSn = inverterConfig.SolisInverterSerial,
             cid = (int)cmdId,
             value = payload
         };
@@ -542,6 +543,8 @@ public class SolisAPI : IInverter
     
     private async Task<string> Post(string url, string content)
     {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -551,10 +554,10 @@ public class SolisAPI : IInverter
             request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json;charset=UTF-8");
 
             var contentMd5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(content)));
-            var hmacSha1 = new HMACSHA1(Encoding.UTF8.GetBytes(config.SolisAPISecret));
+            var hmacSha1 = new HMACSHA1(Encoding.UTF8.GetBytes(inverterConfig.SolisAPISecret));
             var param = $"POST\n{contentMd5}\napplication/json\n{date}\n{url}";
             var sign = Convert.ToBase64String(hmacSha1.ComputeHash(Encoding.UTF8.GetBytes(param)));
-            var auth = $"API {config.SolisAPIKey}:{sign}";
+            var auth = $"API {inverterConfig.SolisAPIKey}:{sign}";
 
             request.Headers.Add("Time", date);
             request.Headers.Add("Authorization", auth);
