@@ -374,7 +374,8 @@ public class SolisAPI : IInverter
 
                 if(newFirmWare)
                 {
-                    int ChargeSOC = chargePower > 0 ? 100 : 15;
+                    // To discharge, it seems you have to make the Charge SOC lower than the current SOC
+                    var ChargeSOC = dischargePower > 0 ? 15 : 100;
                     await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{ChargeSOC}", simulateOnly);
                     await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
 
