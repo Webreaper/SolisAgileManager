@@ -1,10 +1,11 @@
+
 @if (inverterConfigTypes.Length > 1)
 {
-    <MudSelect T="Type?" @bind-Value="selectedInverterConfigType" @bind-Value:after="InverterTypeChanged"
+    <MudSelect T="Type" @bind-Value="selectedInverterConfigType" @bind-Value:after="InverterTypeChanged"
                Label="Inverter Type" Variant="UIConstants.MudVariant" Dense="true">
         @foreach (var choice in inverterConfigTypes)
         {
-            <MudSelectItem T="Type?" Value="@choice">@GetInverterTypeName(choice)</MudSelectItem>
+            <MudSelectItem T="Type" Value="@choice">@GetInverterTypeName(choice)</MudSelectItem>
         }
     </MudSelect>
 }
@@ -20,7 +21,7 @@
 
     private Type[] inverterConfigTypes = [
         typeof(InverterConfigSolis),
-       // typeof(InverterConfigSolarEdge)
+       //typeof(InverterConfigSolarEdge)
     ];
 
     private string GetInverterTypeName(Type type) => type.Name.Replace("InverterConfig", string.Empty);
@@ -30,7 +31,7 @@
         if (inverterConfigTypes.Length == 1 && InverterConfig == null)
         {
             var defaultType = inverterConfigTypes.First();
-            InverterConfig = (InverterConfigBase?)Activator.CreateInstance(defaultType);
+            CreateConfig(defaultType);
             await InverterConfigChanged.InvokeAsync(InverterConfig);
         }
         
@@ -45,10 +46,16 @@
         }
         else if (InverterConfig != null && selectedInverterConfigType != null && InverterConfig.GetType().Name != selectedInverterConfigType.Name)
         {
-            InverterConfig = (InverterConfigBase?)Activator.CreateInstance(selectedInverterConfigType);
+            CreateConfig(selectedInverterConfigType);
         }
 
         await InverterConfigChanged.InvokeAsync(InverterConfig);
+    }
+
+    private void CreateConfig(Type type)
+    {
+        if (Activator.CreateInstance(type) is InverterConfigBase config)
+            InverterConfig = config;
     }
     
     protected override void OnParametersSet()

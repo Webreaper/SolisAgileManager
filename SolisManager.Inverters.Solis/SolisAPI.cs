@@ -30,7 +30,6 @@ public class SolisAPI : IInverter
     private InverterConfigSolis config;
 
     private bool? newFirmwareVersion;
-    private bool simulateOnly = true;
 
     private string simulatedChargeState = string.Empty;
 
@@ -68,7 +67,6 @@ public class SolisAPI : IInverter
         var solisConfig = newConfig.InverterConfig as InverterConfigSolis;
         ArgumentNullException.ThrowIfNull(solisConfig);
         config = solisConfig;
-        simulateOnly = newConfig.Simulate;
     }
     
     private async Task<InverterDetails?> InverterState()
@@ -333,7 +331,7 @@ public class SolisAPI : IInverter
     /// <returns></returns>
     public async Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd, 
                                           DateTime? dischargeStart, DateTime? dischargeEnd, 
-                                          bool holdCharge )
+                                          bool holdCharge, bool simulateOnly )
     {
         const string clearChargeSlot = "00:00-00:00";
 
@@ -376,8 +374,8 @@ public class SolisAPI : IInverter
 
                 if(newFirmWare)
                 {
-                    // TODO: can we set these once and then leave alone? Do we need to set them at all?
-                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, "100", simulateOnly);
+                    int ChargeSOC = chargePower > 0 ? 100 : 15;
+                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{ChargeSOC}", simulateOnly);
                     await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
 
                     // Now, set the actual state.
