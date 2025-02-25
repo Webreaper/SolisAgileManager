@@ -50,7 +50,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         DischargeSlot1_SOC = 5965,
     }
     
-    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger _logger)
+    public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
     {
         SetInverterConfig(_config);
 

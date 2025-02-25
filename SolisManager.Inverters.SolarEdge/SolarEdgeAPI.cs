@@ -9,7 +9,7 @@ namespace SolisManager.Inverters.SolarEdge;
 
 public class SolarEdgeAPI : InverterBase<InverterConfigSolarEdge>, IInverter
 {
-    public SolarEdgeAPI(SolisManagerConfig _config, IUserAgentProvider _userAgentProvider, ILogger _logger)
+    public SolarEdgeAPI(SolisManagerConfig _config, IUserAgentProvider _userAgentProvider, ILogger<SolarEdgeAPI> _logger)
     {
         SetInverterConfig(_config);
     }
