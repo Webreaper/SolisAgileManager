@@ -80,7 +80,8 @@ public record SolisManagerConfig
         return true;
     }
 
-    public bool TariffIsIntelligentGo => OctopusProductCode.Contains("-INTELLI-VAR-");
+    public bool TariffIsIntelligentGo => OctopusProductCode.Contains("INTELLI-VAR") ||
+                                         OctopusProductCode.Contains("INTELLI-BB-VAR");
     
     [Obsolete]
     public string? SolisAPIKey { get; set; }
