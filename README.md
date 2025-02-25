@@ -200,6 +200,28 @@ or you unplug your EV from the charger).
 
 ![IOGSlots](https://github.com/user-attachments/assets/41a3b945-a6e5-4598-a420-a818a8bebf78)
 
+#### How does it work?
+
+If Octopus sends you a smart-charge slot you'll see something like this in the logs:
+
+```
+  Found 2 IOG Smart-Charge slots (out of a total of 2 planned and 3 completed dispatches)"
+     Time: 16:34 - 17:26, Type: smart-charge, Delta: -7"
+     Time: 18:22 - 18:55, Type: smart-charge, Delta: -9"
+```
+In the above case, you'd see the slots in the Charging plan change to a car icon for:
+
+- 16:30-17:00
+- 17:00-17:30
+- 18:00-18:30
+- 18:30-19:00
+
+and the inverter should charge the house battery for that period. Note that smart-charge slots don't seem
+to be reliably sent to the API, so it's possible you might find yourself charging your EV in a cheap slot
+during the day, but SolisManager doesn't get notified of them, so isn't able to take advantage of them
+and charge your home battery. Unfortunately, that seems to be a foible of some chargers/cars, and is 
+beyond my control!
+
 ### Avoiding Time Drift
 
 The application has a setting that will, every day at 2am, update the inverter time to match internet time.

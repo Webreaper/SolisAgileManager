@@ -505,6 +505,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// <param name="simulateOnly"></param>
     private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly)
     {
+        const int retries = 3;
         ArgumentNullException.ThrowIfNull(inverterConfig);
 
         var requestBody = new
@@ -520,16 +521,22 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
         else
         {
-            // Actually submit it. 
-            await Post<object>(2, "control", requestBody);
+            int attempts = 0;
+
+            while (attempts++ < retries)
+            {
+                // Actually write it. 
+                await Post<object>(2, "control", requestBody);
+
+                // Now try and read it back
+                var result = await ReadControlState(cmdId);
+
+                if (result == value)
+                    return; // Success
+
+                logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt {A})", cmdId, value, attempts);
+            }
         }
-
-        await Task.Delay(100);
-
-        var result = await ReadControlState(cmdId);
-        
-        if( ! simulateOnly && result != value )
-            logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V}", cmdId, value);
     }
 
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)
