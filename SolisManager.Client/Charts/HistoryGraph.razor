@@ -21,7 +21,7 @@
 
             <ApexPointSeries TItem="HistoryEntry"
                              Items="FilteredHistoryData"
-                             Name="Price"
+                             Name="Price (p/kWh)"
                              XValue="@(e => e.Start)"
                              YValue="@(e => e.Price)"
                              SeriesType="SeriesType.Bar"
@@ -116,20 +116,21 @@
             new()
             {
                 Title = new AxisTitle { Text = "Price (p/kWh)" },
-                SeriesName = "Price",
-                DecimalsInFloat = 2
+                SeriesName = "Price (p/kWh)",
+                DecimalsInFloat = 2, 
             },
             new()
             {
                 Title = new AxisTitle { Text = "Battery SOC (%)" },
                 SeriesName = "SOC (%)",
-                DecimalsInFloat = 0,
-                Opposite = true, 
+                DecimalsInFloat = 2,
+                Opposite = true,
             },
             new()
             {
+                Title = new AxisTitle { Text = "PV Forecast/Actual (kWh)" },
                 SeriesName = ["PV Yield (kWh)", "PV Forecast (kWh)"],
-                DecimalsInFloat = 0,
+                DecimalsInFloat = 2,
             }
         };
 
