@@ -1,9 +1,11 @@
-@using SolisManager.Shared.Interfaces
 @inject IInverterManagerService inverterManagerService
 
 <div class="title-row">
-    <h5>@ChartTitle</h5>
-    @if(ChildContent != null )
+    @if (!string.IsNullOrEmpty(ChartTitle))
+    {
+        <h5>@ChartTitle</h5>
+    }   
+    @if (ChildContent != null)
     {
         <div>
             @ChildContent
@@ -22,7 +24,7 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
     
-    [Parameter, EditorRequired] public string ChartTitle { get; set; } = string.Empty;
+    [Parameter] public string? ChartTitle { get; set; } = string.Empty;
     
     private SolisManagerConfig? config;
 

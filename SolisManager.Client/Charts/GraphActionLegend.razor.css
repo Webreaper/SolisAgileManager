@@ -5,6 +5,8 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .legend {
