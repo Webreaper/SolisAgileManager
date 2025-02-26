@@ -130,7 +130,7 @@
                                      Clearable="true" Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="If slots are available with below-average prices, they will be used to boost-charge the battery if the SOC is below this value">
-                    <MudNumericField T="int" Label="Battery Boost Threshold (%)" @bind-Value="@config.LowBatteryPercentage" Min="1" Max="95" 
+                    <MudNumericField T="int" Label="Battery Boost Threshold (%)" @bind-Value="@config.LowBatteryPercentage" Min="1" Max="150" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Simulation mode allows you to see the charging strategy without actually making changes to the inverter, including stepping forwards through time.">
