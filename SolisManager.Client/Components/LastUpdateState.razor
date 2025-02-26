@@ -20,9 +20,10 @@
     
     [CascadingParameter] public bool DarkMode { get; set; }
 
-    // Should get an update every 10 mins, solis updates every 5 minutes and so do we.
-    // But give a couple of mins grace before claiming it's stale
-    const int staleThresholdMins = 12;
+    // We update every from the inverter every minute, solis updates every 5.
+    // So worst case we should always have data within 7 minutes. If it's
+    // later than that, consider it stale.
+    const int staleThresholdMins = 7;
 
     private double DataAgeMins => (DateTime.UtcNow - InverterState!.InverterDataTimestamp).TotalMinutes; 
     private string Style => "update-text " + (DarkMode ? "update-text-dark" : string.Empty);
