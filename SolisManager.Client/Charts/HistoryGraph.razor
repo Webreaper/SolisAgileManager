@@ -18,23 +18,6 @@
                    XAxisType="XAxisType.Datetime"
                    Options="@Options"
                    Height="@("100%")">
-            
-            <ApexPointSeries TItem="HistoryEntry"
-                             Items="FilteredHistoryData"
-                             Name="PV Yield (kWh)"
-                             XValue="@(e => e.Start)"
-                             YValue="@(e => e.ActualKWH)"
-                             SeriesType="SeriesType.Area"
-                             Color="darkkhaki"/>
-
-            <ApexPointSeries TItem="HistoryEntry"
-                             Items="FilteredHistoryData"
-                             Name="PV Forecast (kWh)"
-                             XValue="@(e => e.Start)"
-                             YValue="@(e => e.ForecastKWH)"
-                             SeriesType="SeriesType.Line"
-                             Color="khaki"
-                             Stroke="@(new SeriesStroke { Color = "khaki", Width = 3 })"/>
 
             <ApexPointSeries TItem="HistoryEntry"
                              Items="FilteredHistoryData"
@@ -43,8 +26,8 @@
                              YValue="@(e => e.Price)"
                              SeriesType="SeriesType.Bar"
                              PointColor="e => GetColor(e)"
-                             Stroke="@(new SeriesStroke { Color = "lightgray", Width = 1 })"/>
-            
+                             Stroke="@(new SeriesStroke { Width = 0 })"/>
+
             <ApexPointSeries TItem="HistoryEntry"
                              Items="FilteredHistoryData"
                              Name="SOC (%)"
@@ -53,6 +36,25 @@
                              SeriesType="SeriesType.Line"
                              Color="red"
                              Stroke="@(new SeriesStroke { Color = "red", Width = 3 })"/>
+
+            <ApexPointSeries TItem="HistoryEntry"
+                             Items="FilteredHistoryData"
+                             Name="PV Forecast (kWh)"
+                             XValue="@(e => e.Start)"
+                             YValue="@(e => e.ForecastKWH)"
+                             SeriesType="SeriesType.Line"
+                             Color="darkkhaki"
+                             Stroke="@(new SeriesStroke { Color = "darkkhaki", Width = 3 })"/>
+
+            <ApexPointSeries TItem="HistoryEntry"
+                             Items="FilteredHistoryData"
+                             Name="PV Yield (kWh)"
+                             XValue="@(e => e.Start)"
+                             YValue="@(e => e.ActualKWH)"
+                             SeriesType="SeriesType.Area"
+                             Color="darkorange"
+                             Stroke="@(new SeriesStroke { Color = "darkorange", Width = 1 })"/>
+
         </ApexChart>
     </div>
 }
@@ -131,6 +133,22 @@
             }
         };
 
+        var fill = new Fill
+        {
+            // First type is for the first series, second type is for the second series.
+            Type = [FillType.Solid, FillType.Solid, FillType.Solid, FillType.Gradient],
+            Gradient = new FillGradient
+            {
+                Shade = GradientShade.Light,
+                ShadeIntensity = 0,
+                OpacityFrom = 0.9,
+                OpacityTo = 0.4,
+                GradientToColors = ["darkorange", "orange"],
+                Type = GradientType.Vertical
+            }
+        };
+        
         optionsToSet.Yaxis = yAxis;
+        optionsToSet.Fill = fill;
     }
 }
