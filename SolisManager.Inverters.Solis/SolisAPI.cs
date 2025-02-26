@@ -530,8 +530,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 var result = await ReadControlState(cmdId);
 
                 if (result == value)
+                {
+                    if (attempt > 0)
+                        logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}", cmdId, value, attempt);
                     return; // Success
-
+                }
+    
                 logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt: {A})", cmdId, value, attempt);
             }
         }
