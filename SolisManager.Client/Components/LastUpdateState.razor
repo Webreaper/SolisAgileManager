@@ -2,14 +2,15 @@
 @if (InverterState != null && InverterState.InverterDataTimestamp != DateTime.MinValue)
 {
     <div class="@Style">
-        Last Inverter Data update: @InverterState.InverterDataTimestamp.DisplayDateTime()
+        Last Update: @InverterState.LastUpdate.DisplayDateTime(),
+        Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime(),
         @if (DataAgeMins > staleThresholdMins)
         {
             <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
                 (stale)
             </span>
         }
-        , last Octopus Rates update: @InverterState.PricesUpdate.DisplayDateTime(), 
+        , last Octopus Rates update: @InverterState.PricesUpdate.DisplayDateTime(),
         last Solcast update: @SolcastUpdate
     </div>
 }

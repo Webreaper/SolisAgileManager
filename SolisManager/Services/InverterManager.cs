@@ -307,6 +307,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ApplyIOGDispatches(processedSlots);
 
         InverterState.Prices = processedSlots;
+        InverterState.LastUpdate = DateTime.UtcNow;
 
         // Update the state
         if (config.Simulate)
