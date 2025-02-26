@@ -92,7 +92,7 @@ public class Program
         builder.Services.AddSingleton<IInverterRefreshService>(x => x.GetRequiredService<InverterManager>());
         builder.Services.AddSingleton<IToolsService, RestartService>();
 
-        builder.Services.AddSingleton<BatteryScheduler>();
+        builder.Services.AddSingleton<InverterStateScheduler>();
         builder.Services.AddSingleton<RatesScheduler>();
         builder.Services.AddSingleton<SolcastScheduler>();
         builder.Services.AddSingleton<SolcastExtraScheduler>();
@@ -194,13 +194,12 @@ public class Program
             .Cron("0 2 * * *")
             .RunOnceAtStart());
 
-        // Update the battery every 5 minutes. Skip the 0 / 30
-        // minute slots, because it gets updated when we refresh
-        // rates anyway. Don't need to run at startup, for the 
-        // same reason.
+        // Update the intverter state every 2 minutes. The actual inverter
+        // data only gets updated in SolisCloud every 5 minutes, but requesting
+        // it regularly means we won't end up with 10-minute stale data
         app.Services.UseScheduler(s => s
-            .Schedule<BatteryScheduler>()
-            .Cron("0,5,10,15,20,25,35,40,45,50,55 * * * *")
+            .Schedule<InverterStateScheduler>()
+            .Cron("*/1 * * * *")
             .RunOnceAtStart());
 
         // Check if the Octopus tariff has changed every 4 hours

@@ -14,7 +14,7 @@ public class RatesScheduler( IInverterRefreshService service, ILogger<RatesSched
     }
 }
 
-public class BatteryScheduler( IInverterRefreshService service, ILogger<BatteryScheduler> logger) : IInvocable
+public class InverterStateScheduler( IInverterRefreshService service, ILogger<InverterStateScheduler> logger) : IInvocable
 {
     public async Task Invoke()
     {
@@ -64,7 +64,7 @@ public class TariffScheduler( IInverterRefreshService inverterRefresh, ILogger<T
     }
 }
 
-public class VersionCheckScheduler( InverterManager service, ILogger<BatteryScheduler> logger) : IInvocable
+public class VersionCheckScheduler( InverterManager service, ILogger<InverterStateScheduler> logger) : IInvocable
 {
     public async Task Invoke()
     {

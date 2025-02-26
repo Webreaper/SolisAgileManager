@@ -818,6 +818,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return Task.CompletedTask;
     }
 
+    private string lastStateMessage = string.Empty;
     public async Task UpdateInverterState()
     {
         if (!config.IsValid())
@@ -830,10 +831,17 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             // Get the battery charge state from the inverter
             if (await inverterAPI.UpdateInverterState(InverterState))
             {
-                logger.LogInformation(
-                    "Refreshed state: SOC = {S}%, Current PV = {PV}kW, House Load = {L}kW, Forecast today: {F}kWh, tomorrow: {T}kWh",
-                    InverterState.BatterySOC, InverterState.CurrentPVkW, InverterState.HouseLoadkW,
-                    InverterState.TodayForecastKWH, InverterState.TomorrowForecastKWH);
+                var stateMsg = string.Format(
+                    $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW}kW, " +
+                    $"House Load = {InverterState.HouseLoadkW}kW, Forecast today: {InverterState.TodayForecastKWH}kWh, " +
+                    $"tomorrow: {InverterState.TomorrowForecastKWH}kWh");
+
+                if (stateMsg != lastStateMessage)
+                {
+                    lastStateMessage = stateMsg;
+                    // ReSharper disable once TemplateIsNotCompileTimeConstantProblem
+                    logger.LogInformation(stateMsg);
+                }
             }
             else
                 logger.LogWarning("Unable to read state from inverter");
