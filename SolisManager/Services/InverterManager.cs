@@ -307,7 +307,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ApplyIOGDispatches(processedSlots);
 
         InverterState.Prices = processedSlots;
-        InverterState.LastUpdate = DateTime.UtcNow;
 
         // Update the state
         if (config.Simulate)
@@ -826,6 +825,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         try
         {
+            InverterState.LastUpdate = DateTime.UtcNow;
+
             // Get the battery charge state from the inverter
             if (await inverterAPI.UpdateInverterState(InverterState))
             {
