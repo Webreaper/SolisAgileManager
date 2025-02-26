@@ -521,16 +521,19 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
         else
         {
-            // Actually write it. 
-            await Post<object>(2, "control", requestBody);
+            for (var attempt = 0; attempt < retries; attempt++)
+            {
+                // Actually write it. 
+                await Post<object>(2, "control", requestBody);
 
-            // Now try and read it back
-            var result = await ReadControlState(cmdId);
+                // Now try and read it back
+                var result = await ReadControlState(cmdId);
 
-            if (result == value)
-                return; // Success
+                if (result == value)
+                    return; // Success
 
-            logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V}", cmdId, value);
+                logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt: {A})", cmdId, value, attempt);
+            }
         }
     }
 
