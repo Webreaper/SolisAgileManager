@@ -9,3 +9,11 @@
 .update-text-dark {
     color: rgba(200,200,200,0.8);
 }
+
+.stale-data {
+    color: firebrick;
+}
+
+.stale-data-dark { 
+    color: orangered;
+}

@@ -71,7 +71,8 @@ internal record InverterData(
     decimal homeLoadEnergy, // Today load KWH
     decimal gridPurchasedEnergy, // Today import KWH
     decimal psum,
-    string version);
+    string version,
+    string timeStr);
 
 internal record Battery(int batteryCapacitySoc);
 internal record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,

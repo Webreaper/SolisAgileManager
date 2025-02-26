@@ -8,7 +8,6 @@ using SolisManager.Shared.Models;
 namespace SolisManager.Services;
 
 public class InverterFactory(SolisManagerConfig config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, 
-        ILogger<InverterFactory> _logger, 
         ILogger<SolisAPI> solisLogger,
         ILogger<SolarEdgeAPI> solarEdgeLogger
         )

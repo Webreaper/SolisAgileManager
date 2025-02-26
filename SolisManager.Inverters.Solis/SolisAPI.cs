@@ -259,10 +259,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 .FirstOrDefault();
 
             if (latestBatterySOC != 0)
-            {
                 inverterState.BatterySOC = latestBatterySOC;
-                inverterState.BatteryTimeStamp = DateTime.UtcNow;
-            }
             else
                 logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
             
@@ -273,7 +270,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
             inverterState.StationId = solisState.data.stationId;
             inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
-
+            if( ParseTimeStr(solisState.data.timeStr, out var timestamp))
+                inverterState.InverterDataTimestamp = timestamp;
+            else
+                inverterState.InverterDataTimestamp = DateTime.UtcNow;
             return true;
         }
 
@@ -407,6 +407,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         return await GetHistoricData(dayToQuery);
     }
 
+    private bool ParseTimeStr(string timeStr, out DateTime date)
+    {
+        return DateTime.TryParseExact(timeStr, "yyyy-MM-dd HH:mm:ss", 
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+    }
+
     public async Task<IEnumerable<InverterFiveMinData>?> GetHistoricData(DateTime dayToQuery)
     {
         var cacheKey = $"inverterDay-{dayToQuery:yyyyMMdd}";
@@ -432,8 +438,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             foreach (var entry in rawData.data)
             {
-                if (DateTime.TryParseExact(entry.timeStr, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
-                        DateTimeStyles.None, out var date))
+                if (ParseTimeStr(entry.timeStr, out var date))
                 {
                     result.Add(new InverterFiveMinData(date,
                         entry.batteryCapacitySoc,

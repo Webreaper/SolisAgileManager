@@ -242,7 +242,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 slots = await octopusAPI.GetOctopusRates(config.OctopusProductCode);
 
                 // Stamp the last time we did an update
-                InverterState.TimeStamp = DateTime.UtcNow;
+                InverterState.PricesUpdate = DateTime.UtcNow;
                 
                 LogSlotUpdateDetails(slots);
             }

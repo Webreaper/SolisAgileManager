@@ -1,9 +1,15 @@
 
-@if (InverterState != null && InverterState.BatteryTimeStamp != DateTime.MinValue)
+@if (InverterState != null && InverterState.InverterDataTimestamp != DateTime.MinValue)
 {
     <div class="@Style">
-        Last Inverter/Plan update: @InverterState.BatteryTimeStamp.DisplayDateTime(),
-        last Octopus Rates update: @InverterState.TimeStamp.DisplayDateTime(), 
+        Last Inverter Data update: @InverterState.InverterDataTimestamp.DisplayDateTime()
+        @if (DataAgeMins > staleThresholdMins)
+        {
+            <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
+                (stale)
+            </span>
+        }
+        , last Octopus Rates update: @InverterState.PricesUpdate.DisplayDateTime(), 
         last Solcast update: @SolcastUpdate
     </div>
 }
@@ -13,6 +19,12 @@
     
     [CascadingParameter] public bool DarkMode { get; set; }
 
+    // Should get an update every 10 mins, solis updates every 5 minutes and so do we.
+    // But give a couple of mins grace before claiming it's stale
+    const int staleThresholdMins = 12;
+
+    private double DataAgeMins => (DateTime.UtcNow - InverterState!.InverterDataTimestamp).TotalMinutes; 
     private string Style => "update-text " + (DarkMode ? "update-text-dark" : string.Empty);
+    private string StaleStyle => "stale-data " + (DarkMode ? "stale-data-dark" : string.Empty);
     private string SolcastUpdate => InverterState?.SolcastTimeStamp?.DisplayDateTime() ?? "never";
 }
