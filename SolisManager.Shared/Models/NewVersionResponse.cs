@@ -10,6 +10,8 @@ public class NewVersionResponse
     public string? NewReleaseName { get; set; }
     public string? ReleaseUrl { get; set; }
 
+    public string? LatestReleaseUrl => "https://github.com/webreaper/SolisAgileManager/releases/latest";
+
     public bool UpgradeAvailable
     {
         get
