@@ -208,10 +208,10 @@ public class Program
             .Cron("3 */4 * * *")
             .RunOnceAtStart());
 
-        // Check for a new version periodically
+        // Check for a new version periodically - every 6 hours
         app.Services.UseScheduler(s => s
             .Schedule<VersionCheckScheduler>()
-            .Cron("15 6,12,18 * * *")
+            .Cron("15 0,6,12,18 * * *")
             .RunAtStartupIfDebugging());
 
         // Refresh and apply the octopus rates every 30 mins

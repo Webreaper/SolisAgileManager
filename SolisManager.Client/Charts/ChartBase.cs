@@ -1,5 +1,6 @@
 using ApexCharts;
 using Microsoft.AspNetCore.Components;
+using SolisManager.Shared.Models;
 
 namespace SolisManager.Client.Charts;
 
@@ -69,6 +70,13 @@ public abstract class ChartBase<T> : ComponentBase where T : class
                     }
                 }
             },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX
+                {
+                    Format = "dd-MMM HH:mm"
+                }
+            }
         };
         
         SetOptions(options);
