@@ -653,7 +653,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             foreach (var slot in slots)
             {
-                foreach (var scheduledAction in config.ScheduledActions)
+                foreach (var scheduledAction in config.ScheduledActions.Where( x => !x.Disabled))
                 {
                     if (scheduledAction.StartTime != null)
                     {

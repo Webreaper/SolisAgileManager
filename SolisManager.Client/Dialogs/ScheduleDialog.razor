@@ -8,7 +8,8 @@
         <div class="action-list">
         @if (ScheduledActions != null && ScheduledActions.Any())
         {
-            @foreach (var scheduledAction in ScheduledActions)
+            @foreach (var scheduledAction in ScheduledActions.OrderBy(x => x.StartTime == null ? 1 : 0)
+                                                             .ThenBy(x => x.StartTime))
             {
                 <div class="time-selection">
                     <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start"/>
@@ -19,7 +20,17 @@
                         @SlotChoice(SlotAction.Hold)
                         @SlotChoice(SlotAction.ChargeIfLowBattery)
                     </MudSelect>
-                    <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action" 
+                    @if (scheduledAction.Disabled)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
+                                 @onclick="@(() => PauseEntry(scheduledAction, false))" Style="color: firebrick; cursor: pointer;margin-top: 15px;"/>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Title="Pause/Disable this scheduled Action"
+                                 @onclick="@(() => PauseEntry(scheduledAction, true))" Style="color: forestgreen; cursor: pointer;margin-top: 15px;"/>
+                    }
+                    <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
                              @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
                 </div>
             }
@@ -89,6 +100,12 @@
     void Cancel()
     {
         MudDialog?.Cancel();
+    }
+
+    private void PauseEntry(ScheduledAction scheduledAction, bool disable)
+    {
+        scheduledAction.Disabled = disable;
+        StateHasChanged();
     }
 
     private void DeleteEntry(ScheduledAction scheduledAction)
