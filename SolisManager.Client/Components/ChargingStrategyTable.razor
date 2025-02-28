@@ -162,9 +162,11 @@
         {
             var dampedForecast = Math.Round(forecastTotal.Value * forecastDamping, 2);
             var ForcastDescription = $"Forecast PV for {date:dd-MMM}";
+            var extraText = $"(Undamped Forecast: {Math.Round(forecastTotal.Value, 2)}kWh)";
 
             forecastFragment = @<ValueChip Icon="@Icons.Material.Filled.Timeline" Value="@dampedForecast"
-                                           Description="@ForcastDescription" Units="kWh" Decimals="2"/>;
+                                           Description="@ForcastDescription" ExtraText="@extraText" 
+                                           Units="kWh" Decimals="2"/>;
         }
 
         return @<div class="summary-row">

@@ -1,6 +1,6 @@
 @if(Value != null && ( !HideIfZero || Value != 0) )
 {
-    <ToolTipPopover ToolTip="@FullDescription">
+    <ToolTipPopover ToolTip="@FullDescription" ExtraText="@ExtraText">
         <div class="value-chip">
             @if (!string.IsNullOrEmpty(Icon))
             {
@@ -12,6 +12,10 @@
                 @Units
             }
         </div>
+        @if (!string.IsNullOrEmpty(ExtraText))
+        {
+            
+        }
     </ToolTipPopover>
 }
 
@@ -25,6 +29,8 @@
     [Parameter] public int Decimals { get; set; } = 1;
     
     [Parameter] public string? Description { get; set; }
+    
+    [Parameter] public string? ExtraText { get; set; }
 
     [Parameter] public bool HideIfZero { get; set; } = false;
 

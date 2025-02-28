@@ -21,6 +21,11 @@
                 else
                 {
                     @ToolTip
+                    @if (!string.IsNullOrEmpty(ExtraText))
+                    {
+                        <br/>
+                        @ExtraText
+                    }
                 }
             </div>
         </MudPopover>
@@ -37,6 +42,7 @@ else
     [Parameter] public RenderFragment? TooltipContent { get; set; }
     
     [Parameter] public string ToolTip { get; set; } = string.Empty;
+    [Parameter] public string? ExtraText { get; set;  }
 
     [Parameter] public bool PointerCursor { get; set; } = true;
 
