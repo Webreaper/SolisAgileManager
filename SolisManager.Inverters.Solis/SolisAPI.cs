@@ -531,6 +531,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 // Actually write it. 
                 await Post<object>(2, "control", requestBody);
 
+                // Give it a chance to persist.
+                await Task.Delay(50);
+                
                 // Now try and read it back
                 var result = await ReadControlState(cmdId);
 
