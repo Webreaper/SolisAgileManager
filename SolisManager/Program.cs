@@ -93,6 +93,7 @@ public class Program
         builder.Services.AddSingleton<IToolsService, RestartService>();
 
         builder.Services.AddSingleton<InverterStateScheduler>();
+        builder.Services.AddSingleton<PlanCalculateScheduler>();
         builder.Services.AddSingleton<RatesScheduler>();
         builder.Services.AddSingleton<SolcastScheduler>();
         builder.Services.AddSingleton<SolcastExtraScheduler>();
@@ -213,6 +214,14 @@ public class Program
             .Schedule<VersionCheckScheduler>()
             .Cron("15 0,6,12,18 * * *")
             .RunAtStartupIfDebugging());
+
+        // Ensure we recalc the plan at least every 5 minutes, so the SOC
+        // and IOG checks run regularly. We do this every 5 minutes except
+        // for on the hour and half-hour, because we'll recalculate the 
+        // plan then anyway, due to the half-hourly tariff update.
+        app.Services.UseScheduler(s => s
+            .Schedule<PlanCalculateScheduler>()
+            .Cron("5,10,15,20,25,35,40,45,50,55 * * * *"));
 
         // Refresh and apply the octopus rates every 30 mins
         app.Services.UseScheduler(s => s

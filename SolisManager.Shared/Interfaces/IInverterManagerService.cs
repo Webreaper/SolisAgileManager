@@ -34,4 +34,5 @@ public interface IInverterRefreshService
     public Task RefreshAgileRates();
     public Task RefreshTariff();
     public Task UpdateInverterTime();
+    public Task RecalculateSlotPlan();
 }

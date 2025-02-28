@@ -301,6 +301,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // First, ensure the slots have the latest forecast data
         EnrichWithSolcastData(slots);
         
+        // Regenerate the plan
         var processedSlots = EvaluateSlotActions(slots.ToArray());
 
         // If the tariff is IOG, apply any charging when there's smart-charge slots
@@ -855,6 +856,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     public async Task RefreshAgileRates()
     {
         await RefreshTariffDataAndRecalculate();
+    }
+
+    public async Task RecalculateSlotPlan()
+    {
+        await RecalculateSlotPlan(InverterState.Prices);
     }
 
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
