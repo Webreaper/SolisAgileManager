@@ -153,7 +153,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         
         token = response?.data?.obtainKrakenToken?.token;
 
-        memoryCache.Set(cacheKey, token, _authTokenCacheOptions);
+        if( ! string.IsNullOrEmpty(token))
+            memoryCache.Set(cacheKey, token, _authTokenCacheOptions);
 
         return token;
     }

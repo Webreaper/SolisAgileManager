@@ -29,8 +29,6 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private readonly IMemoryCache memoryCache;
     private bool? newFirmwareVersion;
 
-    private string simulatedChargeState = string.Empty;
-
     private enum CommandIDs
     {
         CheckFirmware = 6798,
@@ -97,11 +95,6 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     
     private async Task<ChargeStateData?> ReadChargingState()
     {
-        if (!string.IsNullOrEmpty(simulatedChargeState))
-        { 
-            return ChargeStateData.FromChargeStateData(simulatedChargeState);
-        }
-
         if (await IsNewFirmwareVersion())
         {
             var chargeAmp = await ReadControlStateInt(CommandIDs.ChargeSlot1_Amps);
@@ -125,7 +118,6 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             if (!string.IsNullOrEmpty(result))
             {
-                simulatedChargeState = result;
                 try
                 {
                     return ChargeStateData.FromChargeStateData(result);
@@ -358,40 +350,33 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             // This is only used for the old FW
             var chargeValues = $"{chargePower},{dischargePower},{chargeTimes},{dischargeTimes},0,0,00:00-00:00,00:00-00:00,0,0,00:00-00:00,00:00-00:00";
-            
-            if (simulateOnly)
+        
+            if(newFirmWare)
             {
-                simulatedChargeState = chargeValues;
+                // To discharge, it seems you have to make the Charge SOC lower than the current SOC
+                var chargeSOC = dischargePower > 0 ? 15 : 100;
+                var dischargeSOC = 15;
+
+                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
+                    simulateOnly ? "mock inverter" : "Solis Inverter",
+                    chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
+
+                await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
+                await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
+
+                // Now, set the actual state.
+                await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
+                await SendControlRequest(CommandIDs.ChargeSlot1_Time, chargeTimes, simulateOnly);
+                await SendControlRequest(CommandIDs.DischargeSlot1_Amps, dischargePower, simulateOnly);
+                await SendControlRequest(CommandIDs.DischargeSlot1_Time, dischargeTimes, simulateOnly);
             }
             else
             {
-                if(newFirmWare)
-                {
-                    // To discharge, it seems you have to make the Charge SOC lower than the current SOC
-                    var chargeSOC = dischargePower > 0 ? 15 : 100;
-                    var dischargeSOC = 15;
+                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}",
+                    simulateOnly ? "mock inverter" : "Solis Inverter",
+                    chargePower, dischargePower, chargeTimes, dischargeTimes);
 
-                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
-                        simulateOnly ? "mock inverter" : "Solis Inverter",
-                        chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
-
-                    await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
-                    await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
-
-                    // Now, set the actual state.
-                    await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
-                    await SendControlRequest(CommandIDs.ChargeSlot1_Time, chargeTimes, simulateOnly);
-                    await SendControlRequest(CommandIDs.DischargeSlot1_Amps, dischargePower, simulateOnly);
-                    await SendControlRequest(CommandIDs.DischargeSlot1_Time, dischargeTimes, simulateOnly);
-                }
-                else
-                {
-                    logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}", 
-                        simulateOnly ? "mock inverter" : "Solis Inverter",
-                        chargePower, dischargePower, chargeTimes, dischargeTimes);
-
-                    await SendControlRequest(CommandIDs.SetCharge, chargeValues, simulateOnly);
-                }
+                await SendControlRequest(CommandIDs.SetCharge, chargeValues, simulateOnly);
             }
         }
         else
