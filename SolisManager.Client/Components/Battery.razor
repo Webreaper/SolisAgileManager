@@ -4,13 +4,13 @@
     <ToolTipPopover ToolTip="@BatteryToolTip">
         <div class="battery-indicator" title="@BatteryToolTip">
             <div class="battery-box">
-                @foreach (var block in Enumerable.Range(0, fullBlocks))
+                @foreach (var _ in Enumerable.Range(0, fullBlocks))
                 {
-                    <div class="@BlockStyle"></div>
+                    <div class="@BlockStyle(true)"></div>
                 }
-                @foreach (var block in Enumerable.Range(0, emptyBlocks))
+                @foreach (var _ in Enumerable.Range(0, emptyBlocks))
                 {
-                    <div class="empty-block"></div>
+                    <div class="@BlockStyle(false)"></div>
                 }
             </div>
             <div class="charge-percentage">
@@ -21,11 +21,9 @@
 }
 
 @code {
-    [Parameter]
-    public int? ChargePercentage { get; set; }
-    
-    [Parameter]
-    public decimal BatteryPowerKW { get; set; }
+    [Parameter] public int? ChargePercentage { get; set; }
+
+    [Parameter] public decimal BatteryPowerKW { get; set; }
 
     int emptyBlocks;
     int fullBlocks;
@@ -36,20 +34,29 @@
         < 0 => $"Discharging at {Math.Abs(BatteryPowerKW):F2}kW",
         _ => $"Current SOC: {ChargePercentage}%"
     };
-    
-    private string BlockStyle => "full-block " + ChargePercentage switch
+
+    private string FullBlockStyle => "full-block " + ChargePercentage switch
     {
-        <= 25 => "full-block-25",
-        <= 50 => "full-block-50",
-        <= 75 => "full-block-75",
-        _ => "full-block-100",
+        <= 25 => "full-block-25 ",
+        <= 50 => "full-block-50 ",
+        <= 75 => "full-block-75 ",
+        _ => "full-block-100 ",
     };
+
+    private string ChargeStyle => BatteryPowerKW switch
+    {
+        0 => "",
+        <= 0 => "discharge-block ",
+        >= 0 => "charge-block "
+    };
+    
+    private string BlockStyle(bool full) => ChargeStyle + (full ? FullBlockStyle : " empty-block ");
 
     protected override void OnParametersSet()
     {
         emptyBlocks = 10;
         fullBlocks = 0;
-        
+
         if (ChargePercentage != null)
         {
             fullBlocks = (int)Math.Round(ChargePercentage.Value / 10.0, MidpointRounding.AwayFromZero);

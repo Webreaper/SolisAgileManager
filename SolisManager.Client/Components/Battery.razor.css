@@ -61,3 +61,244 @@
         font-family: "Arial Narrow", sans-serif;
     }
 }
+
+/* Charge block */
+.charge-block:nth-child(1) {
+    animation: charging-1 3s infinite ease-in-out;
+}
+.charge-block:nth-child(2) {
+    animation: charging-2 3s infinite ease-in-out;
+}
+.charge-block:nth-child(3) {
+    animation: charging-3 3s infinite ease-in-out;
+}
+.charge-block:nth-child(4) {
+    animation: charging-4 3s infinite ease-in-out;
+}
+.charge-block:nth-child(5) {
+    animation: charging-5 3s infinite ease-in-out;
+}
+.charge-block:nth-child(6) {
+    animation: charging-6 3s infinite ease-in-out;
+}
+.charge-block:nth-child(7) {
+    animation: charging-7 3s infinite ease-in-out;
+}
+.charge-block:nth-child(8) {
+    animation: charging-8 3s infinite ease-in-out;
+}
+.charge-block:nth-child(9) {
+    animation: charging-9 3s infinite ease-in-out;
+}
+.charge-block:nth-child(10) {
+    animation: charging-10 3s infinite ease-in-out;
+}
+
+/* Discharge block */
+.discharge-block:nth-child(1) {
+    animation: discharging-1 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(2) {
+    animation: discharging-2 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(3) {
+    animation: discharging-3 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(4) {
+    animation: discharging-4 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(5) {
+    animation: discharging-5 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(6) {
+    animation: discharging-6 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(7) {
+    animation: discharging-7 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(8) {
+    animation: discharging-8 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(9) {
+    animation: discharging-9 3s infinite ease-in-out;
+}
+.discharge-block:nth-child(10) {
+    animation: discharging-10 3s infinite ease-in-out;
+}
+
+/* Charging animation */
+@keyframes charging-1 { 
+    0%,5% { opacity: 0; }
+    5%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-2 {
+    0%,10% {
+        opacity: 0;
+    }
+    10%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-3 {
+    0%,20% {
+        opacity: 0;
+    }
+    20%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-4 {
+    0%,30% {
+        opacity: 0;
+    }
+    30%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-5 {
+    0%,40% {
+        opacity: 0;
+    }
+    40%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-5 {
+    0%,50% {
+        opacity: 0;
+    }
+    50%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-6 {
+    0%,60% {
+        opacity: 0;
+    }
+    60%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-7 {
+    0%,70% {
+        opacity: 0;
+    }
+    70%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-8 {
+    0%,80% {
+        opacity: 0;
+    }
+    80%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-9 {
+    0%,90% {
+        opacity: 0;
+    }
+    90%,100% {
+        opacity: 1;
+    }
+}
+@keyframes charging-10 {
+    0%,90% {
+        opacity: 0;
+    }
+    90% {
+        opacity: 1;
+    }
+}
+
+/* Discharging Animation */
+
+@keyframes discharging-1 {
+    0%,95% { opacity: 1; }
+    95%,100% { opacity: 0;}
+}
+@keyframes discharging-2 {
+    0%,90% {
+        opacity: 1;
+    }
+    90%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-3 {
+    0%,80% {
+        opacity: 1;
+    }
+    80%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-4 {
+    0%,70% {
+        opacity: 1;
+    }
+    70%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-5 {
+    0%,60% {
+        opacity: 1;
+    }
+    60%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-5 {
+    0%,50% {
+        opacity: 1;
+    }
+    50%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-6 {
+    0%,40% {
+        opacity: 1;
+    }
+    40%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-7 {
+    0%,30% {
+        opacity: 1;
+    }
+    30%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-8 {
+    0%,20% {
+        opacity: 1;
+    }
+    20%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-9 {
+    0%,10% {
+        opacity: 1;
+    }
+    10%,100% {
+        opacity: 0;
+    }
+}
+@keyframes discharging-10 {
+    0%,10% {
+        opacity: 1;
+    }
+    10%,100% {
+        opacity: 0;
+    }
+}
+
+
