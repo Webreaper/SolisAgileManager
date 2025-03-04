@@ -430,7 +430,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             decimal cheapestPrice = 100, mostExpensivePrice = 0;
             
             // See what the difference is between the target SOC and what we need now.
-            decimal chargeNeededForPeak = config.PeakPeriodBatteryUse - (InverterState.BatterySOC / 100.0M);
+            decimal chargeNeededForPeak = Math.Max(0, config.PeakPeriodBatteryUse - (InverterState.BatterySOC / 100.0M));
             int chargeSlotsNeeededNow = 0;
             
             // See if we actually need a charge

@@ -2,9 +2,12 @@
     <div class="child-content">
         @ChildContent
     </div>
-    <ToolTipPopover ToolTip="@HelpText" ToolTipContent="@HelpContent">
-        <MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.Help" Class="help-icon"/>
-    </ToolTipPopover>
+    @if (!string.IsNullOrEmpty(HelpText) || HelpContent != null)
+    {
+        <ToolTipPopover ToolTip="@HelpText" ToolTipContent="@HelpContent">
+            <MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.Help" Class="help-icon"/>
+        </ToolTipPopover>
+    }
 </div>
 
 @code {
