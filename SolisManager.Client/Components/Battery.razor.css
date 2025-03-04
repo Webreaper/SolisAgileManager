@@ -64,66 +64,66 @@
 
 /* Charge block */
 .charge-block:nth-child(1) {
-    animation: charging-1 3s infinite ease-in-out;
+    animation: charging-1 3s infinite ease-in;
 }
 .charge-block:nth-child(2) {
-    animation: charging-2 3s infinite ease-in-out;
+    animation: charging-2 3s infinite ease-in;
 }
 .charge-block:nth-child(3) {
-    animation: charging-3 3s infinite ease-in-out;
+    animation: charging-3 3s infinite ease-in;
 }
 .charge-block:nth-child(4) {
-    animation: charging-4 3s infinite ease-in-out;
+    animation: charging-4 3s infinite ease-in;
 }
 .charge-block:nth-child(5) {
-    animation: charging-5 3s infinite ease-in-out;
+    animation: charging-5 3s infinite ease-in;
 }
 .charge-block:nth-child(6) {
-    animation: charging-6 3s infinite ease-in-out;
+    animation: charging-6 3s infinite ease-in;
 }
 .charge-block:nth-child(7) {
-    animation: charging-7 3s infinite ease-in-out;
+    animation: charging-7 3s infinite ease-in;
 }
 .charge-block:nth-child(8) {
-    animation: charging-8 3s infinite ease-in-out;
+    animation: charging-8 3s infinite ease-in;
 }
 .charge-block:nth-child(9) {
-    animation: charging-9 3s infinite ease-in-out;
+    animation: charging-9 3s infinite ease-in;
 }
 .charge-block:nth-child(10) {
-    animation: charging-10 3s infinite ease-in-out;
+    animation: charging-10 3s infinite ease-in;
 }
 
 /* Discharge block */
 .discharge-block:nth-child(1) {
-    animation: discharging-1 3s infinite ease-in-out;
+    animation: discharging-1 3s infinite ease-in;
 }
 .discharge-block:nth-child(2) {
-    animation: discharging-2 3s infinite ease-in-out;
+    animation: discharging-2 3s infinite ease-in;
 }
 .discharge-block:nth-child(3) {
-    animation: discharging-3 3s infinite ease-in-out;
+    animation: discharging-3 3s infinite ease-in;
 }
 .discharge-block:nth-child(4) {
-    animation: discharging-4 3s infinite ease-in-out;
+    animation: discharging-4 3s infinite ease-in;
 }
 .discharge-block:nth-child(5) {
-    animation: discharging-5 3s infinite ease-in-out;
+    animation: discharging-5 3s infinite ease-in;
 }
 .discharge-block:nth-child(6) {
-    animation: discharging-6 3s infinite ease-in-out;
+    animation: discharging-6 3s infinite ease-in;
 }
 .discharge-block:nth-child(7) {
-    animation: discharging-7 3s infinite ease-in-out;
+    animation: discharging-7 3s infinite ease-in;
 }
 .discharge-block:nth-child(8) {
-    animation: discharging-8 3s infinite ease-in-out;
+    animation: discharging-8 3s infinite ease-in;
 }
 .discharge-block:nth-child(9) {
-    animation: discharging-9 3s infinite ease-in-out;
+    animation: discharging-9 3s infinite ease-in;
 }
 .discharge-block:nth-child(10) {
-    animation: discharging-10 3s infinite ease-in-out;
+    animation: discharging-10 3s infinite ease-in;
 }
 
 /* Charging animation */
