@@ -4,9 +4,9 @@
 {
     <div class="action-icon" title="@Slot.ActionReason">
         <ActionIcon Action="Slot.ActionToExecute" Pulse="@isCurrentSlot" IsEVCharge="@(Slot.PriceType == PriceType.IOGDispatch)"/>
-        <ConfigSettingHelp HelpText="@Slot.ActionReason">
+        <ToolTipPopover ToolTip="@Slot.ActionReason" PointerCursor="true">
             @Slot.ActionToExecute.Description()
-        </ConfigSettingHelp>
+        </ToolTipPopover>
     </div>
 }
 

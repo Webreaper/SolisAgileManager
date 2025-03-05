@@ -6,6 +6,13 @@
 
 <NavigationLock OnBeforeInternalNavigation="CheckNavigateAway"/>
 
+<MudOverlay DarkBackground="true" Visible="@(!string.IsNullOrEmpty(glassPaneText))">
+    <div class="overlay-panel">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small"/>
+        <text>@glassPaneText</text>
+    </div>
+</MudOverlay>
+
 <div class="config-settings @DarkModeStyle">
     <h2>Solis Manager Configuration</h2>
 
@@ -157,6 +164,7 @@
     private bool manualProductKey = false;
     private string DarkModeStyle => DarkMode ? "config-settings-dark" : string.Empty;
     private string originalConfigJson = string.Empty;
+    private string? glassPaneText = null;
 
     private bool AutomaticAccount => config != null && !string.IsNullOrEmpty(config.OctopusAccountNumber) && !string.IsNullOrEmpty(config.OctopusAPIKey);
     
@@ -194,20 +202,31 @@
 
     private async Task SaveConfig()
     {
-        if (config != null)
+        try
         {
-            var response = await inverterManagerService.SaveConfig(config);
+            glassPaneText = "Saving settings...";
+            StateHasChanged();
 
-            if (response.Success)
+            if (config != null)
             {
-                await OnSettingsChanged.InvokeAsync();
+                var response = await inverterManagerService.SaveConfig(config);
 
-                snackbar.Add("Config Settings Updated", Severity.Info);
-                originalConfigJson = JsonSerializer.Serialize(config);
-                navManager.NavigateTo("/");
+                if (response.Success)
+                {
+                    await OnSettingsChanged.InvokeAsync();
+
+                    snackbar.Add("Config Settings Updated", Severity.Info);
+                    originalConfigJson = JsonSerializer.Serialize(config);
+                    navManager.NavigateTo("/");
+                }
+                else
+                    snackbar.Add($"Error: {response.Message}", Severity.Error);
             }
-            else
-                snackbar.Add($"Error: {response.Message}", Severity.Error);
+        }
+        finally
+        {
+            glassPaneText = null;
+            StateHasChanged();
         }
     }
 
@@ -219,12 +238,23 @@
         var result = await dialogService.ShowMessageBox("Run A Test Charge?",
             msg, yesText: "Charge My Battery", cancelText: "Cancel");
 
-        if (result != null && result.Value)
+        try
         {
-            await SaveConfig();
-            await inverterManagerService.TestCharge();
+            glassPaneText = "Saving settings and applying test charge...";
+            StateHasChanged();
+            
+            if (result != null && result.Value)
+            {
+                await SaveConfig();
+                await inverterManagerService.TestCharge();
 
-            snackbar.Add("Config Settings Updated and Test Charge Initiated", Severity.Warning);
+                snackbar.Add("Config Settings Updated and Test Charge Initiated", Severity.Warning);
+            }
+        }
+        finally
+        {
+            glassPaneText = null;
+            StateHasChanged();
         }
     }
 
