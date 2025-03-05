@@ -495,7 +495,6 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// <param name="simulateOnly"></param>
     private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly)
     {
-        const int retries = 3;
         ArgumentNullException.ThrowIfNull(inverterConfig);
 
         var requestBody = new
@@ -511,13 +510,16 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
         else
         {
-            for (var attempt = 0; attempt < retries; attempt++)
+            // Wait gradually longer and longer
+            int[] backoffRetryDelays = [50, 200, 500, 1000, 5000];
+            
+            for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
                 // Actually write it. 
                 await Post<object>(2, "control", requestBody);
 
                 // Give it a chance to persist.
-                await Task.Delay(50);
+                await Task.Delay(backoffRetryDelays[attempt]);
                 
                 // Now try and read it back
                 var result = await ReadControlState(cmdId);
