@@ -319,7 +319,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// <returns></returns>
     public async Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd, 
                                           DateTime? dischargeStart, DateTime? dischargeEnd, 
-                                          bool holdCharge, bool simulateOnly )
+                                          bool holdCharge, int? overrideAmps = null, bool simulateOnly = false)
     {
         ArgumentNullException.ThrowIfNull(inverterConfig);
         
@@ -335,13 +335,13 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         if (chargeStart != null && chargeEnd != null)
         {
             chargeTimes = $"{chargeStart.Value.ToLocalTime():HH:mm}-{chargeEnd.Value.ToLocalTime():HH:mm}";
-            chargePower = inverterConfig.MaxChargeRateAmps;
+            chargePower = overrideAmps ?? inverterConfig.MaxChargeRateAmps;
         }
         
         if (dischargeStart != null && dischargeEnd != null)
         {
             dischargeTimes = $"{dischargeStart.Value.ToLocalTime():HH:mm}-{dischargeEnd.Value.ToLocalTime():HH:mm}";
-            dischargePower = holdCharge ? 0 : inverterConfig.MaxChargeRateAmps;
+            dischargePower = holdCharge ? 0 : (overrideAmps ?? inverterConfig.MaxChargeRateAmps);
         }
         
         // Now check if we actually need to do anything. No point making a write call to the 

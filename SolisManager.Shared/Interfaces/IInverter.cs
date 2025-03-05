@@ -10,7 +10,8 @@ public interface IInverter
     public Task UpdateInverterTime(bool simulateOnly);
 
     public Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd,
-        DateTime? dischargeStart, DateTime? dischargeEnd, bool holdCharge, bool simulateOnly);
+        DateTime? dischargeStart, DateTime? dischargeEnd, bool holdCharge, 
+        int? overrideAmps = null, bool simulateOnly = false);
 
     public Task<bool> UpdateInverterState(SolisManagerState inverterState);
 

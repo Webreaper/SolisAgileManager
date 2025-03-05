@@ -20,7 +20,7 @@ public class SolarEdgeAPI : InverterBase<InverterConfigSolarEdge>, IInverter
     }
 
     public Task SetCharge(DateTime? chargeStart, DateTime? chargeEnd, DateTime? dischargeStart, DateTime? dischargeEnd,
-        bool holdCharge, bool simulateOnly)
+        bool holdCharge, int? overrideAmps = null, bool simulateOnly = false)
     {
         throw new NotImplementedException();
     }

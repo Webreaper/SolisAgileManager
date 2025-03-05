@@ -38,6 +38,7 @@ public record OctopusPriceSlot
     public PriceType PriceType { get; set; } = PriceType.Average;
     public SlotAction PlanAction { get; set; } = SlotAction.DoNothing;
     public SlotAction? OverrideAction { get; set; }
+    public int? OverrideAmps { get; set; }
     public SlotOverrideType OverrideType { get; set; } = SlotOverrideType.None;
     
     public string ActionReason { get; set; } = string.Empty;
