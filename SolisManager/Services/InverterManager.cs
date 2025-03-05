@@ -423,7 +423,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             // First, reset all the slot states
             foreach (var slot in slots)
+            {
                 slot.PlanAction = SlotAction.DoNothing;
+                slot.ActionReason = "Average price - no charge or discharge required";
+            }
             
             OctopusPriceSlot[]? cheapestSlots = null;
             OctopusPriceSlot[]? priciestSlots = null;
