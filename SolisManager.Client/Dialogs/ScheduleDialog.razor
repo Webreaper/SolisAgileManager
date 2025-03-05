@@ -20,6 +20,10 @@
                         @SlotChoice(SlotAction.Hold)
                         @SlotChoice(SlotAction.ChargeIfLowBattery)
                     </MudSelect>
+                    @if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
+                    {
+                        <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (leave blank for global setting)"/>
+                    }
                     @if (scheduledAction.Disabled)
                     {
                         <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
