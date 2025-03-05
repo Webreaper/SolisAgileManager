@@ -55,7 +55,7 @@
         <ValueChip Icon="@Icons.Material.Filled.ElectricalServices" Value="@inverterManagerService.InverterState.TodayImportkWh"
                    Description="Grid import today" Units="kWh"/>
         <ValueChip Icon="@Icons.Material.Filled.Output" Value="@inverterManagerService.InverterState.TodayExportkWh"
-                   Description="Grid export today" Units="kWh"/>
+                   Description="@ExportDescription" Units="kWh"/>
     </div>
     
     <div class="table-chart">
@@ -129,6 +129,9 @@
     
     private readonly PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
     private CancellationTokenSource tokenSource = new();
+    private string ExportDescription => (inverterManagerService.InverterState.ExportPowerKW > 0 ? 
+                                        $"Current export: {inverterManagerService.InverterState.ExportPowerKW}kW. " : string.Empty) 
+                                        + "Total export today";
 
     private RenderFragment? FooterSummary()
     {

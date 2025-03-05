@@ -255,12 +255,13 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             else
                 logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
             
+            inverterState.StationId = solisState.data.stationId;
             inverterState.CurrentPVkW = solisState.data.pac;
             inverterState.TodayPVkWh = solisState.data.eToday;
             inverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
             inverterState.TodayExportkWh = solisState.data.gridSellEnergy;
             inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
-            inverterState.StationId = solisState.data.stationId;
+            inverterState.ExportPowerKW = Math.Max(0, solisState.data.psum);
             inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
             if( ParseTimeStr(solisState.data.timeStr, out var timestamp))
                 inverterState.InverterDataTimestamp = timestamp;
