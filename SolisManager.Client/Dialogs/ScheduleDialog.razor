@@ -6,43 +6,48 @@
     </TitleContent>
     <DialogContent>
         <div class="action-list">
-        @if (ScheduledActions != null && ScheduledActions.Any())
-        {
-            @foreach (var scheduledAction in ScheduledActions.OrderBy(x => x.StartTime == null ? 1 : 0)
-                                                             .ThenBy(x => x.StartTime))
+            <div class="introduction">
+                Scheduled actions are executed at the same time every day.
+                For Charge and Discharge actions, you can optionally set an 
+                override Ampage that will be used instead of the global setting.
+            </div>
+            @if (ScheduledActions != null && ScheduledActions.Any())
+            {
+                @foreach (var scheduledAction in ScheduledActions.OrderBy(x => x.StartTime == null ? 1 : 0)
+                              .ThenBy(x => x.StartTime))
+                {
+                    <div class="time-selection">
+                        @if (scheduledAction.Disabled)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
+                                     @onclick="@(() => PauseEntry(scheduledAction, false))" Style="color: firebrick; cursor: pointer;margin-top: 15px;"/>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Title="Pause/Disable this scheduled Action"
+                                     @onclick="@(() => PauseEntry(scheduledAction, true))" Style="color: forestgreen; cursor: pointer;margin-top: 15px;"/>
+                        }
+                        <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start" disabled="scheduledAction.Disabled"/>
+                        <MudSelect @bind-Value="scheduledAction.Action" Label="Action" class="schedule-control" Disabled="scheduledAction.Disabled">
+                            @SlotChoice(SlotAction.Charge)
+                            @SlotChoice(SlotAction.Discharge)
+                            @SlotChoice(SlotAction.DoNothing)
+                            @SlotChoice(SlotAction.Hold)
+                            @SlotChoice(SlotAction.ChargeIfLowBattery)
+                        </MudSelect>
+                        <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (blank = default)" class="schedule-control"
+                                         Disabled="@(scheduledAction.Disabled || !(scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge))"/>
+                        <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
+                                 @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
+                    </div>
+                }
+            }
+            else
             {
                 <div class="time-selection">
-                    <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start"/>
-                    <MudSelect @bind-Value="scheduledAction.Action" Label="Action" class="schedule-control">
-                        @SlotChoice(SlotAction.Charge)
-                        @SlotChoice(SlotAction.Discharge)
-                        @SlotChoice(SlotAction.DoNothing)
-                        @SlotChoice(SlotAction.Hold)
-                        @SlotChoice(SlotAction.ChargeIfLowBattery)
-                    </MudSelect>
-                    <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (blank = default)" class="schedule-control"
-                                     Disabled="@(! (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge))"/>
-                    @if (scheduledAction.Disabled)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
-                                 @onclick="@(() => PauseEntry(scheduledAction, false))" Style="color: firebrick; cursor: pointer;margin-top: 15px;"/>
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Title="Pause/Disable this scheduled Action"
-                                 @onclick="@(() => PauseEntry(scheduledAction, true))" Style="color: forestgreen; cursor: pointer;margin-top: 15px;"/>
-                    }
-                    <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
-                             @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
+                    You have no configured scheduled actions.
                 </div>
             }
-        }
-        else
-        {
-            <div class="time-selection">
-                You have no configured scheduled actions.
-            </div>
-        }
         </div>
         @if (!string.IsNullOrEmpty(errorMsg))
         {
@@ -52,11 +57,11 @@
     <DialogActions>
         <div class="button-bar">
             <div>
-                <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddEntry">Add Action</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="UIConstants.MudVariant" OnClick="AddEntry">Add Action</MudButton>
             </div>
             <div>
-                <MudButton OnClick="Cancel">Cancel</MudButton>
-                <MudButton Color="Color.Primary" OnClick="Save">Update</MudButton>
+                <MudButton OnClick="Cancel" Variant="UIConstants.MudVariant">Cancel</MudButton>
+                <MudButton Color="Color.Primary" Variant="UIConstants.MudVariant" OnClick="Save">Update</MudButton>
             </div>
         </div>
     </DialogActions>

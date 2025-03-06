@@ -1,6 +1,6 @@
 
 <div class="slot-picker">
-    <MudSelect T="TimeSpan?" @bind-Value="SlotTime" @bind-Value:after="SlotValueChanged" Label="@Label">
+    <MudSelect T="TimeSpan?" @bind-Value="SlotTime" @bind-Value:after="SlotValueChanged" Label="@Label" Disabled="Disabled">
         @foreach (var slot in slots)
         {
             <MudSelectItem T="TimeSpan?" Value="@slot">@TimeString(slot)</MudSelectItem>
@@ -9,6 +9,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public bool Disabled { get; set; }
+    
     [Parameter]
     public TimeSpan? SlotTime { get; set; }
     

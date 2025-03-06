@@ -15,7 +15,7 @@
     public EventCallback<List<ScheduledAction>> ActionsChanged { get; set; }
 
     private string StatusText => Actions == null || Actions.Count == 0 ? "No Scheduled Actions" : 
-                        $"{Actions.Count} Scheduled Action{(Actions.Count > 1 ? "s":string.Empty)} defined";
+                        $"{Actions.Count} scheduled action{(Actions.Count > 1 ? "s":string.Empty)} ({Actions.Count(x => !x.Disabled)} active) defined";
 
     private async Task OpenScheduleDialog()
     {

@@ -24,6 +24,11 @@
     font-weight: bold;
 }
 
+.introduction {
+    width: auto;
+    max-width: 700px;
+}
+
 .time-selection { 
     display: flex;
     flex-direction: row;
