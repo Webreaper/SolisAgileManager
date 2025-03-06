@@ -44,7 +44,7 @@
     public RenderFragment? ChildContent { get; set; }
     
     private string ExportDescription => (inverterManagerService.InverterState.ExportPowerKW > 0 ? 
-                                            $"Current export: {inverterManagerService.InverterState.ExportPowerKW}kW. " : string.Empty) 
+                                            $"Current export: {inverterManagerService.InverterState.ExportPowerKW:F2)}kW. " : string.Empty) 
                                         + "Total export today";
     
     private async Task OnSelectedViewChanged()
