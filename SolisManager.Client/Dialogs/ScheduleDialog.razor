@@ -8,8 +8,10 @@
         <div class="action-list">
             <div class="introduction">
                 Scheduled actions are executed at the same time every day.
-                For Charge and Discharge actions, you can optionally set an 
-                override Ampage that will be used instead of the global setting.
+                For Charge and Discharge actions, you can optionally set an SOC
+                threshold - leave blank to always charge/discharge. You can also 
+                override the Ampage that will be used when charging/discharging. 
+                Leave the amp value blank to use the global setting.
             </div>
             @if (ScheduledActions != null && ScheduledActions.Any())
             {
@@ -33,10 +35,14 @@
                             @SlotChoice(SlotAction.Discharge)
                             @SlotChoice(SlotAction.DoNothing)
                             @SlotChoice(SlotAction.Hold)
-                            @SlotChoice(SlotAction.ChargeIfLowBattery)
                         </MudSelect>
-                        <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (blank = default)" class="schedule-control"
-                                         Disabled="@(scheduledAction.Disabled || !(scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge))"/>
+                        @if (@ShowExtraFields(scheduledAction))
+                        {
+                            <MudNumericField T="int?" @bind-Value="@scheduledAction.SOCTrigger" Label="@SOCText(scheduledAction)" class="schedule-control"
+                                             Disabled="@(scheduledAction.Disabled)"/>
+                            <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps" class="amps-control"
+                                             Disabled="@(scheduledAction.Disabled)"/>
+                        }
                         <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
                                  @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
                     </div>
@@ -80,6 +86,13 @@
                                                 </MudSelectItem>;
 
     private IEnumerable<TimeSpan?>? UsedDates => ScheduledActions?.Select(x => x.StartTime);
+    private bool ShowExtraFields(ScheduledAction action) => action.Action is SlotAction.Charge or SlotAction.Discharge;
+    private string SOCText(ScheduledAction action) => action.Action switch
+    {
+        SlotAction.Charge => "If SOC less than (%)",
+        SlotAction.Discharge => "If SOC more than (%)",
+        _ => ""
+    };
 
     private void Save()
     {

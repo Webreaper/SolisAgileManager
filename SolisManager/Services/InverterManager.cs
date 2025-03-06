@@ -667,6 +667,21 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         if (slot.valid_from.TimeOfDay == actionTime)
                         {
                             string reason = "Overridden by a scheduled action";
+                            
+                            if (scheduledAction.SOCTrigger != null)
+                            {
+                                if (scheduledAction.Action == SlotAction.Charge &&
+                                    InverterState.BatterySOC > scheduledAction.SOCTrigger)
+                                    continue;
+
+                                if (scheduledAction.Action == SlotAction.Discharge &&
+                                    InverterState.BatterySOC < scheduledAction.SOCTrigger)
+                                    continue;
+
+                                var sign = scheduledAction.Action == SlotAction.Charge ? '<' : '>';
+                                reason += $" SOC of {InverterState.BatterySOC} {sign} {scheduledAction.SOCTrigger}";
+                            }
+                            
                             if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
                             {
                                 var actionText = scheduledAction.Action.ToString().ToLower();
@@ -675,7 +690,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                 else
                                     reason += $" ({actionText})";
                             }
-                            
+
                             slot.OverrideAction = scheduledAction.Action;
                             slot.OverrideAmps = scheduledAction.Amps;
                             slot.ActionReason = reason;

@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     row-gap: 15px;
+    max-width: 750px;
 }
 
 .selection-item {
@@ -16,6 +17,10 @@
     width: 200px;
 }
 
+::deep .amps-control {
+    width: 120px;
+}
+
 .error-msg {
     padding: 10px;
     border: 1px solid red;
@@ -25,8 +30,7 @@
 }
 
 .introduction {
-    width: auto;
-    max-width: 700px;
+    flex: 1;
 }
 
 .time-selection { 

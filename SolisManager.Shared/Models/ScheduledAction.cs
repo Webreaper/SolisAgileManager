@@ -8,4 +8,5 @@ public class ScheduledAction
     [Required] public SlotAction Action { get; set; }
     public bool Disabled { get; set; }
     public int? Amps { get; set; } = null;
+    public int? SOCTrigger { get; set; } = null;
 }
