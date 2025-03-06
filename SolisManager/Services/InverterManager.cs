@@ -669,10 +669,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             string reason = "Overridden by a scheduled action";
                             if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
                             {
+                                var actionText = scheduledAction.Action.ToString().ToLower();
                                 if( scheduledAction.Amps != null)
-                                    reason += $"({scheduledAction.Action.ToString()} at {scheduledAction.Amps}A)";
+                                    reason += $" ({actionText} at {scheduledAction.Amps}A)";
                                 else
-                                    reason += $"({scheduledAction.Action.ToString()})";
+                                    reason += $" ({actionText})";
                             }
                             
                             slot.OverrideAction = scheduledAction.Action;
