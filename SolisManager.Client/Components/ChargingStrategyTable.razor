@@ -1,6 +1,4 @@
-@using System.Globalization
-@using Humanizer
-@using SolisManager.Shared.Interfaces
+
 @inject IInverterManagerService inverterManagerService
 @inject IDialogService dialogService
 @inject ISnackbar snackBar
@@ -10,53 +8,37 @@
 <PageTitle>Solis Manager</PageTitle>
 
 <div class="strategy-table @DarkModeStyle">
-    <div class="title-bar">
-        <div class="title-and-nav">
-            <div class="title-text">
-                <h5>Charging Plan</h5>
-            </div>
-            <ViewSelector @bind-SelectedView="selectedView" SettingName="plan-view"/>
-        </div>
-        @if (isSimulateMode)
-        {
-            <div class="simulate-indicator" title="Simulation mode enabled - no changes will be applied to the inverter">
-                Simulation Mode
-                @if (inverterManagerService.InverterState.Prices.Any())
-                {
-                    <MudIcon @onclick="@AdvanceSimulation" Style="cursor:pointer;" Icon="@Icons.Material.Filled.SkipNext" Size="Size.Small">
-                        Advance
-                    </MudIcon>
-                }
-                else
-                {
-                    <MudIcon @onclick="@ResetSimulation" Style="cursor:pointer;" Icon="@Icons.Material.Filled.Refresh" Size="Size.Small">
+    <TopStatusBar PageTitle="Charging Plan" @bind-SelectedView="selectedView" ViewSettingName="plan-view">
+        <ChildContent>
+            @if (isSimulateMode)
+            {
+                <div class="simulate-indicator" title="Simulation mode enabled - no changes will be applied to the inverter">
+                    Simulation Mode
+                    @if (inverterManagerService.InverterState.Prices.Any())
+                    {
+                        <MudIcon @onclick="@AdvanceSimulation" Style="cursor:pointer;" Icon="@Icons.Material.Filled.SkipNext" Size="Size.Small">
+                            Advance
+                        </MudIcon>
+                    }
+                    else
+                    {
+                        <MudIcon @onclick="@ResetSimulation" Style="cursor:pointer;" Icon="@Icons.Material.Filled.Refresh" Size="Size.Small">
+                            Reset
+                        </MudIcon>
+                    }
+                </div>
+            }
+            @if (manualOverridesExist)
+            {
+                <div title="Clear any manual overrides that are currently in effect">
+                    <MudButton OnClick="@ClearManualOverrides" StartIcon="@Icons.Material.Filled.Cancel"
+                               Variant="UIConstants.MudVariant" Size="Size.Small">
                         Reset
-                    </MudIcon>
-                }
-            </div>
-        }
-        @if (manualOverridesExist)
-        {
-            <div title="Clear any manual overrides that are currently in effect">
-                <MudButton OnClick="@ClearManualOverrides" StartIcon="@Icons.Material.Filled.Cancel"
-                           Variant="UIConstants.MudVariant" Size="Size.Small">
-                    Reset
-                </MudButton>
-            </div>
-        }
-
-        <Battery ChargePercentage="@inverterManagerService.InverterState.BatterySOC" BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"/>
-        <ValueChip Icon="@Icons.Material.Filled.House" Value="@inverterManagerService.InverterState.HouseLoadkW"
-                   Description="Current load being consumed by the house" Units="kW"/>
-        <ValueChip Icon="@Icons.Material.Filled.SolarPower" Value="@inverterManagerService.InverterState.CurrentPVkW"
-                   Description="Current solar PV generation" Units="kW"/>
-        <ValueChip Icon="@Icons.Material.Filled.WbSunny" Value="@inverterManagerService.InverterState.TodayPVkWh"
-                   Description="Total solar PV generation today" Units="kWh"/>
-        <ValueChip Icon="@Icons.Material.Filled.ElectricalServices" Value="@inverterManagerService.InverterState.TodayImportkWh"
-                   Description="Grid import today" Units="kWh"/>
-        <ValueChip Icon="@Icons.Material.Filled.Output" Value="@inverterManagerService.InverterState.TodayExportkWh"
-                   Description="@ExportDescription" Units="kWh"/>
-    </div>
+                    </MudButton>
+                </div>
+            }
+        </ChildContent>
+    </TopStatusBar>
     
     <div class="table-chart">
         @if (selectedView == ViewSelector.ViewType.Chart)
@@ -129,9 +111,6 @@
     
     private readonly PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
     private CancellationTokenSource tokenSource = new();
-    private string ExportDescription => (inverterManagerService.InverterState.ExportPowerKW > 0 ? 
-                                        $"Current export: {inverterManagerService.InverterState.ExportPowerKW}kW. " : string.Empty) 
-                                        + "Total export today";
 
     private RenderFragment? FooterSummary()
     {

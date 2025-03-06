@@ -6,10 +6,7 @@
 
 <PageTitle>Solis Manager</PageTitle>
 
-<div class="title-bar">
-    <h5>History</h5>
-    <ViewSelector @bind-SelectedView="selectedView" SettingName="history-view"/>
-</div>
+<TopStatusBar PageTitle="History" @bind-SelectedView="selectedView" ViewSettingName="history-view"/>
 
 @if (historyEntries == null)
 {
