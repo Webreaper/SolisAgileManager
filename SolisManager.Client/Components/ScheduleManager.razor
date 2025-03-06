@@ -22,8 +22,9 @@
         if (Actions == null)
             Actions = new();
         
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, BackdropClick = false };
         var parameters = new DialogParameters { { "ScheduledActions", Actions } };
-        var dialog = await dialogService.ShowAsync<ScheduleDialog>("Scheduled Action", parameters);
+        var dialog = await dialogService.ShowAsync<ScheduleDialog>("Scheduled Action", parameters, options);
         var result = await dialog.Result;
 
         if (result != null)

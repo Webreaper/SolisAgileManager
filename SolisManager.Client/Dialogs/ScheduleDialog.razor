@@ -13,17 +13,15 @@
             {
                 <div class="time-selection">
                     <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start"/>
-                    <MudSelect @bind-Value="scheduledAction.Action" Label="Action">
+                    <MudSelect @bind-Value="scheduledAction.Action" Label="Action" class="schedule-control">
                         @SlotChoice(SlotAction.Charge)
                         @SlotChoice(SlotAction.Discharge)
                         @SlotChoice(SlotAction.DoNothing)
                         @SlotChoice(SlotAction.Hold)
                         @SlotChoice(SlotAction.ChargeIfLowBattery)
                     </MudSelect>
-                    @if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
-                    {
-                        <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (leave blank for global setting)"/>
-                    }
+                    <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps (blank = default)" class="schedule-control"
+                                     Disabled="@(! (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge))"/>
                     @if (scheduledAction.Disabled)
                     {
                         <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"

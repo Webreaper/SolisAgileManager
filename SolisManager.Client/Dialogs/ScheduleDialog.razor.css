@@ -12,6 +12,10 @@
     flex-wrap: nowrap;
 }
 
+::deep .schedule-control {
+    width: 200px;
+}
+
 .error-msg {
     padding: 10px;
     border: 1px solid red;
