@@ -110,7 +110,7 @@ jobs:
 
       - name: Dotnet Publish Containeer
         if: github.ref == 'refs/heads/dotnetbuild'
-        run: dotnet publish SolisManager/SolisManager.csproj --self-contained true -p:PublishTrimmed=false -p:Version=1.0.${{ github.run_number }}-dev 
+        run: dotnet publish SolisManager/SolisManager.csproj -t:PublishContainer --self-contained true -p:PublishTrimmed=false -p:Version=1.0.${{ github.run_number }}-dev 
                     
       - name: Build/push develop
         if: github.ref == 'refs/heads/develop'
