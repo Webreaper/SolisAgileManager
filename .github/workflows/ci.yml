@@ -94,12 +94,6 @@ jobs:
         with:
           platforms: ${{ matrix.docker-platforms }}
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4.2.0
         with:
@@ -107,6 +101,12 @@ jobs:
 
       - name: Install WASM-Tools
         run: dotnet workload install wasm-tools
+        
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Dotnet Publish Containeer
         if: github.ref == 'refs/heads/dotnetbuild'
