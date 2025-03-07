@@ -668,6 +668,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         {
                             string reason = "Overridden by a scheduled action";
                             
+                            if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
+                            {
+                                var actionText = scheduledAction.Action.ToString().ToLower();
+                                if( scheduledAction.Amps != null)
+                                    reason += $" ({actionText} at {scheduledAction.Amps}A";
+                                else
+                                    reason += $" ({actionText}";
+                            }
+
                             if (scheduledAction.SOCTrigger != null)
                             {
                                 if (scheduledAction.Action == SlotAction.Charge &&
@@ -678,18 +687,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                     InverterState.BatterySOC < scheduledAction.SOCTrigger)
                                     continue;
 
-                                var sign = scheduledAction.Action == SlotAction.Charge ? '<' : '>';
-                                reason += $" SOC of {InverterState.BatterySOC} {sign} {scheduledAction.SOCTrigger}";
+                                var sign = scheduledAction.Action == SlotAction.Charge ? "is less than" : "is more than";
+                                reason += $" while SOC {sign} {scheduledAction.SOCTrigger}%";
                             }
-                            
-                            if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
-                            {
-                                var actionText = scheduledAction.Action.ToString().ToLower();
-                                if( scheduledAction.Amps != null)
-                                    reason += $" ({actionText} at {scheduledAction.Amps}A)";
-                                else
-                                    reason += $" ({actionText})";
-                            }
+
+                            reason += ")";
 
                             slot.OverrideAction = scheduledAction.Action;
                             slot.OverrideAmps = scheduledAction.Amps;

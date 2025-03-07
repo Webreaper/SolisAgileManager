@@ -89,8 +89,8 @@
     private bool ShowExtraFields(ScheduledAction action) => action.Action is SlotAction.Charge or SlotAction.Discharge;
     private string SOCText(ScheduledAction action) => action.Action switch
     {
-        SlotAction.Charge => "If SOC less than (%)",
-        SlotAction.Discharge => "If SOC more than (%)",
+        SlotAction.Charge => "While SOC less than (%)",
+        SlotAction.Discharge => "While SOC more than (%)",
         _ => ""
     };
 
