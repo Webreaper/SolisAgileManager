@@ -7,6 +7,15 @@
         <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
 
+    <PropertyGroup>
+      <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime-deps:9.0</ContainerBaseImage>
+      <ContainerFamily>alpine</ContainerFamily>
+      <ContainerRuntimeIdentifiers>linux-x64;linux-arm64</ContainerRuntimeIdentifiers>
+      <ContainerRegistry>registry.hub.docker.com</ContainerRegistry>
+      <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
+      <ContainerImageTag>dev</ContainerImageTag>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Octokit" />
         <PackageReference Include="Serilog" />
