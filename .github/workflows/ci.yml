@@ -159,6 +159,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Dotnet Publish Container
-        if: github.ref == 'refs/heads/devlop'
+        if: github.ref == 'refs/heads/develop'
         run: dotnet publish SolisManager/SolisManager.csproj -t:PublishContainer --self-contained true -p:PublishTrimmed=false -p:Version=1.0.${{ github.run_number }}-alpha 
                     
