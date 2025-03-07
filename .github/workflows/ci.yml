@@ -110,10 +110,10 @@ jobs:
 
       - name: Dotnet Publish Containeer
         if: github.ref == 'refs/heads/develop'
-        run: dotnet publish SolisManager/SolisManager.csproj -p:RuntimeIdentifiers=osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm \
-                      -p:Version=1.0.${{ github.run_number }}-dev --self-contained true -p:PublishTrimmed=false \
+        run: dotnet publish SolisManager/SolisManager.csproj -p:Version=1.0.${{ github.run_number }}-dev --self-contained true -p:PublishTrimmed=false \
+                      -p:RuntimeIdentifiers=linux-x64
                       #-t:PublishContainer -p:ContainerFamily=alpine -p:ContainerRegistry=registry.hub.docker.com \
-                     # -p:ContainerRepository=webreaper/solisagilemanager -p:ContainerImageTag=alpha
+                      # -p:ContainerRepository=webreaper/solisagilemanager -p:ContainerImageTag=alpha
                     
       #- name: Build/push develop
       #  if: github.ref == 'refs/heads/develop'
