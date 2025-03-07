@@ -10,10 +10,10 @@
     <PropertyGroup>
       <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime-deps:9.0</ContainerBaseImage>
       <ContainerFamily>alpine</ContainerFamily>
-      <ContainerRuntimeIdentifiers>linux-x64;linux-arm64</ContainerRuntimeIdentifiers>
+      <ContainerRuntimeIdentifiers>osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm</ContainerRuntimeIdentifiers>
       <ContainerRegistry>registry.hub.docker.com</ContainerRegistry>
       <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
-      <ContainerImageTag>dev</ContainerImageTag>
+      <ContainerImageTag>alpha</ContainerImageTag>
     </PropertyGroup>
 
     <ItemGroup>
