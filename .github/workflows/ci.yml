@@ -109,26 +109,27 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Dotnet Publish Containeer
-        if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/dotnetbuild'
         run: dotnet publish SolisManager/SolisManager.csproj -p:RuntimeIdentifiers=osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm \
-                      -p:Version=1.0.${{ github.run_number }}-dev --self-contained true -p:PublishTrimmed=false \
+                      --self-contained true -p:PublishTrimmed=false \
                       -t:PublishContainer -p:ContainerFamily=alpine -p:ContainerRegistry=registry.hub.docker.com \
-                      -p:ContainerRepository=webreaper/solisagilemanager -p:ContainerImageTag=alpha
+                      -p:ContainerRepository=webreaper/solisagilemanager -p:ContainerImageTag=alpha \
+                      -p:Version=1.0.${{ github.run_number }}-dev 
                     
-      #- name: Build/push develop
-      #  if: github.ref == 'refs/heads/develop'
-      #  uses: docker/build-push-action@v6
-      #  with:
-      #    push: true
-      #    build-args: VERSION=1.0.${{ github.run_number }}-dev
-      #    platforms: ${{matrix.docker-platforms}}
-      #    tags: webreaper/solisagilemanager:dev
+      - name: Build/push develop
+        if: github.ref == 'refs/heads/develop'
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          build-args: VERSION=1.0.${{ github.run_number }}-dev
+          platforms: ${{matrix.docker-platforms}}
+          tags: webreaper/solisagilemanager:dev
           
-      #- name: Build/push release
-      #  if: github.ref == 'refs/heads/main'
-      #  uses: docker/build-push-action@v5
-      #  with:
-      #    push: true
-      #    build-args: VERSION=1.0.${{ github.run_number }}
-      #    platforms: ${{matrix.docker-platforms}}
-      #    tags: webreaper/solisagilemanager:1.0.${{ github.run_number }}, webreaper/solisagilemanager:latest
+      - name: Build/push release
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          build-args: VERSION=1.0.${{ github.run_number }}
+          platforms: ${{matrix.docker-platforms}}
+          tags: webreaper/solisagilemanager:1.0.${{ github.run_number }}, webreaper/solisagilemanager:latest
