@@ -11,7 +11,7 @@
       <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime-deps:9.0</ContainerBaseImage>
       <ContainerFamily>alpine</ContainerFamily>
       <ContainerRuntimeIdentifiers>osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm</ContainerRuntimeIdentifiers>
-      <ContainerRegistry>registry.hub.docker.com</ContainerRegistry>
+      <ContainerRegistry>docker.io</ContainerRegistry>
       <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
       <ContainerImageTag>alpha</ContainerImageTag>
     </PropertyGroup>
