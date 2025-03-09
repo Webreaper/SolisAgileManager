@@ -45,7 +45,7 @@ jobs:
       run: dotnet workload install wasm-tools
 
     - name: Build SolisManager-${{matrix.target}}
-      run: dotnet publish SolisManager/SolisManager.csproj -c Release --runtime ${{matrix.runtime}} --property:PublishDir=${{github.workspace}}/publish /p:Version=1.0.${{github.run_number}}
+      run: dotnet publish SolisManager/SolisManager.csproj -c Release --runtime ${{matrix.runtime}} --self-contained true -p:PublishTrimmed=false --property:PublishDir=${{github.workspace}}/publish /p:Version=1.0.${{github.run_number}}
     
     - name: Add Version File
       run: echo 1.0.${{github.run_number}} > ${{github.workspace}}/publish/version.txt
@@ -110,7 +110,7 @@ jobs:
 
       - name: Dotnet Publish Containeer
         if: github.ref == 'refs/heads/dotnetbuild'
-        run: dotnet publish SolisManager/SolisManager.csproj -t:PublishContainer --self-contained true -p:PublishTrimmed=false -p:Version=1.0.${{ github.run_number }}-dev 
+        run: dotnet publish SolisManager/SolisManager.csproj -t:PublishContainer -p:Version=1.0.${{ github.run_number }}-dev 
                     
       - name: Build/push develop
         if: github.ref == 'refs/heads/develop'
