@@ -6,7 +6,7 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <InvariantGlobalization>true</InvariantGlobalization>
         <PublishTrimmed>false</PublishTrimmed>
-        <PublishSelfContained>true</PublishSelfContained>
+        <PublishSelfContained Condition="'$(RuntimeIdentifier)' != ''" >true</PublishSelfContained>
         <RuntimeIdentifiers>osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm;</RuntimeIdentifiers>
     </PropertyGroup>
 
@@ -26,7 +26,7 @@
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Sinks.Console" />
         <PackageReference Include="Serilog.Sinks.File" />
-        <ProjectReference Include="..\SolisManager.Client\SolisManager.Client.csproj" />
+        <ProjectReference Include="..\SolisManager.Client\SolisManager.Client.csproj" GlobalPropertiesToRemove="RuntimeIdentifier" />
         <PackageReference Include="Coravel" />
         <PackageReference Include="Flurl" />
         <PackageReference Include="Flurl.Http" />
