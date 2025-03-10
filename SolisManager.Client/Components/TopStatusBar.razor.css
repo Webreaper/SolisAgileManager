@@ -28,7 +28,7 @@
 }
 
 .child-content {
-    flex: 1;
+    flex: 1 1;
     display: flex;
     justify-content: space-around;
 }
