@@ -18,7 +18,13 @@
       <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
       <ContainerImageTag>alpha</ContainerImageTag>
       <ContainerAppCommandArgs>/appdata</ContainerAppCommandArgs>
+      <ContainerWorkingDirectory>/app/</ContainerWorkingDirectory>
     </PropertyGroup>
+
+    <ItemGroup>
+        <!-- workaround bugs in SDK container property inference (https://github.com/dotnet/sdk-container-builds/issues/623) by hard-coding -->
+        <ContainerAppCommand Include="$(ContainerWorkingDirectory)$(AssemblyName)$(_NativeExecutableExtension)" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Octokit" />
