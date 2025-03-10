@@ -36,31 +36,26 @@ public class Program
 
     public static async Task Main(string[] args)
     {
-        if (args.Length > 0)
+        var envConfigFolder = Environment.GetEnvironmentVariable("SOLISMANAGER_CONFIGFOLDER");
+        if (!string.IsNullOrEmpty(envConfigFolder))
+        {
+            if (!SetupConfigFolder(envConfigFolder))
+                return;
+        }
+        else if (args.Length > 0)
         {
             var folder = args[0];
             if (!string.IsNullOrEmpty(folder))
             {
-                if (Directory.Exists(folder))
-                {
-                    Console.WriteLine($"Config folder set to {folder}.");
-                    configFolder = folder;
-                }
-                else if (SafeCreateFolder(ConfigFolder))
-                {
-                    configFolder = folder;
-                    Console.WriteLine($"Created config folder: {ConfigFolder}.");
-                }
-                else
-                {
-                    Console.WriteLine($"Config folder {folder} did not exist and unable to create it. Exiting...");
+                if (!SetupConfigFolder(folder))
                     return;
-                }
             }
 
             if (string.IsNullOrEmpty(folder))
             {
                 Console.WriteLine($"Using default folder \"{configFolder}\".");
+                if (!SetupConfigFolder(configFolder))
+                    return;
             }
         }
 
@@ -242,6 +237,26 @@ public class Program
         }
     }
 
+    private static bool SetupConfigFolder(string folder)
+    {
+        if (Directory.Exists(folder))
+        {
+            Console.WriteLine($"Config folder set to {folder}.");
+            configFolder = folder;
+            return true;
+        }
+        
+        if (SafeCreateFolder(folder))
+        {
+            configFolder = folder;
+            Console.WriteLine($"Created config folder: {ConfigFolder}.");
+            return true;
+        }
+
+        Console.WriteLine($"Config folder {folder} did not exist and unable to create it. Exiting...");
+        return false;
+    }
+    
     private static async Task UpgradeConfig(SolisManagerConfig config, ILogger logger)
     {
 #pragma warning disable 612,618
