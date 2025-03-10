@@ -50,10 +50,6 @@
         padding-right: 2px;
     }
     
-    .title-and-nav {
-        column-gap: 5px;
-    }
-
     .table {
         width: auto;
     }
@@ -68,10 +64,6 @@
 
     .extra-info {
         column-gap: 5px;
-    }
-
-    .title-bar {
-        column-gap: 3px;
     }
 }
 

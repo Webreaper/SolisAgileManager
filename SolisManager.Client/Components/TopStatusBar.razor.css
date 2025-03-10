@@ -22,6 +22,16 @@
     align-items: flex-start;
 }
 
+@media screen and (max-width: 900px) {
+    .title-and-nav {
+        column-gap: 5px;
+    }
+
+    .title-bar {
+        column-gap: 3px;
+    }
+}
+
 
 .title-text {
     margin-top: 5px;
