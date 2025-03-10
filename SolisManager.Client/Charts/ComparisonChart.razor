@@ -10,7 +10,7 @@
                Height="@("100%")">
 
         <ApexPointSeries TItem="OctopusPriceSlot"
-                         Items="FirstSeries"
+                         Items="@FirstSeries"
                          Name="@FirstName"
                          XValue="@(e => e.valid_from)"
                          YValue="@(e => e.value_inc_vat)"
