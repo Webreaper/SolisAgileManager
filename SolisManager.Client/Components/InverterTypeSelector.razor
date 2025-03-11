@@ -1,4 +1,5 @@
 
+<ErrorBoundary>
 @if (inverterConfigTypes.Length > 1)
 {
     <MudSelect T="Type" @bind-Value="selectedInverterConfigType" @bind-Value:after="InverterTypeChanged"
@@ -9,7 +10,7 @@
         }
     </MudSelect>
 }
-
+</ErrorBoundary>
 @code {
     [Parameter]
     public InverterConfigBase? InverterConfig { get; set; }

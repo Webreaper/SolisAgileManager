@@ -1,47 +1,49 @@
 @using SolisManager.Shared.Interfaces
 @inject IInverterManagerService managerService
 
-<div class="product-selector">
-    @if (products != null)
-    {
-        @if (selectedRegion == null && regions != null && string.IsNullOrEmpty(TariffCode))
+<ErrorBoundary>
+    <div class="product-selector">
+        @if (products != null)
         {
-            <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" @bind-Value:after="SelectedRegionChanged" 
-                                        Label="Region" Variant="UIConstants.MudVariant" Dense="true">
-                @foreach (var region in regions.Values)
-                {
-                    <MudSelectItem T="OctopusRegion" Value="@region">@region.fullName</MudSelectItem>
-                }
-            </MudSelect>
-        }
-        else if (selectedRegion != null)
-        {
-            <div class="region" title="@selectedRegion.fullName">
-                <img src="/united-kingdom.svg" width="auto" height="32px" alt="UK map icon"/>
-                @selectedRegion.shortName
-                @if (RegionClearable)
-                {
-                    <div class="clear-region">
-                        <MudIcon Icon="@Icons.Material.Filled.Clear" @onclick="ClearRegion" Size="Size.Small"/>
-                    </div>
-                }
-            </div>
+            @if (selectedRegion == null && regions != null && string.IsNullOrEmpty(TariffCode))
+            {
+                <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" @bind-Value:after="SelectedRegionChanged" 
+                           Label="Region" Variant="UIConstants.MudVariant" Dense="true">
+                    @foreach (var region in regions.Values)
+                    {
+                        <MudSelectItem T="OctopusRegion" Value="@region">@region.fullName</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else if (selectedRegion != null)
+            {
+                <div class="region" title="@selectedRegion.fullName">
+                    <img src="/united-kingdom.svg" width="auto" height="32px" alt="UK map icon"/>
+                    @selectedRegion.shortName
+                    @if (RegionClearable)
+                    {
+                        <div class="clear-region">
+                            <MudIcon Icon="@Icons.Material.Filled.Clear" @onclick="ClearRegion" Size="Size.Small"/>
+                        </div>
+                    }
+                </div>
 
-            <MudSelect T="OctopusProduct" @bind-Value="selectedProduct" @bind-Value:after="SelectedProductChanged"
-                       Label="Product" Variant="UIConstants.MudVariant" Dense="true" Disabled="@Disabled"
-                       Placeholder="Select product for comparison" Clearable="true">
-                @foreach (var product in products)
-                {
-                    <MudSelectItem T="OctopusProduct" Value="@product">@product.full_name</MudSelectItem>
-                }
-            </MudSelect>
+                <MudSelect T="OctopusProduct" @bind-Value="selectedProduct" @bind-Value:after="SelectedProductChanged"
+                           Label="Product" Variant="UIConstants.MudVariant" Dense="true" Disabled="@Disabled"
+                           Placeholder="Select product for comparison" Clearable="true">
+                    @foreach (var product in products)
+                    {
+                        <MudSelectItem T="OctopusProduct" Value="@product">@product.full_name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
         }
-    }
-    else
-    {
-        <MudText>Loading Octopus Products...</MudText>
-    }
-</div>
+        else
+        {
+            <MudText>Loading Octopus Products...</MudText>
+        }
+    </div>
+</ErrorBoundary>
 
 @code {
     [Parameter] public char? RegionCode { get; set; }
