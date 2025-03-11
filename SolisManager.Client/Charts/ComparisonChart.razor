@@ -4,30 +4,37 @@
 
 <ErrorBoundary>
     <div class="chart-area">
-        <ApexChart @ref="chart"
-                   TItem="OctopusPriceSlot"
-                   XAxisType="XAxisType.Datetime"
-                   Options="@Options"
-                   Height="@("100%")">
+    @if (tariffDataAvailable)
+    {
+            <ApexChart @ref="chart"
+                       TItem="OctopusPriceSlot"
+                       XAxisType="XAxisType.Datetime"
+                       Options="@Options"
+                       Height="@("100%")">
 
-            <ApexPointSeries TItem="OctopusPriceSlot"
-                             Items="@FirstSeries"
-                             Name="@FirstName"
-                             XValue="@(e => e.valid_from)"
-                             YValue="@(e => e.value_inc_vat)"
-                             SeriesType="SeriesType.Area"
-                             Color="dodgerblue"
-                             Stroke="@(new SeriesStroke { Color = "dodgerblue", Width = 3 })"/>
+                <ApexPointSeries TItem="OctopusPriceSlot"
+                                 Items="@FirstSeries"
+                                 Name="@FirstName"
+                                 XValue="@(e => e.valid_from)"
+                                 YValue="@(e => e.value_inc_vat)"
+                                 SeriesType="SeriesType.Area"
+                                 Color="dodgerblue"
+                                 Stroke="@(new SeriesStroke { Color = "dodgerblue", Width = 3 })"/>
 
-            <ApexPointSeries TItem="OctopusPriceSlot"
-                             Items="@SecondSeries"
-                             Name="@SecondName"
-                             XValue="@(e => e.valid_from)"
-                             YValue="@(e => e.value_inc_vat)"
-                             SeriesType="SeriesType.Line"
-                             Color="khaki"
-                             Stroke="@(new SeriesStroke { Color = "khaki", Width = 3 })"/>
-        </ApexChart>
+                <ApexPointSeries TItem="OctopusPriceSlot"
+                                 Items="@SecondSeries"
+                                 Name="@SecondName"
+                                 XValue="@(e => e.valid_from)"
+                                 YValue="@(e => e.value_inc_vat)"
+                                 SeriesType="SeriesType.Line"
+                                 Color="khaki"
+                                 Stroke="@(new SeriesStroke { Color = "khaki", Width = 3 })"/>
+            </ApexChart>
+    }
+    else
+    {
+        <div>No chart data available.</div>
+    }
     </div>
 </ErrorBoundary>
 
@@ -46,8 +53,13 @@
 
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
 
+    private bool tariffDataAvailable = false;
+    
     protected override async Task OnParametersSetAsync()
     {
+        tariffDataAvailable = FirstSeries != null && FirstSeries.Any() && SecondSeries != null && SecondSeries.Any();
+        StateHasChanged();
+        
         if (chart != null)
             await chart.UpdateSeriesAsync();
 
@@ -58,12 +70,12 @@
 
     private async Task DoGraphZoom()
     {
-        if (chart != null && FirstSeries != null && FirstSeries.Any() && SecondSeries != null && SecondSeries.Any())
+        if (chart != null && tariffDataAvailable)
         {
             await chart.UpdateSeriesAsync();
 
-            var maxA = FirstSeries.Max(x => x.valid_to);
-            var maxB = SecondSeries.Max(x => x.valid_to);
+            var maxA = FirstSeries!.Max(x => x.valid_to);
+            var maxB = SecondSeries!.Max(x => x.valid_to);
 
             var closest = new List<DateTime>{ maxA, maxB }.Min(x => x);
         
