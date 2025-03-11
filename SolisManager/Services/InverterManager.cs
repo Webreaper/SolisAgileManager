@@ -962,7 +962,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         {
                             if (slot.PlanAction != SlotAction.Charge)
                             {
-                                slot.pv_est_kwh = iogPrice;
+                                slot.value_inc_vat = iogPrice;
                                 slot.PlanAction = SlotAction.Charge;
                                 slot.ActionReason = "IOG Smart-Charge period";
                                 slot.PriceType = PriceType.IOGDispatch;

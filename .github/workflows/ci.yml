@@ -102,5 +102,3 @@ jobs:
       - name: Dotnet Publish Container (Release)
         if: github.ref == 'refs/heads/main'
         run: dotnet publish SolisManager/SolisManager.csproj -t:PublishContainer -p:Version=1.0.${{ github.run_number }} -p:ContainerImageTags='"1.0.${{ github.run_number }};latest"'
-
-                    
