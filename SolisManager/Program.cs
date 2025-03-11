@@ -36,10 +36,19 @@ public class Program
 
     public static async Task Main(string[] args)
     {
+        // From Scott: https://www.hanselman.com/blog/detecting-that-a-net-core-app-is-running-in-a-docker-container-and-skippablefacts-in-xunit
+        bool isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         var envConfigFolder = Environment.GetEnvironmentVariable("SOLISMANAGER_CONFIGFOLDER");
+        
         if (!string.IsNullOrEmpty(envConfigFolder))
         {
             if (!SetupConfigFolder(envConfigFolder))
+                return;
+        }
+        else if (isDocker)
+        {
+            // If we're in docker, always use the appdata folder
+            if (!SetupConfigFolder("/appdata"))
                 return;
         }
         else if (args.Length > 0)
@@ -125,6 +134,8 @@ public class Program
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         logger.LogInformation("===========================================================");
         logger.LogInformation("Application started. Build version v{V} Logs being written to {C}", version, ConfigFolder);
+        if(isDocker)
+            logger.LogInformation("Running in Docker");
         
         // First, load the config
         var config = app.Services.GetRequiredService<SolisManagerConfig>();
