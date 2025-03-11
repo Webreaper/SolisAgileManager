@@ -4,6 +4,7 @@
 
 @inherits ChartBase<HistoryEntry>
 
+<ErrorBoundary>
 @if (Options != null && HistoryData != null && HistoryData.Any())
 {
     <div class="chart-area">
@@ -58,7 +59,7 @@
         </ApexChart>
     </div>
 }
-
+</ErrorBoundary>
 @code {
     [Parameter]
     public IEnumerable<HistoryEntry>? HistoryData { get; set; }
