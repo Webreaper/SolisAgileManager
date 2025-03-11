@@ -245,7 +245,13 @@ An example use case for this is as follows:
 * Then your normal charging plan charges the battery up at 7p/kWh in the early hours of the morning
 * This means you earn a net 8p/kWh for every unused unit of charge in your battery at the end of the day.
 
-<img width="758" alt="ScheduledActions" src="https://github.com/user-attachments/assets/28a90eea-a788-444a-aa4e-8d96f25befb4" />
+Each scheduled action can use an SOC threshold to govern when it's applied. For example, you can set an action
+to charge while the SOC is below a specific percentage, or discharge while SOC is above a percentage - allowing you
+to create a rule that says `at 8pm each night, discharge my battery if it has more than 30% charge`. You can also 
+override the default/global settings for charge/discharge Amps, so scheduled actions can charge/discharge at a different
+rate.
+
+<img width="1032" alt="ScheduledActions" src="https://github.com/user-attachments/assets/519163d8-d254-4da0-b8d0-47cefcc9370e" />
 
 ### Getting Inverter Control Permission from Solis 
 
