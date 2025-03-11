@@ -75,14 +75,7 @@ jobs:
         make_latest: true        
 
   build-docker-with-dotnet:
-    runs-on: ${{ matrix.os }}
-    strategy: 
-      matrix: 
-        target: [linux]
-        include: 
-          - target: linux
-            os: ubuntu-latest
-            platform: linux/amd64
+    runs-on: ubuntu-latest
 
     steps:        
       - name: Checkout repository
