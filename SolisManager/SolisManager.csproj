@@ -16,7 +16,6 @@
       <ContainerRuntimeIdentifiers>linux-x64;linux-arm64;linux-arm;</ContainerRuntimeIdentifiers>
       <ContainerRegistry>docker.io</ContainerRegistry>
       <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
-      <ContainerImageTag>alpha</ContainerImageTag>
       <ContainerWorkingDirectory>/app/</ContainerWorkingDirectory>
       <!-- The default user for SDK-created containers is an app-local user that can only write to its HOME directory.
            Because this app wants to write config to /appdata by default we need to change that back to the Docker-default
