@@ -1,0 +1,60 @@
+@inject IInverterManagerService inverterManagerService
+
+<div class="title-bar">
+        <div class="title-and-nav">
+            <div class="title-text">
+                <h5>@PageTitle</h5>
+            </div>
+            @if (!string.IsNullOrEmpty(ViewSettingName))
+            {
+                <ViewSelector @bind-SelectedView="SelectedView" @bind-SelectedView:after="OnSelectedViewChanged" SettingName="@ViewSettingName"/>
+            }
+        </div>
+
+        <div class="child-content">
+            @ChildContent
+        </div>
+        
+        <Battery ChargePercentage="@inverterManagerService.InverterState.BatterySOC" BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"/>
+        <ValueChip Icon="@Icons.Material.Filled.House" Value="@inverterManagerService.InverterState.HouseLoadkW"
+                   Description="Current load being consumed by the house" Units="kW"/>
+        <ValueChip Icon="@Icons.Material.Filled.SolarPower" Value="@inverterManagerService.InverterState.CurrentPVkW"
+                   Description="Current solar PV generation" Units="kW"/>
+        <ValueChip Icon="@Icons.Material.Filled.WbSunny" Value="@inverterManagerService.InverterState.TodayPVkWh"
+                   Description="Total solar PV generation today" Units="kWh"/>
+        <ValueChip Icon="@Icons.Material.Filled.ElectricalServices" Value="@inverterManagerService.InverterState.TodayImportkWh"
+                   Description="Grid import today" Units="kWh"/>
+        <ValueChip Icon="@Icons.Material.Filled.Output" Value="@inverterManagerService.InverterState.TodayExportkWh"
+                   Description="@ExportDescription" Units="kWh"/>
+    </div>
+@code {
+    [Parameter, EditorRequired]
+    public string? PageTitle { get; set; }
+    
+    [Parameter]
+    public string? ViewSettingName { get; set; }
+
+    [Parameter]
+    public ViewSelector.ViewType SelectedView { get; set; }
+    
+    [Parameter]
+    public EventCallback<ViewSelector.ViewType> SelectedViewChanged { get; set; }
+    
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string ExportDescription
+    {
+        get
+        {
+            var export = Math.Round(inverterManagerService.InverterState.ExportPowerKW, 2);
+            var result = export > 0 ? $"Current export: {export}kW. " : string.Empty;
+            return result + "Total export today";
+        }
+    }
+    
+    private async Task OnSelectedViewChanged()
+    {
+        await SelectedViewChanged.InvokeAsync(SelectedView);
+    }
+}

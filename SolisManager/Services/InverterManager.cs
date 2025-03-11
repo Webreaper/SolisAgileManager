@@ -667,15 +667,32 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         if (slot.valid_from.TimeOfDay == actionTime)
                         {
                             string reason = "Overridden by a scheduled action";
+                            
                             if (scheduledAction.Action is SlotAction.Charge or SlotAction.Discharge)
                             {
                                 var actionText = scheduledAction.Action.ToString().ToLower();
                                 if( scheduledAction.Amps != null)
-                                    reason += $" ({actionText} at {scheduledAction.Amps}A)";
+                                    reason += $" ({actionText} at {scheduledAction.Amps}A";
                                 else
-                                    reason += $" ({actionText})";
+                                    reason += $" ({actionText}";
                             }
-                            
+
+                            if (scheduledAction.SOCTrigger != null)
+                            {
+                                if (scheduledAction.Action == SlotAction.Charge &&
+                                    InverterState.BatterySOC > scheduledAction.SOCTrigger)
+                                    continue;
+
+                                if (scheduledAction.Action == SlotAction.Discharge &&
+                                    InverterState.BatterySOC < scheduledAction.SOCTrigger)
+                                    continue;
+
+                                var sign = scheduledAction.Action == SlotAction.Charge ? "is less than" : "is more than";
+                                reason += $" while SOC {sign} {scheduledAction.SOCTrigger}%";
+                            }
+
+                            reason += ")";
+
                             slot.OverrideAction = scheduledAction.Action;
                             slot.OverrideAmps = scheduledAction.Amps;
                             slot.ActionReason = reason;

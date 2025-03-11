@@ -10,7 +10,7 @@
                Height="@("100%")">
 
         <ApexPointSeries TItem="OctopusPriceSlot"
-                         Items="FirstSeries"
+                         Items="@FirstSeries"
                          Name="@FirstName"
                          XValue="@(e => e.valid_from)"
                          YValue="@(e => e.value_inc_vat)"
@@ -24,8 +24,8 @@
                          XValue="@(e => e.valid_from)"
                          YValue="@(e => e.value_inc_vat)"
                          SeriesType="SeriesType.Line"
-                         Color="firebrick"
-                         Stroke="@(new SeriesStroke { Color = "firebrick", Width = 3 })"/>
+                         Color="khaki"
+                         Stroke="@(new SeriesStroke { Color = "khaki", Width = 3 })"/>
     </ApexChart>
 </div>
 

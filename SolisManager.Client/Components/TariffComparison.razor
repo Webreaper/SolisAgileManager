@@ -5,30 +5,28 @@
 
 <PageTitle>Solis Manager</PageTitle>
 
-@if (!loading)
-{
-    <div class="title-bar">
-        <h5>Comparison vs Current Tariff</h5>
-
-        <div class="product-selector">
+<TopStatusBar PageTitle="Comparison">
+    <ChildContent>
+        @if (!loading)
+        {
             <OctopusProductSelector @bind-TariffCode="@selectedTariff" @bind-TariffCode:after="@RecalcNewComparison"
                                     RegionCode="@currentTariff?.Last()" RegionClearable="false"/>
-        </div>
-    </div>
+        }
+        else
+        {
+            <div>Loading Octopus tariff data...</div>
+        }
+    </ChildContent>
+</TopStatusBar>
 
-    @if (comparison != null)
-    {
-        <ComparisonChart FirstName="@($"Current Tariff ({currentTariff})")" FirstSeries="comparison.TariffAPrices"
-                         SecondName="@selectedTariff" SecondSeries="@comparison.TariffBPrices"/>
-    }
-    else
-    {
-        <ProgressIndicator ProgressText="Loading Octopus Tariff Data..."/>
-    }
+@if (comparison != null)
+{
+    <ComparisonChart FirstName="@($"Current Tariff ({currentTariff})")" FirstSeries="comparison.TariffAPrices"
+                     SecondName="@selectedTariff" SecondSeries="@comparison.TariffBPrices"/>
 }
 else
 {
-    <ProgressIndicator ProgressText="Initialising comparison data..."/>
+    <ProgressIndicator ProgressText="Loading Comparison Data..."/>
 }
 
 @code {

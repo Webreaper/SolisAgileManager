@@ -5,7 +5,29 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <InvariantGlobalization>true</InvariantGlobalization>
+        <PublishTrimmed>false</PublishTrimmed>
+        <PublishSelfContained Condition="'$(RuntimeIdentifier)' != ''" >true</PublishSelfContained>
+        <RuntimeIdentifiers>osx-x64;osx-arm64;linux-x64;linux-arm64;linux-arm;</RuntimeIdentifiers>
     </PropertyGroup>
+
+    <PropertyGroup>
+      <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime-deps:9.0</ContainerBaseImage>
+      <ContainerFamily>alpine</ContainerFamily>
+      <ContainerRuntimeIdentifiers>linux-x64;linux-arm64;linux-arm;</ContainerRuntimeIdentifiers>
+      <ContainerRegistry>docker.io</ContainerRegistry>
+      <ContainerRepository>webreaper/solisagilemanager</ContainerRepository>
+      <ContainerWorkingDirectory>/app/</ContainerWorkingDirectory>
+      <!-- The default user for SDK-created containers is an app-local user that can only write to its HOME directory.
+           Because this app wants to write config to /appdata by default we need to change that back to the Docker-default
+           behavior of using the root user. -->
+      <ContainerUser>root</ContainerUser>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ContainerAppCommandArgs Include="/appdata" />
+        <!-- workaround bugs in SDK container property inference (https://github.com/dotnet/sdk-container-builds/issues/623) by hard-coding -->
+        <ContainerAppCommand Include="$(ContainerWorkingDirectory)$(AssemblyName)$(_NativeExecutableExtension)" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Octokit" />
@@ -13,7 +35,7 @@
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Sinks.Console" />
         <PackageReference Include="Serilog.Sinks.File" />
-        <ProjectReference Include="..\SolisManager.Client\SolisManager.Client.csproj" />
+        <ProjectReference Include="..\SolisManager.Client\SolisManager.Client.csproj" GlobalPropertiesToRemove="RuntimeIdentifier" />
         <PackageReference Include="Coravel" />
         <PackageReference Include="Flurl" />
         <PackageReference Include="Flurl.Http" />
