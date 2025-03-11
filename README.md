@@ -100,11 +100,9 @@ Multiplatform Docker Images are available for:
 
 * linux/amd64 - for x64 Intel processors
 * linux/arm64 - for ARM64 processors
-* linux/amd/v7 - AMD/v7 processors
-* darwin - for MacOS (if you try this and it works pleae let me know!)
+* linux/amd - AMD/v7 processors
 
-Note that currently we haven't had success installing the docker image on Raspberry Pi, so you should use
-the binary bundle (see "Installing as a local app" above.
+These images should work for Linux, Mac and Raspberry pi. 
 
 ## Settings
 
