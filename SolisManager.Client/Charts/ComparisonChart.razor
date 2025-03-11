@@ -58,7 +58,7 @@
 
     private async Task DoGraphZoom()
     {
-        if (chart != null && FirstSeries != null && SecondSeries != null)
+        if (chart != null && FirstSeries != null && FirstSeries.Any() && SecondSeries != null && SecondSeries.Any())
         {
             await chart.UpdateSeriesAsync();
 
