@@ -30,7 +30,7 @@
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
 
-    private string GetColor(OctopusPriceSlot slot) => GetActionColour(slot.ActionToExecute);
+    private string GetColor(OctopusPriceSlot slot) => GetActionColour(slot.ActionToExecute.action);
 
     private string GetActionColour(SlotAction action) =>
             action switch

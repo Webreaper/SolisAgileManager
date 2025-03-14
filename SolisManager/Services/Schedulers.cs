@@ -23,12 +23,12 @@ public class InverterStateScheduler( IInverterRefreshService service, ILogger<In
     }
 }
 
-public class PlanCalculateScheduler( IInverterRefreshService service, ILogger<InverterStateScheduler> logger) : IInvocable
+public class AutoOverrideScheduler( IInverterRefreshService service, ILogger<InverterStateScheduler> logger) : IInvocable
 {
     public async Task Invoke()
     {
-        logger.LogDebug("Recalculating slot plan");
-        await service.RecalculateSlotPlan();
+        logger.LogDebug("Executing Automatic Overrides scheduler");
+        await service.EvaluateAutoSlots();
     }
 }
 

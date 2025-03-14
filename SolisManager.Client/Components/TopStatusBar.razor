@@ -15,7 +15,9 @@
             @ChildContent
         </div>
         
-        <Battery ChargePercentage="@inverterManagerService.InverterState.BatterySOC" BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"/>
+        <Battery ChargePercentage="@inverterManagerService.InverterState.BatterySOC" 
+                 GridImportKW="@inverterManagerService.InverterState.ImportPowerKW"
+                 BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"/>
         <ValueChip Icon="@Icons.Material.Filled.House" Value="@inverterManagerService.InverterState.HouseLoadkW"
                    Description="Current load being consumed by the house" Units="kW"/>
         <ValueChip Icon="@Icons.Material.Filled.SolarPower" Value="@inverterManagerService.InverterState.CurrentPVkW"
@@ -23,7 +25,7 @@
         <ValueChip Icon="@Icons.Material.Filled.WbSunny" Value="@inverterManagerService.InverterState.TodayPVkWh"
                    Description="Total solar PV generation today" Units="kWh"/>
         <ValueChip Icon="@Icons.Material.Filled.ElectricalServices" Value="@inverterManagerService.InverterState.TodayImportkWh"
-                   Description="Grid import today" Units="kWh"/>
+                   Description="@ImportDescription" Units="kWh"/>
         <ValueChip Icon="@Icons.Material.Filled.Output" Value="@inverterManagerService.InverterState.TodayExportkWh"
                    Description="@ExportDescription" Units="kWh"/>
     </div>
@@ -52,7 +54,17 @@
             return result + "Total export today";
         }
     }
-    
+
+    private string ImportDescription
+    {
+        get
+        {
+            var import = Math.Round(inverterManagerService.InverterState.ImportPowerKW, 2);
+            var result = import > 0 ? $"Grid import: {import}kW. " : string.Empty;
+            return result + "Grid import today";
+        }
+    }
+
     private async Task OnSelectedViewChanged()
     {
         await SelectedViewChanged.InvokeAsync(SelectedView);

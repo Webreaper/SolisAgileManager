@@ -110,12 +110,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     valid_from = start,
                     valid_to = start.AddMinutes(30),
                     ActionReason = slot.ActionReason,
-                    OverrideAction = slot.OverrideAction,
-                    OverrideType = slot.OverrideType,
                     PlanAction = slot.PlanAction,
                     PriceType = slot.PriceType,
                     value_inc_vat = slot.value_inc_vat,
-                    pv_est_kwh = slot.pv_est_kwh
+                    pv_est_kwh = slot.pv_est_kwh,
+                    // These will get calculated
+                    ManualOverride = null,
+                    AutoOverride = null,
+                    ScheduledOverride = null,
                 };
                 
                 if( smallSlot.valid_to > DateTime.UtcNow)

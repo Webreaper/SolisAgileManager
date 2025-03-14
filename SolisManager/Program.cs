@@ -97,8 +97,8 @@ public class Program
         builder.Services.AddSingleton<IToolsService, RestartService>();
 
         builder.Services.AddSingleton<InverterStateScheduler>();
-        builder.Services.AddSingleton<PlanCalculateScheduler>();
         builder.Services.AddSingleton<RatesScheduler>();
+        builder.Services.AddSingleton<AutoOverrideScheduler>();
         builder.Services.AddSingleton<SolcastScheduler>();
         builder.Services.AddSingleton<SolcastExtraScheduler>();
         builder.Services.AddSingleton<VersionCheckScheduler>();
@@ -221,19 +221,19 @@ public class Program
             .Cron("15 0,6,12,18 * * *")
             .RunAtStartupIfDebugging());
 
-        // Ensure we recalc the plan at least every 5 minutes, so the SOC
-        // and IOG checks run regularly. We do this every 5 minutes except
-        // for on the hour and half-hour, because we'll recalculate the 
-        // plan then anyway, due to the half-hourly tariff update.
-        app.Services.UseScheduler(s => s
-            .Schedule<PlanCalculateScheduler>()
-            .Cron("5,10,15,20,25,35,40,45,50,55 * * * *"));
-
-        // Refresh and apply the octopus rates every 30 mins
+        // Recalculate the slot plan every 30 minutes 
         app.Services.UseScheduler(s => s
             .Schedule<RatesScheduler>()
             .Cron("0,30 * * * *")
             .RunOnceAtStart());
+
+        // Every 5 minutes check for the SOC and IOG slots to apply
+        // to the current slot plan as overrides
+        // No point running this at startup because slots may
+        // not be available. So wait for the first 5 mins period.
+        app.Services.UseScheduler(s => s
+            .Schedule<AutoOverrideScheduler>()
+            .Cron("0,5,10,15,20,25,30,35,40,45,50,55 * * * *"));
 
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();

@@ -2,33 +2,23 @@
 
 @if (Slot != null)
 {
-        @if (Slot.OverrideType == OctopusPriceSlot.SlotOverrideType.Scheduled)
+        if (Slot.ManualOverride != null)
         {
-            <div class="scheduled-override" title="@Slot.ActionReason">
-                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Title="Scheduled action" />
-                <text>Schedule Action</text>
+            <div class="reset-button">
+                <MudButton OnClick="ClearOverride" Variant="UIConstants.MudVariant" Size="Size.Small">Reset</MudButton>
             </div>
         }
         else
         {
-            @if (Slot.OverrideType == OctopusPriceSlot.SlotOverrideType.None)
-            {
-                <div class="slot-buttons">
-                    @foreach (var action in AvailableActions)
-                    {
-                        <ActionIcon Action="action" OnActionChanged="OnActionChanged"/>
-                    }
-                </div>
-                <div class="manual-button">
-                    <MudButton OnClick="OpenActionPopup" Variant="UIConstants.MudVariant" Size="Size.Small">Override</MudButton>
-                </div>
-            }
-            else
-            {
-                <div class="reset-button">
-                    <MudButton OnClick="ClearOverride" Variant="UIConstants.MudVariant" Size="Size.Small">Reset</MudButton>
-                </div>
-            }
+            <div class="slot-buttons">
+                @foreach (var action in AvailableActions)
+                {
+                    <ActionIcon Action="action" OnActionChanged="OnActionChanged"/>
+                }
+            </div>
+            <div class="manual-button">
+                <MudButton OnClick="OpenActionPopup" Variant="UIConstants.MudVariant" Size="Size.Small">Override</MudButton>
+            </div>
         }
 }
 
@@ -44,7 +34,7 @@
     protected override void OnParametersSet()
     {
         if (Slot != null)
-            AvailableActions = Enum.GetValues<SlotAction>().Except([Slot.ActionToExecute]).ToArray();
+            AvailableActions = Enum.GetValues<SlotAction>().Except([Slot.ActionToExecute.action]).ToArray();
         else
             AvailableActions = [];
         

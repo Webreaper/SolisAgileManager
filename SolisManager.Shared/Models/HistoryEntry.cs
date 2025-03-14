@@ -31,7 +31,7 @@ public class HistoryEntry
         End = slot.valid_to;
         Price = slot.value_inc_vat;
         Type = slot.PriceType;
-        Action = slot.ActionToExecute;
+        Action = slot.ActionToExecute.action;
         ForecastKWH = slot.pv_est_kwh ?? 0;
         Reason = slot.ActionReason;
         BatterySOC = state.BatterySOC;

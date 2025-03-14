@@ -25,12 +25,14 @@
 
     [Parameter] public decimal BatteryPowerKW { get; set; }
 
+    [Parameter] public decimal GridImportKW { get; set; }
+
     int emptyBlocks;
     int fullBlocks;
 
     private string BatteryToolTip => BatteryPowerKW switch
     {
-        > 0 => $"Charging at {BatteryPowerKW:F2}kW",
+        > 0 => $"Charging from {(GridImportKW > 0 ? "grid" : "solar")} at {BatteryPowerKW:F2}kW",
         < 0 => $"Discharging at {Math.Abs(BatteryPowerKW):F2}kW",
         _ => $"Current SOC: {ChargePercentage}%"
     };

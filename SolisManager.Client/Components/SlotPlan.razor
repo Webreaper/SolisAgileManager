@@ -2,10 +2,10 @@
 
 @if (Slot != null)
 {
-    <div class="action-icon" title="@Slot.ActionReason">
-        <ActionIcon Action="Slot.ActionToExecute" Pulse="@isCurrentSlot" IsEVCharge="@(Slot.PriceType == PriceType.IOGDispatch)"/>
-        <ToolTipPopover ToolTip="@Slot.ActionReason" PointerCursor="true">
-            @Slot.ActionToExecute.Description()
+    <div class="action-icon" title="@Slot.ActionToExecute.reason">
+        <ActionIcon Action="Slot.ActionToExecute.action" Pulse="@isCurrentSlot" IsEVCharge="@(Slot.PriceType == PriceType.IOGDispatch)"/>
+        <ToolTipPopover ToolTip="@Slot.ActionToExecute.reason" PointerCursor="true">
+            @Slot.ActionToExecute.action.Description()
         </ToolTipPopover>
     </div>
 }
@@ -15,7 +15,7 @@
     public OctopusPriceSlot? Slot { get; set; }
     
     private bool isCurrentSlot = false;
-
+    
     protected override async Task OnParametersSetAsync()
     {
         if( Slot != null)
