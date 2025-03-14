@@ -204,10 +204,11 @@ public class Program
         // Update the intverter state every 2 minutes. The actual inverter
         // data only gets updated in SolisCloud every 5 minutes, but requesting
         // it regularly means we won't end up with 10-minute stale data
+        // Don't run at startup - this will be executed the very first plan
+        // evaluation when RatesScheduler is executed at startup.
         app.Services.UseScheduler(s => s
             .Schedule<InverterStateScheduler>()
-            .Cron("*/1 * * * *")
-            .RunOnceAtStart());
+            .Cron("*/1 * * * *"));
 
         // Check if the Octopus tariff has changed every 4 hours
         app.Services.UseScheduler(s => s
