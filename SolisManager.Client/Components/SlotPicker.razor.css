@@ -1,3 +1,7 @@
 .slot-picker {
     width: 140px;
 }
+
+.slot-item { 
+    white-space: nowrap;
+}

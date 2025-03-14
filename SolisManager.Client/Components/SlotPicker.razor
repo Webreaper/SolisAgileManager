@@ -3,7 +3,7 @@
     <MudSelect T="TimeSpan?" @bind-Value="SlotTime" @bind-Value:after="SlotValueChanged" Label="@Label" Disabled="Disabled">
         @foreach (var slot in slots)
         {
-            <MudSelectItem T="TimeSpan?" Value="@slot">@TimeString(slot)</MudSelectItem>
+            <MudSelectItem T="TimeSpan?" Class="slot-item" Value="@slot">@TimeString(slot)</MudSelectItem>
         }
     </MudSelect>
 </div>
