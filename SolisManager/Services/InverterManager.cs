@@ -225,6 +225,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             if (!config.IsValid())
                 return;
 
+            if (InverterState.BatterySOC == 0)
+            {
+                logger.LogInformation("Battery SOC is zero on first refresh - forcing update from inverter...");
+                await UpdateInverterState();
+            }
+
             // Save the overrides
             var overrides = GetExistingManualSlotOverrides();
 
@@ -606,7 +612,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             EvaluateSolcastThresholdRule(slots);
             EvaluatePriceBasedRules(slots);
-            EvaluateChargeIfLowBatteryRule(slots);
             EvaluateScheduleActionRules(slots);
             EvaluateDumpAndRechargeIfFreeRule(slots);
         }
@@ -694,30 +699,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 {
                     slot.ScheduledOverride = null;
                 }
-            }
-        }
-    }
-    
-    private void EvaluateChargeIfLowBatteryRule(OctopusPriceSlot[] slots)
-    {
-        // Very occasionally if there's an error, the inverter state
-        // returns zero as the SOC. So just ignore it and do nothing.
-        if (InverterState.BatterySOC == 0)
-        {
-            logger.LogWarning("SOC is zero, so skipping charge if low battery due to bad inverter state data");
-            return;
-        }
-
-        // For any slots that are set to "charge if low battery", update them to 'charge' if the 
-        // battery SOC is, indeed, low. Only do this for enough slots to fully charge the battery.
-        if (InverterState.BatterySOC < config.LowBatteryPercentage)
-        {
-            foreach (var slot in slots.Where(x => x.PlanAction == SlotAction.ChargeIfLowBattery)
-                         .Take(config.SlotsForFullBatteryCharge))
-            {
-                slot.PlanAction = SlotAction.Charge;
-                slot.ActionReason =
-                    $"Upcoming slot is set to charge if low battery; battery is currently at {InverterState.BatterySOC}%";
             }
         }
     }
@@ -901,34 +882,41 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // Now check for IOG Smart Slots
         await ApplyIOGDispatches(InverterState.Prices);
 
-        // Now, check the SOC and see if there's a boost charge required for the first/current slot
-        var firstSlot = InverterState.Prices.First();
+        if (InverterState.BatterySOC > 0)
+        {
+            // Now, if we've got an SOC value, check the SOC and see if there's a
+            // boost charge required for the first/current slot
+            var firstSlot = InverterState.Prices.First();
 
-        if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
-        {
-            logger.LogInformation("Battery SOC is {SoC}%, which is less than low battery threshold ({T}%), so applying a charge override", 
-                InverterState.BatterySOC, config.AlwaysChargeBelowSOC);
-            firstSlot.AutoOverride = new SlotOverride
+            if (InverterState.BatterySOC < config.AlwaysChargeBelowSOC)
             {
-                Action = SlotAction.Charge,
-                Type = AutoOverrideType.AlwayChargeBelowSOC,
-                Explanation = $"SOC less than threshold {config.AlwaysChargeBelowSOC}%",
-                OverridePrice = null
-            };
-        }
-        else if (firstSlot.ActionToExecute.action == SlotAction.ChargeIfLowBattery && 
-                        InverterState.BatterySOC < config.LowBatteryPercentage)
-        {
-            logger.LogInformation("Battery SOC is {SoC}%, which is less than the boost threshold ({T}%), so applying a Boost charge override", 
-                InverterState.BatterySOC, config.LowBatteryPercentage);
-            
-            firstSlot.AutoOverride = new SlotOverride
+                logger.LogInformation(
+                    "Battery SOC is {SoC}%, which is less than low battery threshold ({T}%), so applying a charge override",
+                    InverterState.BatterySOC, config.AlwaysChargeBelowSOC);
+                
+                firstSlot.AutoOverride = new SlotOverride
+                {
+                    Action = SlotAction.Charge,
+                    Type = AutoOverrideType.AlwayChargeBelowSOC,
+                    Explanation = $"SOC ({InverterState.BatterySOC}%) less than threshold {config.AlwaysChargeBelowSOC}%",
+                    OverridePrice = null
+                };
+            }
+            else if (firstSlot.ActionToExecute.action == SlotAction.ChargeIfLowBattery &&
+                     InverterState.BatterySOC < config.LowBatteryPercentage)
             {
-                Action = SlotAction.Charge,
-                Type = AutoOverrideType.ChargeIfLowBattery,
-                Explanation = $"SOC lower than boost threshold {config.LowBatteryPercentage}%",
-                OverridePrice = null
-            };
+                logger.LogInformation(
+                    "Battery SOC is {SoC}%, which is less than the boost threshold ({T}%), so applying a Boost charge override",
+                    InverterState.BatterySOC, config.LowBatteryPercentage);
+
+                firstSlot.AutoOverride = new SlotOverride
+                {
+                    Action = SlotAction.Charge,
+                    Type = AutoOverrideType.ChargeIfLowBattery,
+                    Explanation = $"SOC lower than boost threshold {config.LowBatteryPercentage}%",
+                    OverridePrice = null
+                };
+            }
         }
 
         // And execute
