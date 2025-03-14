@@ -1181,7 +1181,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
 
                 // Set the override
-                slot.ManualOverride = new SlotOverride { Action = overRide.NewAction };
+                slot.ManualOverride = new SlotOverride { Action = overRide.NewAction, Explanation = "Manually overriden"};
                 logger.LogInformation("Set override: {S}", overRide);
             }
         }

@@ -42,6 +42,7 @@ public record OctopusPriceSlot
     public (SlotAction action, string type, int? overrideAmps, string reason) ActionToExecute {
         get
         {
+            // Default to the standard plan
             var action = PlanAction;
             var actionType = "Plan";
             string? reason = null;
@@ -49,28 +50,29 @@ public record OctopusPriceSlot
 
             if (ManualOverride != null)
             {
+                // Manual overrides are the highest priority
                 action = ManualOverride.Action;
                 reason = ManualOverride.Explanation;
                 overrideAmps = ManualOverride.OverrideAmps;
                 actionType = "Manual";
             }
-
-            if (ScheduledOverride != null)
+            else if (AutoOverride != null)
             {
+                // Then auto overrides like SOC and IOG
+                action = AutoOverride.Action;
+                reason = AutoOverride.Explanation;
+                overrideAmps = AutoOverride.OverrideAmps;
+                actionType = "Auto";
+            }
+            else if (ScheduledOverride != null)
+            {
+                // Scheduled overrides next
                 action = ScheduledOverride.Action;
                 reason = ScheduledOverride.Explanation;
                 overrideAmps = ScheduledOverride.OverrideAmps;
                 actionType = "Scheduled";
             }
 
-            if (AutoOverride != null)
-            {
-                action = AutoOverride.Action;
-                reason = AutoOverride.Explanation;
-                overrideAmps = AutoOverride.OverrideAmps;
-                actionType = "Auto";
-            }
-            
             reason ??= ActionReason;
             
             return (action, actionType, overrideAmps, reason);
