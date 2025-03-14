@@ -42,6 +42,16 @@
     justify-content: space-evenly;
 }
 
+@media (max-width: 640.98px) {
+    .time-selection {
+        flex-wrap: wrap;
+        max-width: 600px;
+        padding: 10px;
+        border-radius: 10px;
+        border: solid 1px rgba(240,240,240, 0.6);
+    }
+}
+
 .button-bar {
     display: flex;
     flex-direction: row;
