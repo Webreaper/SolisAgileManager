@@ -156,6 +156,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             .Where(x => x.Sum(r => r.ActualKWH) == 0 ||
                                                    x.Sum(r => r.ImportedKWH) == 0 ||
                                                    x.Sum(r => r.HouseLoadKWH) == 0 ||
+                                                   x.Sum(r => r.Temperature) == 0 ||
                                                    // Temp bugfix for when we write import data as export data
                                                    x.All(r => r.ImportedKWH == r.ExportedKWH))
             .Select(x => x.Key)
@@ -179,7 +180,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 allData.AddRange(data);
         }
 
-        var oneMinuteData = new List<(DateTime start, decimal actual, decimal import, decimal export, decimal load)>();
+        var oneMinuteData = new List<(DateTime start, decimal actual, decimal import, decimal export, decimal load, decimal temperature)>();
 
         foreach (var datapoint in allData)
         {
@@ -190,7 +191,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             datapoint.PVYieldKWH / 5.0M,
                             datapoint.ImportKWH / 5.0M,
                             datapoint.ExportKWH / 5.0M,
-                            datapoint.HomeLoadKWH / 5.0M
+                            datapoint.HomeLoadKWH / 5.0M,
+                            datapoint.Temperature
                             ));
             }
         }
@@ -209,6 +211,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 historyEntry.ImportedKWH = batch.Sum(x => x.import);
                 historyEntry.ExportedKWH = batch.Sum(x => x.export);
                 historyEntry.HouseLoadKWH = batch.Sum(x => x.load);
+                historyEntry.Temperature = batch.Average(x => x.temperature);
                 changes = true;
             }
         }

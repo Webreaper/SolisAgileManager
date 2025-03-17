@@ -18,5 +18,6 @@ public class SolisManagerState
     public decimal ImportPowerKW { get; set; }
     public decimal TodayForecastKWH { get; set; }
     public decimal TomorrowForecastKWH { get; set; }
+    public decimal InverterTemp { get; set; }
     public string StationId { get; set; } = string.Empty;
 }

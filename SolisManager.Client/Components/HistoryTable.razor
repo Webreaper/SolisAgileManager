@@ -29,6 +29,7 @@ else
                 <MudTh>Period</MudTh>
                 <MudTh>Price (p/kWh)</MudTh>
                 <MudTh>Battery SOC</MudTh>
+                <MudTh>Temp (&deg;C)</MudTh>
                 <MudTh>Forecast PV (kWh)</MudTh>
                 <MudTh>Actual PV (kWh)</MudTh>
                 <MudTh>Imported (kWh)</MudTh>
@@ -46,6 +47,9 @@ else
                     @Math.Round(context.Items.Average(x => x.Price), 2)
                 </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row"></MudTh>
+                <MudTh Class="mud-table-cell-custom-group date-row" title="Average Temp (&deg;C)">
+                    @Math.Round(context.Items.Average(x => x.Temperature), 1)
+                </MudTh>
                 <MudTh Class="mud-table-cell-custom-group date-row" title="Total Forecast">
                     @Math.Round(context.Items.Sum(GetDampedForecast), 2)
                 </MudTh>
@@ -69,6 +73,7 @@ else
                 <MudTd Style="white-space: nowrap;">@context.Start.ToString("HH:mm") - @context.End.ToString("HH:mm")</MudTd>
                 <MudTd>@Math.Round(context.Price, 2)</MudTd>
                 <MudTd>@Math.Round((decimal)context.BatterySOC, 2)%</MudTd>
+                <MudTd>@Math.Round((decimal)context.Temperature, 1)</MudTd>
                 <MudTd>@Math.Round(GetDampedForecast(context), 2)</MudTd>
                 <MudTd>@Math.Round(context.ActualKWH, 2)</MudTd>
                 <MudTd>@Math.Round(context.ImportedKWH, 2)</MudTd>

@@ -28,6 +28,8 @@
     [Parameter] public decimal GridImportKW { get; set; }
     
     [Parameter] public decimal SolarGenerationKW { get; set; }
+    
+    [Parameter] public decimal Temperature { get; set; }
 
     int emptyBlocks;
     int fullBlocks;
@@ -47,7 +49,7 @@
         > 0 => $"Charging from {ChargeSource()} at {BatteryPowerKW:F2}kW",
         < 0 => $"Discharging at {Math.Abs(BatteryPowerKW):F2}kW",
         _ => $"Current SOC: {ChargePercentage}%"
-    };
+    } + $", Temp: {Math.Round(Temperature, 1)}\u00b0C";
 
     private string FullBlockStyle => "full-block " + ChargePercentage switch
     {

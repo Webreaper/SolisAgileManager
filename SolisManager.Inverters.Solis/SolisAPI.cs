@@ -263,6 +263,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
             inverterState.ImportPowerKW = solisState.data.psum > 0 ? 0 : Math.Abs(solisState.data.psum);
             inverterState.ExportPowerKW = Math.Max(0, solisState.data.psum);
+            inverterState.InverterTemp = solisState.data.inverterTemperature;
             inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
             if( ParseTimeStr(solisState.data.timeStr, out var timestamp))
                 inverterState.InverterDataTimestamp = timestamp;
@@ -434,7 +435,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                         entry.homeLoadTodayEnergy - lastHouseTotal,
                         entry.eToday - lastYieldTotal,
                         entry.gridPurchasedTodayEnergy - lastImportTotal,
-                        entry.gridSellTodayEnergy - lastExportTotal
+                        entry.gridSellTodayEnergy - lastExportTotal,
+                        entry.inverterTemperature
                     ));
 
                     lastYieldTotal = entry.eToday;

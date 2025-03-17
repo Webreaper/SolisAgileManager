@@ -9,5 +9,6 @@ public record InverterFiveMinData(
     decimal HomeLoadKWH,
     decimal PVYieldKWH,
     decimal ImportKWH,
-    decimal ExportKWH
+    decimal ExportKWH,
+    decimal Temperature
 );

@@ -17,7 +17,8 @@
         
         <Battery ChargePercentage="@inverterManagerService.InverterState.BatterySOC" 
                  GridImportKW="@inverterManagerService.InverterState.ImportPowerKW"
-                 BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"/>
+                 BatteryPowerKW="inverterManagerService.InverterState.CurrentBatteryPowerKW"
+                 Temperature="inverterManagerService.InverterState.InverterTemp"/>
         <ValueChip Icon="@Icons.Material.Filled.House" Value="@inverterManagerService.InverterState.HouseLoadkW"
                    Description="Current load being consumed by the house" Units="kW"/>
         <ValueChip Icon="@Icons.Material.Filled.SolarPower" Value="@inverterManagerService.InverterState.CurrentPVkW"
