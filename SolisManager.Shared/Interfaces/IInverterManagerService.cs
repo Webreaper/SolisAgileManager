@@ -31,6 +31,7 @@ public interface IInverterManagerService
 public interface IInverterRefreshService
 {
     public Task UpdateInverterState();
+    public Task EvaluateAutoSlots();
     public Task RefreshAgileRates();
     public Task RefreshTariff();
     public Task UpdateInverterTime();

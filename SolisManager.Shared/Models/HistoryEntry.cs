@@ -21,7 +21,8 @@ public class HistoryEntry
     public decimal ImportedKWH { get; set; }
     public decimal ExportedKWH { get; set; }
     public decimal HouseLoadKWH { get; set; }
-    
+    public decimal Temperature { get; set; }
+
 
     public HistoryEntry() { }
 
@@ -31,7 +32,7 @@ public class HistoryEntry
         End = slot.valid_to;
         Price = slot.value_inc_vat;
         Type = slot.PriceType;
-        Action = slot.ActionToExecute;
+        Action = slot.ActionToExecute.action;
         ForecastKWH = slot.pv_est_kwh ?? 0;
         Reason = slot.ActionReason;
         BatterySOC = state.BatterySOC;
@@ -92,6 +93,21 @@ public class HistoryEntry
             return entry;
         }
 
+        parts = logLine.Split(",", 13, StringSplitOptions.TrimEntries);
+
+        if (parts.Last().StartsWith('\"'))
+        {
+            // Version 3 had the Actual/Forecast parts.
+            entry.ActualKWH = decimal.Parse(parts[6], CultureInfo.InvariantCulture);
+            entry.ForecastKWH = decimal.Parse(parts[7], CultureInfo.InvariantCulture);
+            entry.ImportedKWH = decimal.Parse(parts[8], CultureInfo.InvariantCulture);
+            entry.ExportedKWH = decimal.Parse(parts[9], CultureInfo.InvariantCulture);
+            entry.HouseLoadKWH = decimal.Parse(parts[10], CultureInfo.InvariantCulture);
+            entry.Temperature = decimal.Parse(parts[11], CultureInfo.InvariantCulture);
+            entry.Reason = parts[12].Trim('\"');
+            return entry;
+        }
+
         return null;
     }
     
@@ -109,6 +125,7 @@ public class HistoryEntry
             ImportedKWH.ToString("0.00"),
             ExportedKWH.ToString("0.00"),
             HouseLoadKWH.ToString("0.00"),
+            Temperature.ToString("0.00"),
             $"\"{Reason}\""
         );
     }

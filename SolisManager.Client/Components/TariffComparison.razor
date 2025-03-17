@@ -1,54 +1,57 @@
-@using ApexCharts
-@using SolisManager.Shared.Interfaces
-@using Size = MudBlazor.Size
 @inject IInverterManagerService inverterManagerService
 
 <PageTitle>Solis Manager</PageTitle>
 
-<TopStatusBar PageTitle="Comparison">
-    <ChildContent>
-        @if (!loading)
-        {
-            <OctopusProductSelector @bind-TariffCode="@selectedTariff" @bind-TariffCode:after="@RecalcNewComparison"
-                                    RegionCode="@currentTariff?.Last()" RegionClearable="false"/>
-        }
-        else
-        {
-            <div>Loading Octopus tariff data...</div>
-        }
-    </ChildContent>
-</TopStatusBar>
+<ErrorBoundary>
+    <TopStatusBar PageTitle="Comparison">
+        <ChildContent>
+            @if (!loading)
+            {
+                <OctopusProductSelector @bind-TariffCode="@selectedTariff" @bind-TariffCode:after="@RecalcNewComparison"
+                                        RegionCode="@currentTariff?.Last()" RegionClearable="false"/>
+            }
+            else
+            {
+                <div>Loading Octopus tariff data...</div>
+            }
+        </ChildContent>
+    </TopStatusBar>
 
-@if (comparison != null)
-{
-    <ComparisonChart FirstName="@($"Current Tariff ({currentTariff})")" FirstSeries="comparison.TariffAPrices"
-                     SecondName="@selectedTariff" SecondSeries="@comparison.TariffBPrices"/>
-}
-else
-{
-    <ProgressIndicator ProgressText="Loading Comparison Data..."/>
-}
+    @if (comparison != null)
+    {
+            <ComparisonChart FirstName="@($"Current Tariff ({currentTariff})")" FirstSeries="comparison.TariffAPrices"
+                         SecondName="@selectedTariff" SecondSeries="@comparison.TariffBPrices"/>
+    }
+    else
+    {
+        <ProgressIndicator ProgressText="Loading Comparison Data..."/>
+    }
+</ErrorBoundary>
 
 @code {
     Shared.Models.TariffComparison? comparison;
     private string? selectedTariff;
     private string? currentTariff;
     private bool loading = true;
-    
+
     private async Task RecalcNewComparison()
     {
-        if (! string.IsNullOrEmpty(currentTariff) && ! string.IsNullOrEmpty(selectedTariff))
+        if (!string.IsNullOrEmpty(currentTariff) && !string.IsNullOrEmpty(selectedTariff))
         {
             var config = await inverterManagerService.GetConfig();
             config.LastComparisonTariff = selectedTariff;
             await inverterManagerService.SaveConfig(config);
-            
-            comparison = await inverterManagerService.GetTariffComparisonData(currentTariff, selectedTariff);
-            
-            StateHasChanged();
+
+            var newComparison = await inverterManagerService.GetTariffComparisonData(currentTariff, selectedTariff);
+
+            if (newComparison.TariffAPrices.Any() && newComparison.TariffBPrices.Any())
+            {
+                comparison = newComparison;
+                StateHasChanged();
+            }
         }
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         var config = await inverterManagerService.GetConfig();
@@ -59,8 +62,7 @@ else
 
         loading = false;
         StateHasChanged();
-        
+
         await base.OnInitializedAsync();
     }
-    
 }

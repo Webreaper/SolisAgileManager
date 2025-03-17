@@ -2,33 +2,35 @@
 
 @inherits ChartBase<OctopusPriceSlot>
 
-@if (Options != null && ChartData != null && ChartData.Any())
-{
-    <div class="chart-area">
-        <GraphActionLegend ChartTitle="Charging Strategy Graph"/>
-        <ApexChart @ref="chart" TItem="OctopusPriceSlot" 
-                   XAxisType="XAxisType.Datetime"
-                   Options="@Options"
-                   Height="@("100%")">
+<ErrorBoundary>
+    @if (Options != null && ChartData != null && ChartData.Any())
+    {
+        <div class="chart-area">
+            <GraphActionLegend ChartTitle="Charging Strategy Graph"/>
+            <ApexChart @ref="chart" TItem="OctopusPriceSlot" 
+                       XAxisType="XAxisType.Datetime"
+                       Options="@Options"
+                       Height="@("100%")">
 
-            <ApexPointSeries TItem="OctopusPriceSlot"
-                             Items="ChartData"
-                             Name="Price"
-                             XValue="@(e => e.valid_from)"
-                             YAggregate="@(e => e.Average(e => e.value_inc_vat))"
-                             SeriesType="SeriesType.Bar"
-                             Color="#005ba3"
-                             PointColor="e => GetColor(e)"/>
-        </ApexChart>
-    </div>
-}
+                <ApexPointSeries TItem="OctopusPriceSlot"
+                                 Items="ChartData"
+                                 Name="Price"
+                                 XValue="@(e => e.valid_from)"
+                                 YAggregate="@(e => e.Average(e => e.value_inc_vat))"
+                                 SeriesType="SeriesType.Bar"
+                                 Color="#005ba3"
+                                 PointColor="e => GetColor(e)"/>
+            </ApexChart>
+        </div>
+    }
+</ErrorBoundary>
 
 @code {
     [Parameter] public IEnumerable<OctopusPriceSlot> ChartData { get; set; } = [];
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
 
-    private string GetColor(OctopusPriceSlot slot) => GetActionColour(slot.ActionToExecute);
+    private string GetColor(OctopusPriceSlot slot) => GetActionColour(slot.ActionToExecute.action);
 
     private string GetActionColour(SlotAction action) =>
             action switch

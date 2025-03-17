@@ -13,12 +13,22 @@
     flex-wrap: nowrap;
 }
 
-::deep .schedule-control {
-    width: 200px;
+.schedule-field { 
+    flex: 1 0;
+    display: flex;
+    flex-direction: row;
+    column-gap: 15px;
 }
 
-::deep .amps-control {
-    width: 120px;
+.action-picker {
+    flex: 1 0 140px;
+}
+
+.soc-control {
+    flex: 0 0 160px
+}
+.amps-control {
+    flex: 0 0 80px
 }
 
 .error-msg {
@@ -38,8 +48,18 @@
     flex-direction: row;
     column-gap: 15px;
     align-items: center;
-    min-width: 400px;
     justify-content: space-evenly;
+}
+
+@media (max-width: 640.98px) {
+    .time-selection {
+        flex-wrap: wrap;
+        max-width: 600px;
+        padding: 10px;
+        border-radius: 10px;
+        justify-content: flex-start;
+        border: solid 1px rgba(240,240,240, 0.6);
+    }
 }
 
 .button-bar {
@@ -48,5 +68,4 @@
     justify-content: space-between;
     column-gap: 10px;
     width: 100%;
-    min-width: 500px;
 }

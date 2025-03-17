@@ -25,15 +25,31 @@
 
     [Parameter] public decimal BatteryPowerKW { get; set; }
 
+    [Parameter] public decimal GridImportKW { get; set; }
+    
+    [Parameter] public decimal SolarGenerationKW { get; set; }
+    
+    [Parameter] public decimal Temperature { get; set; }
+
     int emptyBlocks;
     int fullBlocks;
 
+    private string ChargeSource()
+    {
+        string result = GridImportKW > 0.25M ? "grid" : "solar";
+        if (BatteryPowerKW > 0 && GridImportKW < BatteryPowerKW)
+            result = "grid + solar";
+
+        return result;
+    }
+    
     private string BatteryToolTip => BatteryPowerKW switch
     {
-        > 0 => $"Charging at {BatteryPowerKW:F2}kW",
+        // Allow for a tiny bit of grid pull which is basically insignificant
+        > 0 => $"Charging from {ChargeSource()} at {BatteryPowerKW:F2}kW",
         < 0 => $"Discharging at {Math.Abs(BatteryPowerKW):F2}kW",
         _ => $"Current SOC: {ChargePercentage}%"
-    };
+    } + $", Temp: {Math.Round(Temperature, 1)}\u00b0C";
 
     private string FullBlockStyle => "full-block " + ChargePercentage switch
     {

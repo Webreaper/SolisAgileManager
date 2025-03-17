@@ -1,5 +1,6 @@
 @page "/about"
 @using System.Reflection
+@using System.Runtime.InteropServices
 
 <PageTitle>About Solis Manager</PageTitle>
 
@@ -15,6 +16,8 @@
     inverter, battery, or any other system, as a result of using this application. Your choice to run the app is entirely at your own risk.</p>
     
 <p>For more information, please visit the <strong><a href="https://github.com/webreaper/solisagilemanager" target="_blank">GitHub Repository</a></strong>.</p>
+<h5>.Net Version:</h5>
+<p>@FrameworkVersion</p>
 
 <h4>Other software I've Written</h4>
 
@@ -33,6 +36,7 @@
 
 @code {
     private string? Version;
+    private string FrameworkVersion => RuntimeInformation.FrameworkDescription.Replace(".Net ", "v", StringComparison.OrdinalIgnoreCase);
     protected override void OnInitialized()
     {
         Version = "v" + Assembly.GetExecutingAssembly().GetName().Version;

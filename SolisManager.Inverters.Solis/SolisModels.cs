@@ -23,7 +23,8 @@ internal record InverterDayRecord(
     decimal gridSellTodayEnergy, // Cumulative export kwh
     decimal pac, // Current grid import 
     string pacStr,
-    decimal eToday // Today PV total
+    decimal eToday, // Today PV total,
+    decimal inverterTemperature
 );
 
 internal record InverterDayResponse(string msg, IEnumerable<InverterDayRecord> data);
@@ -72,7 +73,8 @@ internal record InverterData(
     decimal gridPurchasedEnergy, // Today import KWH
     decimal psum, // Current grid output Kw
     string version,
-    string timeStr);
+    string timeStr,
+    decimal inverterTemperature);
 
 internal record Battery(int batteryCapacitySoc);
 internal record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,

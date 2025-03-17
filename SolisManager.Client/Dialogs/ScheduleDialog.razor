@@ -19,32 +19,40 @@
                               .ThenBy(x => x.StartTime))
                 {
                     <div class="time-selection">
-                        @if (scheduledAction.Disabled)
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
-                                     @onclick="@(() => PauseEntry(scheduledAction, false))" Style="color: firebrick; cursor: pointer;margin-top: 15px;"/>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Title="Pause/Disable this scheduled Action"
-                                     @onclick="@(() => PauseEntry(scheduledAction, true))" Style="color: forestgreen; cursor: pointer;margin-top: 15px;"/>
-                        }
                         <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start" disabled="scheduledAction.Disabled"/>
-                        <MudSelect @bind-Value="scheduledAction.Action" Label="Action" class="schedule-control" Disabled="scheduledAction.Disabled">
-                            @SlotChoice(SlotAction.Charge)
-                            @SlotChoice(SlotAction.Discharge)
-                            @SlotChoice(SlotAction.DoNothing)
-                            @SlotChoice(SlotAction.Hold)
-                        </MudSelect>
+                        <div class="schedule-field action-picker">
+                            <MudSelect @bind-Value="scheduledAction.Action" Label="Action" Disabled="scheduledAction.Disabled">
+                                @SlotChoice(SlotAction.Charge)
+                                @SlotChoice(SlotAction.Discharge)
+                                @SlotChoice(SlotAction.DoNothing)
+                                @SlotChoice(SlotAction.Hold)
+                            </MudSelect>
+                        </div>
                         @if (@ShowExtraFields(scheduledAction))
                         {
-                            <MudNumericField T="int?" @bind-Value="@scheduledAction.SOCTrigger" Label="@SOCText(scheduledAction)" class="schedule-control"
-                                             Disabled="@(scheduledAction.Disabled)"/>
-                            <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps" class="amps-control"
-                                             Disabled="@(scheduledAction.Disabled)"/>
+                            <div class="schedule-field soc-control">
+                                <MudNumericField T="int?" @bind-Value="@scheduledAction.SOCTrigger" Label="@SOCText(scheduledAction)"
+                                                 Disabled="@(scheduledAction.Disabled)"/>
+                            </div>
+                            <div class="schedule-field amps-control">
+                                <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps"
+                                                 Disabled="@(scheduledAction.Disabled)"/>
+                            </div>
                         }
-                        <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
-                                 @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
+                        <div class="schedule-field">
+                            @if (scheduledAction.Disabled)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Title="Enable this scheduled Action"
+                                         @onclick="@(() => PauseEntry(scheduledAction, false))" Style="color: firebrick; cursor: pointer;margin-top: 15px;"/>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Title="Pause/Disable this scheduled Action"
+                                         @onclick="@(() => PauseEntry(scheduledAction, true))" Style="color: forestgreen; cursor: pointer;margin-top: 15px;"/>
+                            }
+                            <MudIcon Icon="@Icons.Material.Filled.Delete" Title="Remove this scheduled Action"
+                                     @onclick="@(() => DeleteEntry(scheduledAction))" Style="cursor: pointer;margin-top: 15px;"/>
+                        </div>
                     </div>
                 }
             }
@@ -89,8 +97,8 @@
     private bool ShowExtraFields(ScheduledAction action) => action.Action is SlotAction.Charge or SlotAction.Discharge;
     private string SOCText(ScheduledAction action) => action.Action switch
     {
-        SlotAction.Charge => "While SOC less than (%)",
-        SlotAction.Discharge => "While SOC more than (%)",
+        SlotAction.Charge => "SOC < than (%)",
+        SlotAction.Discharge => "SOC > than (%)",
         _ => ""
     };
 

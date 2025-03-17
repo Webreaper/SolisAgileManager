@@ -201,7 +201,7 @@
         // Get the latest data
         await inverterManagerService.RefreshInverterState();
         hasSolcastData = inverterManagerService.InverterState.Prices.Any(x => x.pv_est_kwh != null);
-        manualOverridesExist = inverterManagerService.InverterState.Prices.Any(x => x.OverrideAction != null && x.OverrideType == OctopusPriceSlot.SlotOverrideType.Manual);
+        manualOverridesExist = inverterManagerService.InverterState.Prices.Any(x => x.ManualOverride != null);
 
         StateHasChanged();
     }
