@@ -930,6 +930,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })
         {
+            logger.LogInformation("Checking for IOG Smart Charge slots....");
+
             try
             {
                 var dispatches = await octopusAPI.GetIOGSmartChargeTimes(config.OctopusAPIKey, config.OctopusAccountNumber);
@@ -972,6 +974,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     }
                     else
                     {
+                        logger.LogInformation("No smart-charge slots returned from Octopus");
+                        
                         // Otherwise clear the auto slots that are IOG ones
                         foreach(var iogSlot in slots.Where( x => x.ScheduledOverride?.Type == AutoOverrideType.IOGSmartCharge ))
                             iogSlot.AutoOverride = null;
