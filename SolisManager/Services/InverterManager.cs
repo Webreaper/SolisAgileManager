@@ -1239,6 +1239,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         try
         {
+            logger.LogInformation("Checking GitHub for new version...");
+
             var client = new GitHubClient(new ProductHeaderValue("SolisAgileManager"));
 
             var newRelease = await client.Repository.Release.GetLatest("webreaper", "SolisAgileManager");
@@ -1249,7 +1251,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 appVersion.ReleaseUrl = newRelease.HtmlUrl;
 
                 if( appVersion.UpgradeAvailable )
-                    logger.LogInformation("A new version of Damselfly is available: {N}", newRelease.Name);
+                    logger.LogInformation("A new version of Solis Agile Manager is available: {N}", newRelease.Name);
             }
         }
         catch (Exception ex)

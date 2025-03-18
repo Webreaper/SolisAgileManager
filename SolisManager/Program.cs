@@ -216,11 +216,11 @@ public class Program
             .Cron("3 */4 * * *")
             .RunOnceAtStart());
 
-        // Check for a new version periodically - every 6 hours
+        // Check for a new version periodically - every 3 hours
         app.Services.UseScheduler(s => s
             .Schedule<VersionCheckScheduler>()
-            .Cron("15 0,6,12,18 * * *")
-            .RunAtStartupIfDebugging());
+            .Cron("15 */3 * * *")
+            .RunOnceAtStart());
 
         // Recalculate the slot plan every 30 minutes 
         app.Services.UseScheduler(s => s
