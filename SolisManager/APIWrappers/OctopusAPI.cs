@@ -61,7 +61,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {E:dd-MMM-yyyy HH:mm}) for product {Code}",
                         result.count, first, last, tariffCode);
 
-                    return SplitToHalfHourSlots(orderedSlots);
+                    // Never go out more than 2 days - so 96 slots
+                    return SplitToHalfHourSlots(orderedSlots, 96);
                 }
             }
         }
@@ -88,15 +89,15 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     /// </summary>
     /// <param name="slots"></param>
     /// <returns></returns>
-    private IEnumerable<OctopusPriceSlot> SplitToHalfHourSlots(IEnumerable<OctopusPriceSlot> slots)
+    private IEnumerable<OctopusPriceSlot> SplitToHalfHourSlots(IEnumerable<OctopusPriceSlot> slots, int maxToReturn)
     {
         List<OctopusPriceSlot> result = new();
 
-        foreach (var slot in slots)
+        foreach (var slot in slots.OrderBy(x => x.valid_from))
         {
             var slotLength = slot.valid_to - slot.valid_from;
 
-            if (slotLength.TotalMinutes == 30)
+            if ((int)slotLength.TotalMinutes == 30)
             {
                 result.Add(slot);
                 continue;
@@ -127,7 +128,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
         }
 
-        return result;
+        return result.Take(maxToReturn).ToList();
     }
 
     private async Task<string?> GetAuthToken(string apiKey)

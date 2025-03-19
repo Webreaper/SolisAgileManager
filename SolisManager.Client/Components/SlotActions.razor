@@ -27,7 +27,7 @@
     public OctopusPriceSlot? Slot { get; set; }
 
     [Parameter]
-    public EventCallback<ChangeSlotActionRequest> OnChangeSlotAction { get; set; }
+    public EventCallback<ManualOverrideRequest> OnChangeSlotAction { get; set; }
     
     private SlotAction[] AvailableActions = [];
 
@@ -45,7 +45,7 @@
     {
         if (Slot != null)
         {
-            var req = new ChangeSlotActionRequest { SlotStart = Slot.valid_from, NewAction = newAction };
+            var req = new ManualOverrideRequest { SlotStart = Slot.valid_from, NewAction = newAction };
             await OnChangeSlotAction.InvokeAsync(req);
         }
     }
@@ -68,7 +68,7 @@
     {
         if (Slot != null)
         {
-            var req = new ChangeSlotActionRequest { SlotStart = Slot.valid_from, NewAction = Slot.PlanAction };
+            var req = new ManualOverrideRequest { SlotStart = Slot.valid_from, ClearManualOverride = true };
             await OnChangeSlotAction.InvokeAsync(req);
         }
     }

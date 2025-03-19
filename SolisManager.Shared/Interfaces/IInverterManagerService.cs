@@ -13,7 +13,7 @@ public interface IInverterManagerService
     Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB);
 
 
-    public Task OverrideSlotAction(ChangeSlotActionRequest change);
+    public Task OverrideSlotAction(ManualOverrideRequest change);
     public Task TestCharge();
     public Task ChargeBattery();
     public Task DischargeBattery();

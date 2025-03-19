@@ -348,18 +348,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
     
-    private IEnumerable<ChangeSlotActionRequest> GetExistingManualSlotOverrides()
+    private IEnumerable<ManualOverrideRequest> GetExistingManualSlotOverrides()
     {
         return InverterState.Prices
             .Where(x => x.ManualOverride != null)
-            .Select(x => new ChangeSlotActionRequest
+            .Select(x => new ManualOverrideRequest
             {
                 SlotStart = x.valid_from,
                 NewAction = x.ManualOverride!.Action
             });
     }
 
-    private void ApplyPreviouManualOverrides(IEnumerable<OctopusPriceSlot> slots, IEnumerable<ChangeSlotActionRequest> overrides)
+    private void ApplyPreviouManualOverrides(IEnumerable<OctopusPriceSlot> slots, IEnumerable<ManualOverrideRequest> overrides)
     {
         var lookup = overrides.ToDictionary(x => x.SlotStart);
         foreach (var slot in slots)
@@ -930,6 +930,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })
         {
+            logger.LogInformation("Checking for IOG Smart Charge slots....");
+
             try
             {
                 var dispatches = await octopusAPI.GetIOGSmartChargeTimes(config.OctopusAPIKey, config.OctopusAccountNumber);
@@ -947,7 +949,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         
                         foreach (var slot in slots)
                         {
-                            if( slot.valid_from < dispatch.end && slot.valid_to >= dispatch.start)
+                            if( slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
                                 iogChargeSlots.TryAdd(slot.valid_from, slot);
                         }
                     }
@@ -972,6 +974,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     }
                     else
                     {
+                        logger.LogInformation("No smart-charge slots returned from Octopus");
+                        
                         // Otherwise clear the auto slots that are IOG ones
                         foreach(var iogSlot in slots.Where( x => x.ScheduledOverride?.Type == AutoOverrideType.IOGSmartCharge ))
                             iogSlot.AutoOverride = null;
@@ -1087,7 +1091,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return new ConfigSaveResponse{ Success = true };
     }
 
-    public async Task OverrideSlotAction(ChangeSlotActionRequest change)
+    public async Task OverrideSlotAction(ManualOverrideRequest change)
     {
         logger.LogInformation("Updating slot action for {S} to {A}...", change.SlotStart, change.NewAction);
         await SetManualOverrides([change]);
@@ -1095,15 +1099,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private int NearestHalfHour(int minute) => minute - (minute % 30);
 
-    private IEnumerable<ChangeSlotActionRequest> CreateOverrides(DateTime start, SlotAction action, int slotCount)
+    private IEnumerable<ManualOverrideRequest> CreateOverrides(DateTime start, SlotAction action, int slotCount)
     {
         var currentSlot =  new DateTime(start.Year, start.Month, start.Day, start.Hour, NearestHalfHour(start.Minute), 0);
 
-        List<ChangeSlotActionRequest> overrides = new();
+        List<ManualOverrideRequest> overrides = new();
         
         foreach (var slot in  Enumerable.Range(0, slotCount))
         {
-            yield return new ChangeSlotActionRequest
+            yield return new ManualOverrideRequest
             {
                 NewAction = action,
                 SlotStart = currentSlot
@@ -1154,7 +1158,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await SetManualOverrides(discharge.Concat(charge).ToList());
     }
 
-    private async Task SetManualOverrides(List<ChangeSlotActionRequest> overrides)
+    private async Task SetManualOverrides(List<ManualOverrideRequest> overrides)
     {
         var lookup = InverterState.Prices.ToDictionary(x => x.valid_from);
 
@@ -1162,18 +1166,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             if (lookup.TryGetValue(overRide.SlotStart, out var slot))
             {
-                // If the override is the same as the existing plan, just clear it.
-                if (slot.PlanAction == overRide.NewAction)
+                if (overRide.ClearManualOverride)
                 {
-                    // Clear the existing override
                     slot.ManualOverride = null;
                     logger.LogInformation("Cleared override: {S}", overRide);
-                    continue;
                 }
-
-                // Set the override
-                slot.ManualOverride = new SlotOverride { Action = overRide.NewAction, Explanation = "Manually overriden"};
-                logger.LogInformation("Set override: {S}", overRide);
+                else
+                {
+                    // Set the override
+                    slot.ManualOverride = new SlotOverride
+                        { Action = overRide.NewAction, Explanation = "Manually overriden" };
+                    logger.LogInformation("Set override: {S}", overRide);
+                }
             }
         }
 
@@ -1244,9 +1248,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 appVersion.NewReleaseName = newRelease.Name;
                 appVersion.ReleaseUrl = newRelease.HtmlUrl;
 
-                if( appVersion.UpgradeAvailable )
-                    logger.LogInformation("A new version of Damselfly is available: {N}", newRelease.Name);
+                if (appVersion.UpgradeAvailable)
+                    logger.LogInformation("A new version of Solis Agile Manager is available: {N}", newRelease.Name);
             }
+        }
+        catch (RateLimitExceededException)
+        {
+            logger.LogWarning("Unable to check for latest version - Github rate limit exceeded. Will try again later...");
         }
         catch (Exception ex)
         {
