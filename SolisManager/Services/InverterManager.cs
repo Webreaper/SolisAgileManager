@@ -1239,8 +1239,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         try
         {
-            logger.LogInformation("Checking GitHub for new version...");
-
             var client = new GitHubClient(new ProductHeaderValue("SolisAgileManager"));
 
             var newRelease = await client.Repository.Release.GetLatest("webreaper", "SolisAgileManager");
@@ -1250,9 +1248,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 appVersion.NewReleaseName = newRelease.Name;
                 appVersion.ReleaseUrl = newRelease.HtmlUrl;
 
-                if( appVersion.UpgradeAvailable )
+                if (appVersion.UpgradeAvailable)
                     logger.LogInformation("A new version of Solis Agile Manager is available: {N}", newRelease.Name);
             }
+        }
+        catch (RateLimitExceededException)
+        {
+            logger.LogWarning("Unable to check for latest version - Github rate limit exceeded. Will try again later...");
         }
         catch (Exception ex)
         {
