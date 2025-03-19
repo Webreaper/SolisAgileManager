@@ -46,15 +46,21 @@
         await OnActionChanged.InvokeAsync(Action);
     }
     
-    private string ToolTip => Action switch
+    private string ToolTip => (OnActionChanged.HasDelegate ? Action switch
     {
-        SlotAction.DoNothing => "Click here to set this slot to No Action",
         SlotAction.Charge => "Click here to set this slot to charge the battery",
         SlotAction.Discharge => "Click here to set this slot to discharge the battery",
         SlotAction.ChargeIfLowBattery => "Click here to set this slot to boost the battery if low",
         SlotAction.Hold => "Click here to set this slot to hold the battery without discharging",
-        _ => Icons.Material.Filled.PauseCircle
-    };
+        _ => "Click here to set this slot to No Action",
+    } :  Action switch
+    {
+        SlotAction.Charge => "Charge",
+        SlotAction.Discharge => "Discharge",
+        SlotAction.ChargeIfLowBattery => "Boost",
+        SlotAction.Hold => "Hold",
+        _ => "No Action",
+    });
 
     private string SlotIconClass => Action switch
     {
