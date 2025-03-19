@@ -28,7 +28,7 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         return new TariffComparison();
     }
 
-    public async Task OverrideSlotAction(ChangeSlotActionRequest request)
+    public async Task OverrideSlotAction(ManualOverrideRequest request)
     {
         await httpClient.PostAsJsonAsync("inverter/overrideslotaction", request);
     }

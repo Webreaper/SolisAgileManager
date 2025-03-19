@@ -183,13 +183,13 @@
     
     private async Task ClearOverride(OctopusPriceSlot slot)
     {
-        var req = new ChangeSlotActionRequest { SlotStart = slot.valid_from, NewAction = slot.PlanAction };
+        var req = new ManualOverrideRequest { SlotStart = slot.valid_from, NewAction = slot.PlanAction };
         await inverterManagerService.OverrideSlotAction(req);
         await RefreshData();
         snackBar.Add($"Override cleared for {slot.valid_from:HH:mm}", Severity.Info);
     }
     
-    private async Task ChangeSlotAction(ChangeSlotActionRequest req)
+    private async Task ChangeSlotAction(ManualOverrideRequest req)
     {
         await inverterManagerService.OverrideSlotAction(req);
         await RefreshData();

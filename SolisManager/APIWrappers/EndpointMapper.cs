@@ -53,7 +53,7 @@ public static class EndpointMapper
             });
 
         group.MapPost("overrideslotaction",
-            async (ChangeSlotActionRequest req, 
+            async (ManualOverrideRequest req, 
                 [FromServices] IInverterManagerService service) =>
             {
                 await service.OverrideSlotAction(req);
