@@ -482,12 +482,13 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         logger.LogInformation("Updating inverter time to avoid drift...");
         
         var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly);
+        // Don't validate the call here - the value we'll get will *always* be different to what we set
+        await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
     }
 
-    private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly)
+    private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly, bool validatePersistence = true)
     {
-        await SendControlRequest(cmdId, value.ToString(), simulateOnly);
+        await SendControlRequest(cmdId, value.ToString(), simulateOnly, validatePersistence);
     }
 
     /// <summary>
@@ -496,7 +497,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// <param name="cmdId"></param>
     /// <param name="value"></param>
     /// <param name="simulateOnly"></param>
-    private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly)
+    /// <param name="validatePersistence">If true, will read the value after the update to check it persisted correctly</param>
+    private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly, bool validatePersistence = true)
     {
         ArgumentNullException.ThrowIfNull(inverterConfig);
 
@@ -521,20 +523,25 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 // Actually write it. 
                 await Post<object>(2, "control", requestBody);
 
-                // Give it a chance to persist.
-                await Task.Delay(backoffRetryDelays[attempt]);
-                
-                // Now try and read it back
-                var result = await ReadControlState(cmdId);
-
-                if (result == value)
+                if (validatePersistence)
                 {
-                    if (attempt > 0)
-                        logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}", cmdId, value, attempt);
-                    return; // Success
+                    // Give it a chance to persist.
+                    await Task.Delay(backoffRetryDelays[attempt]);
+
+                    // Now try and read it back
+                    var result = await ReadControlState(cmdId);
+
+                    if (result == value)
+                    {
+                        if (attempt > 0)
+                            logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
+                                cmdId, value, attempt);
+                        return; // Success
+                    }
+
+                    logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt: {A})",
+                        cmdId, value, attempt);
                 }
-    
-                logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt: {A})", cmdId, value, attempt);
             }
         }
     }
