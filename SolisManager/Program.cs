@@ -1,23 +1,15 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Reflection.Metadata;
-using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
-using System.Xml.Linq;
 using Blazored.LocalStorage;
 using SolisManager.APIWrappers;
 using SolisManager.Components;
 using Coravel;
-using Coravel.Invocable;
-using Coravel.Scheduling.Schedule.Interfaces;
 using MudBlazor;
 using MudBlazor.Services;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using SolisManager.Client.Constants;
-using SolisManager.Client.Services;
-using SolisManager.Extensions;
 using SolisManager.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
@@ -112,9 +104,9 @@ public class Program
         builder.Services.AddSingleton<InverterFactory>();
 
         builder.Services.AddScheduler();
-        builder.Services.AddMudServices();
         builder.Services.AddBlazoredLocalStorage();
         builder.Services.AddMemoryCache();
+        builder.Services.InitMudServices();
 
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddProblemDetails();

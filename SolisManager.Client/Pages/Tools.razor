@@ -35,21 +35,21 @@
     private async Task ChargeBattery()
     {
         await clientInverterManagerService.ChargeBattery();
-        snackBar.Add("Battery set to charge manually", Severity.Info);
+        snackBar.Add("Battery set to charge manually", Severity.Success);
         navManager.NavigateTo("/");
     }
     
     private async Task DishargeBattery()
     {
         await clientInverterManagerService.DischargeBattery();
-        snackBar.Add("Battery set to discharge manually", Severity.Info);
+        snackBar.Add("Battery set to discharge manually", Severity.Success);
         navManager.NavigateTo("/");
     }
 
     private async Task DumpAndChargeBattery()
     {
         await clientInverterManagerService.DumpAndChargeBattery();
-        snackBar.Add("Battery set to dump to the grid and then recharge", Severity.Info);
+        snackBar.Add("Battery set to dump to the grid and then recharge", Severity.Success);
         navManager.NavigateTo("/");
     }
 

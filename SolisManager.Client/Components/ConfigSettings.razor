@@ -215,7 +215,7 @@
                 {
                     await OnSettingsChanged.InvokeAsync();
 
-                    snackbar.Add("Config Settings Updated", Severity.Info);
+                    snackbar.Add("Config Settings Updated", Severity.Success);
                     originalConfigJson = JsonSerializer.Serialize(config);
                     navManager.NavigateTo("/");
                 }

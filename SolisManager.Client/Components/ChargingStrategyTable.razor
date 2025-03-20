@@ -181,19 +181,10 @@
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private string PriceStyle(OctopusPriceSlot slot) => $"text-align:center;";
     
-    private async Task ClearOverride(OctopusPriceSlot slot)
-    {
-        var req = new ManualOverrideRequest { SlotStart = slot.valid_from, NewAction = slot.PlanAction };
-        await inverterManagerService.OverrideSlotAction(req);
-        await RefreshData();
-        snackBar.Add($"Override cleared for {slot.valid_from:HH:mm}", Severity.Info);
-    }
-    
     private async Task ChangeSlotAction(ManualOverrideRequest req)
     {
         await inverterManagerService.OverrideSlotAction(req);
         await RefreshData();
-        snackBar.Add($"Action changed to {req.NewAction.Humanize()} for {req.SlotStart:HH:mm}", Severity.Info);
     }
 
     private async Task RefreshData()
@@ -209,6 +200,7 @@
     private async Task ClearManualOverrides()
     {
         await inverterManagerService.ClearManualOverrides();
+        snackBar.Add($"All manual overrides cleared", Severity.Success);
         await RefreshData();
     }
 
