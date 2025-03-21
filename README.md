@@ -100,9 +100,9 @@ Multiplatform Docker Images are available for:
 
 * linux/amd64 - for x64 Intel processors
 * linux/arm64 - for ARM64 processors
-* linux/amd - AMD/v7 processors
+* linux/arm - ARM processors
 
-These images should work for Linux, Mac and Raspberry pi. 
+These images should work for Linux, Mac, Windows and Raspberry Pi. 
 
 ## Settings
 
