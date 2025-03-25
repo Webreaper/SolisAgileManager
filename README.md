@@ -57,7 +57,7 @@ choice to run the app is entirely at your own risk.**
  Solis Agile Manager does not have any authentication, which means that a malicious hacker could easily control your 
  Inverter.
 
-If you want to be able to access the application remotely, please ensure you only do so via a VPN or a reverse proxy.
+If you want to be able to access the application remotely, please ensure you only do so via a VPN or a reverse proxy (like [YarpWebAuthn](https://github.com/mguinness/YarpWebAuthn)).
 
 ## Installation
 
