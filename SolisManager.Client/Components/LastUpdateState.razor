@@ -3,7 +3,7 @@
 {
     <div class="@Style">
         Last Update: @InverterState.LastUpdate.DisplayDateTime(),
-        Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime(),
+        Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime()
         @if (DataAgeMins > staleThresholdMins)
         {
             <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
