@@ -62,7 +62,16 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         result.count, first, last, tariffCode);
 
                     // Never go out more than 2 days - so 96 slots
-                    return SplitToHalfHourSlots(orderedSlots, 96);
+                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots, 96);
+
+                    // Now, ensure we're in the right TZ
+                    foreach (var thirtyMinSlot in thirtyMinSlots)
+                    {
+                        thirtyMinSlot.valid_from = thirtyMinSlot.valid_from.ToLocalTime();
+                        thirtyMinSlot.valid_to = thirtyMinSlot.valid_to.ToLocalTime();
+                    }
+                    
+                    return thirtyMinSlots;
                 }
             }
         }
