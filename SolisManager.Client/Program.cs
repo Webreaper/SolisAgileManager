@@ -24,15 +24,9 @@ class Program
         builder.Services.AddScoped<IInverterManagerService, ClientInverterManagerService>();
         builder.Services.AddScoped<IToolsService, ClientToolsService>();
         
-        builder.Services.AddMudServices();
         builder.Services.AddApexCharts();
         builder.Services.AddBlazoredLocalStorage();
-
-        builder.Services.AddMudServices(config =>
-        {
-            config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
-            config.SnackbarConfiguration.SnackbarVariant = UIConstants.MudVariant;
-        });
+        builder.Services.InitMudServices();
 
         await builder.Build().RunAsync();
     }

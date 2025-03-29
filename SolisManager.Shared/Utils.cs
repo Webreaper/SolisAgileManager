@@ -1,4 +1,8 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
+using MudBlazor.Services;
+using SolisManager.Client.Constants;
 using SolisManager.Shared.Models;
 
 namespace SolisManager.Shared;
@@ -72,5 +76,17 @@ public static class Utils
         }
 
         return string.Empty;
+    }
+
+    public static void InitMudServices(this IServiceCollection services)
+    {
+        services.AddMudServices(config =>
+        {
+            config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
+            config.SnackbarConfiguration.SnackbarVariant = UIConstants.MudVariant;
+            config.SnackbarConfiguration.PreventDuplicates = true;
+            config.SnackbarConfiguration.ShowTransitionDuration = 250;
+            config.SnackbarConfiguration.HideTransitionDuration = 150;
+        });
     }
 }

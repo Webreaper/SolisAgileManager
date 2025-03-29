@@ -1,4 +1,5 @@
 @inject IDialogService dialogService
+@inject ISnackbar snackBar
 
 @if (Slot != null)
 {
@@ -47,6 +48,7 @@
         {
             var req = new ManualOverrideRequest { SlotStart = Slot.valid_from, NewAction = newAction };
             await OnChangeSlotAction.InvokeAsync(req);
+            snackBar.Add($"Action changed to {req.NewAction.Description()} for {req.SlotStart:HH:mm}", Severity.Success);
         }
     }
 
@@ -69,6 +71,7 @@
         if (Slot != null)
         {
             var req = new ManualOverrideRequest { SlotStart = Slot.valid_from, ClearManualOverride = true };
+            snackBar.Add($"Override cleared for {Slot.valid_from:HH:mm}", Severity.Success);
             await OnChangeSlotAction.InvokeAsync(req);
         }
     }
