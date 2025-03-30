@@ -479,9 +479,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     
     public async Task UpdateInverterTime(bool simulateOnly)
     {
-        logger.LogInformation("Updating inverter time to avoid drift...");
-        
         var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
+        
         // Don't validate the call here - the value we'll get will *always* be different to what we set
         await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
     }
