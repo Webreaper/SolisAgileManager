@@ -388,8 +388,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 logger.LogDebug("Found {N} slots with matching action to conflate", matchedSlots.Count);
 
                 // The timespan is from the start of the first slot, to the end of the last slot.
-                var start = matchedSlots.First().valid_from;
-                var end = matchedSlots.Last().valid_to;
+                var start = matchedSlots.First().valid_from.ToLocalTime();
+                var end = matchedSlots.Last().valid_to.ToLocalTime();
                 
                 if (firstSlot.ActionToExecute.action == SlotAction.Charge)
                 {

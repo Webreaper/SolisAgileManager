@@ -190,7 +190,7 @@ public class Program
         // Once a day, at 2am
         app.Services.UseScheduler(s => s
             .Schedule<InverterTimeAdjustScheduler>()
-            .Cron("0 2 * * *")
+            .Cron("0 3 * * *")
             .RunOnceAtStart());
 
         // Update the intverter state every 2 minutes. The actual inverter
