@@ -335,13 +335,13 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         if (chargeStart != null && chargeEnd != null)
         {
-            chargeTimes = $"{chargeStart.Value.ToLocalTime():HH:mm}-{chargeEnd.Value.ToLocalTime():HH:mm}";
+            chargeTimes = $"{chargeStart.Value:HH:mm}-{chargeEnd.Value:HH:mm}";
             chargePower = overrideAmps ?? inverterConfig.MaxChargeRateAmps;
         }
         
         if (dischargeStart != null && dischargeEnd != null)
         {
-            dischargeTimes = $"{dischargeStart.Value.ToLocalTime():HH:mm}-{dischargeEnd.Value.ToLocalTime():HH:mm}";
+            dischargeTimes = $"{dischargeStart.Value:HH:mm}-{dischargeEnd.Value:HH:mm}";
             dischargePower = holdCharge ? 0 : (overrideAmps ?? inverterConfig.MaxChargeRateAmps);
         }
         
