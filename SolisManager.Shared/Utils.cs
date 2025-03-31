@@ -11,12 +11,12 @@ public static class Utils
 {
     public static string? DisplayDate(this DateTime dateTime)
     {
-        return $"{dateTime.ToLocalTime():dd-MMM-yyyy}";
+        return $"{dateTime:dd-MMM-yyyy}";
     }
 
     public static string? DisplayDateTime(this DateTime dateTime)
     {
-        return $"{dateTime.ToLocalTime():dd-MMM-yyyy HH:mm}";
+        return $"{dateTime:dd-MMM-yyyy HH:mm}";
     }
 
     public static void CopyPropertiesTo<T, TU>(this T source, TU dest)

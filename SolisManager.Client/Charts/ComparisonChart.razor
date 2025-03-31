@@ -79,7 +79,7 @@
 
             var closest = new List<DateTime>{ maxA, maxB }.Min(x => x);
         
-            await chart.ZoomXAsync(DateTime.UtcNow.ToUnixTimeMilliseconds(), 
+            await chart.ZoomXAsync(DateTime.Now.ToUnixTimeMilliseconds(), 
                 closest.ToUnixTimeMilliseconds());
         }
     }

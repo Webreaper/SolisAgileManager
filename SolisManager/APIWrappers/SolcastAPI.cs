@@ -68,7 +68,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
     private async Task CacheSolcastResponse(string siteId, SolcastResponse response)
     {
         // Check we have an active cache object. 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var today = DateOnly.FromDateTime(DateTime.Now.Date);
         
         if (responseCache == null || responseCache.date != today)
         {

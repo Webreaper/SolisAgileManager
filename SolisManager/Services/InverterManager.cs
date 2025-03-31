@@ -54,9 +54,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             return;
 
         // Calculate the totals for today and tomorrow
-        InverterState.TodayForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.UtcNow.Date )
+        InverterState.TodayForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.Now.Date )
             .Sum(x => x.ForecastkWh);
-        InverterState.TomorrowForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.UtcNow.Date.AddDays(1) )
+        InverterState.TomorrowForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.Now.Date.AddDays(1) )
             .Sum(x => x.ForecastkWh);
 
         if (slots == null || ! slots.Any())
