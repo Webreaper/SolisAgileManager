@@ -110,7 +110,7 @@
         }
     }
 
-    protected override void SetOptions( ApexChartOptions<HistoryEntry> optionsToSet )
+    protected override void SetOptions( ApexChartOptions<HistoryEntry> options )
     {
         var yAxis = new List<YAxis>
         {
@@ -150,7 +150,8 @@
             }
         };
         
-        optionsToSet.Yaxis = yAxis;
-        optionsToSet.Fill = fill;
+        options.Yaxis = yAxis;
+        options.Fill = fill;
+        options.Xaxis = new XAxis { Labels = new XAxisLabels { DatetimeUTC = false } };
     }
 }
