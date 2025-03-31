@@ -176,7 +176,8 @@ public class Program
         // ingestion on the hour). Don't run at first startup.
         app.Services.UseScheduler(s => s
             .Schedule<SolcastScheduler>()
-            .Cron("13 0,9 * * *"));
+            .Cron("13 0,9 * * *")
+            .Zoned(TimeZoneInfo.Local));
 
         // An additional scheduler for a midday solcast updated. This will
         // give better forecasting accuracy, but at the cost of risking
@@ -184,13 +185,15 @@ public class Program
         // depends on the config setting.
         app.Services.UseScheduler(s => s
             .Schedule<SolcastExtraScheduler>()
-            .Cron("13 12 * * *"));
+            .Cron("13 12 * * *")
+            .Zoned(TimeZoneInfo.Local));
 
         // Scheduler for updating the inverter date/time to avoid drift
         // Once a day, at 2am
         app.Services.UseScheduler(s => s
             .Schedule<InverterTimeAdjustScheduler>()
-            .Cron("0 2 * * *")
+            .Cron("0 3 * * *")
+            .Zoned(TimeZoneInfo.Local)
             .RunOnceAtStart());
 
         // Update the intverter state every 2 minutes. The actual inverter
