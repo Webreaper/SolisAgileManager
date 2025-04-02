@@ -35,7 +35,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         try
         {
-            var result = await "https://api.octopus.energy"
+            var url = "https://api.octopus.energy"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment("/v1/products")
                 .AppendPathSegment(product)
@@ -46,7 +46,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 {
                     period_from = from,
                     period_to = to
-                }).GetJsonAsync<OctopusPrices?>();
+                });
+            
+            var result = await url.GetJsonAsync<OctopusPrices?>();
 
             if (result != null)
             {
@@ -55,8 +57,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     // Ensure they're in date order. Sometimes they come back in random order!!!
                     var orderedSlots = result.results!.OrderBy(x => x.valid_from).ToList();
 
-                    var first = result.results.FirstOrDefault()?.valid_from;
-                    var last = result.results.LastOrDefault()?.valid_to;
+                    var first = orderedSlots.FirstOrDefault()?.valid_from;
+                    var last = orderedSlots.LastOrDefault()?.valid_to;
                     logger.LogInformation(
                         "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {E:dd-MMM-yyyy HH:mm}) for product {Code}",
                         result.count, first, last, tariffCode);
