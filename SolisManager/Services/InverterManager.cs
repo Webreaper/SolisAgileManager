@@ -742,16 +742,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             // forecast is non-zero, is the end of night. 
             // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
             // do for now.
+            // Note that we assume the 30 mins before sunset is 'night', and the first hour of daylight
+            // is also 'night' since it's unlikely we'll generate anything then.
             DateTime? nightStart = null, nightEnd = null;
 
             foreach (var slot in slots)
             {
                 if (nightStart == null && slot.pv_est_kwh == 0)
-                    nightStart = slot.valid_from;
+                    nightStart = slot.valid_from.AddMinutes(-30);
 
                 if (nightStart != null && slot.pv_est_kwh > 0)
                 {
-                    nightEnd = slot.valid_to;
+                    nightEnd = slot.valid_to.AddHours(1);
                     break;
                 }
             }
