@@ -67,19 +67,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
 
     private async Task CacheSolcastResponse(string siteId, SolcastResponse response)
     {
-        // Check we have an active cache object. 
-        var today = DateOnly.FromDateTime(DateTime.Now.Date);
-        
-        if (responseCache == null || responseCache.date != today)
-        {
-            if( responseCache != null && responseCache.date != null)
-                logger.LogInformation("New day - discarding solcast cache for {D}", responseCache.date);
-            
-            // If we didn't have one, or today is a different date to the date in the
-            // existing cache, then throw everything away and start again. It's a new
-            // day, it's a new dawn, etc etc.
-            responseCache = new SolcastResponseCache{ date = today };
-        }
+        ArgumentNullException.ThrowIfNull(responseCache);
         
         var site = responseCache.sites.FirstOrDefault(x => x.siteId == siteId);
         if (site == null)
@@ -106,11 +94,33 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         var json = JsonSerializer.Serialize(responseCache, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(DiskCachePath, json);
     }
+
+    private void InvalidateCacheOnNewDay()
+    {
+        // Check we have an active cache object. 
+        var today = DateOnly.FromDateTime(DateTime.Now.Date);
+        if (responseCache != null && responseCache.date != today)
+        {
+            // It's a new day.
+            responseCache = null;
+            logger.LogInformation("New day - discarding solcast cache for {D}", responseCache.date);
+        }
+        
+        if (responseCache == null )
+        {
+            // If we didn't have one, or today is a different date to the date in the
+            // existing cache, then throw everything away and start again. It's a new
+            // day, it's a new dawn, etc etc.
+            responseCache = new SolcastResponseCache{ date = today };
+        }
+    }
     
     public async Task GetNewSolcastForecasts()
     {
         try
         {
+            InvalidateCacheOnNewDay();
+            
             var siteIdentifiers = GetSolcastSites(config.SolcastSiteIdentifier);
 
             if (siteIdentifiers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != siteIdentifiers.Length)
