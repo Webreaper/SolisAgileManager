@@ -613,9 +613,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
 
-            EvaluateSolcastThresholdRule(slots);
             EvaluatePriceBasedRules(slots);
             EvaluateScheduleActionRules(slots);
+            EvaluateSolcastThresholdRule(slots);
             EvaluateDumpAndRechargeIfFreeRule(slots);
         }
         catch (Exception ex)
