@@ -161,6 +161,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 Date = x.Key,
                 TotalActualKWH = x.Sum(r => r.ActualKWH),
                 TotalImportedKWH = x.Sum(r => r.ImportedKWH),
+                TotalExportedKWH = x.Sum(r => r.ExportedKWH),
                 TotalHouseLoadKWH = x.Sum(r => r.HouseLoadKWH),
                 TotalTemperature = x.Sum(r => r.Temperature),
             })
@@ -171,15 +172,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         foreach (var day in totals)
         {
+            // Don't check for import or export - some times the inverter returns them as zeros.
             if (day.TotalActualKWH == 0)
             {
                 daysToProcess.Add(day.Date);
                 logger.LogInformation("Will enrich {D} to due to zero Actual KWH", day.Date);
-            }
-            else if (day.TotalImportedKWH == 0)
-            {
-                daysToProcess.Add(day.Date);
-                logger.LogInformation("Will enrich {D} to due to zero Imported KWH", day.Date);
             }
             else if (day.TotalTemperature == 0)
             {
