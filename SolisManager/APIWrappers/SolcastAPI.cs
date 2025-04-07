@@ -101,9 +101,10 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         var today = DateOnly.FromDateTime(DateTime.Now.Date);
         if (responseCache != null && responseCache.date != today)
         {
+            logger.LogInformation("New day - discarding solcast cache for {D}", responseCache.date);
+
             // It's a new day.
             responseCache = null;
-            logger.LogInformation("New day - discarding solcast cache for {D}", responseCache.date);
         }
         
         if (responseCache == null )

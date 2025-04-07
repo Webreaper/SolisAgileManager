@@ -150,29 +150,54 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private async Task EnrichHistoryWithInverterData()
     {
+        var today = DateTime.UtcNow.Date;
+
         // Find any days where there's no data, and add them to the list to backfill.
         // Ignore export, because there's some days when we won't export anything
-        var daysToProcess = executionHistory.GroupBy(x => x.Start.Date)
-            .Where(x => x.Sum(r => r.ActualKWH) == 0 ||
-                                                   x.Sum(r => r.ImportedKWH) == 0 ||
-                                                   x.Sum(r => r.HouseLoadKWH) == 0 ||
-                                                   x.Sum(r => r.Temperature) == 0 ||
-                                                   // Temp bugfix for when we write import data as export data
-                                                   x.All(r => r.ImportedKWH == r.ExportedKWH))
-            .Select(x => x.Key)
-            .OrderDescending()
+        var totals = executionHistory.GroupBy(x => x.Start.Date)
+            .Where(x => x.Key != today)
+            .Select(x => new
+            {
+                Date = x.Key,
+                TotalActualKWH = x.Sum(r => r.ActualKWH),
+                TotalImportedKWH = x.Sum(r => r.ImportedKWH),
+                TotalHouseLoadKWH = x.Sum(r => r.HouseLoadKWH),
+                TotalTemperature = x.Sum(r => r.Temperature),
+            })
             .ToList();
-        
-        var today = DateTime.UtcNow.Date;
-        
-        if( ! daysToProcess.Exists(x => x == today))
-            daysToProcess.Insert(0, today);
+
+        // We always reprocess today
+        var daysToProcess = new HashSet<DateTime> { today };
+
+        foreach (var day in totals)
+        {
+            if (day.TotalActualKWH == 0)
+            {
+                daysToProcess.Add(day.Date);
+                logger.LogInformation("Will enrich {D} to due to zero Actual KWH", day.Date);
+            }
+            else if (day.TotalImportedKWH == 0)
+            {
+                daysToProcess.Add(day.Date);
+                logger.LogInformation("Will enrich {D} to due to zero Imported KWH", day.Date);
+            }
+            else if (day.TotalTemperature == 0)
+            {
+                daysToProcess.Add(day.Date);
+                logger.LogInformation("Will enrich {D} to due to zero Temp", day.Date);
+            }
+            else if (day.TotalHouseLoadKWH == 0)
+            {
+                daysToProcess.Add(day.Date);
+                logger.LogInformation("Will enrich {D} to due to zero House Load KWH", day.Date);
+            }
+        }
         
         logger.LogInformation("Enriching history with PV yield for {D} days", daysToProcess.Count());
 
         var allData = new List<InverterFiveMinData>();
 
-        foreach (var day in daysToProcess)
+        foreach (var day in daysToProcess.OrderDescending())
         {
             var data = await inverterAPI.GetHistoricData(day);
 
