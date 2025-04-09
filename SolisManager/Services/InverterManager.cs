@@ -170,25 +170,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // We always reprocess today
         var daysToProcess = new HashSet<DateTime> { today };
 
-        foreach (var day in totals)
-        {
-            // Don't check for import or export - some times the inverter returns them as zeros.
-            if (day.TotalActualKWH == 0)
-            {
-                daysToProcess.Add(day.Date);
-                logger.LogInformation("Will enrich {D} to due to zero Actual KWH", day.Date);
-            }
-            else if (day.TotalTemperature == 0)
-            {
-                daysToProcess.Add(day.Date);
-                logger.LogInformation("Will enrich {D} to due to zero Temp", day.Date);
-            }
-            else if (day.TotalHouseLoadKWH == 0)
-            {
-                daysToProcess.Add(day.Date);
-                logger.LogInformation("Will enrich {D} to due to zero House Load KWH", day.Date);
-            }
-        }
+        var zeroDataDays = totals.Where(x =>
+                x.TotalActualKWH == 0 ||
+                x.TotalTemperature == 0 ||
+                x.TotalImportedKWH == 0 ||
+                x.TotalHouseLoadKWH == 0)
+            .Select(x => x.Date)
+            .ToList();
+        
+        foreach (var day in zeroDataDays)
+            daysToProcess.Add(day);
         
         logger.LogInformation("Enriching history with PV yield for {D} days", daysToProcess.Count());
 
@@ -225,9 +216,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         bool changes = false;
         
-        foreach (var batch in batches)
+        foreach (var batch in batches.OrderBy(x => x.Key))
         {
-            if (lookup.TryGetValue(batch.Key, out var historyEntry))
+            if (lookup.TryGetValue(batch.Key.ToLocalTime(), out var historyEntry))
             {
                 historyEntry.ActualKWH = batch.Sum(x => x.actual);
                 historyEntry.ImportedKWH = batch.Sum(x => x.import);
@@ -235,6 +226,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 historyEntry.HouseLoadKWH = batch.Sum(x => x.load);
                 historyEntry.Temperature = batch.Average(x => x.temperature);
                 changes = true;
+            }
+            else
+            {
+                logger.LogDebug("Batch for {D} did not match a history entry", batch.Key);
             }
         }
         
