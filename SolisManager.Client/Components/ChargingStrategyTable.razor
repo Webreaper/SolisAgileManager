@@ -114,12 +114,14 @@
 
     private RenderFragment? FooterSummary()
     {
-        if (inverterManagerService.InverterState.Prices.Any(x => x.valid_from.Date == DateTime.UtcNow.AddDays(1).Date))
+        var tomorrow = DateTime.Now.AddDays(1).Date;
+        
+        if (inverterManagerService.InverterState.Prices.Any(x => x.valid_from.Date == tomorrow))
             return null;
 
         // If there aren't any slots for tomorrow, add a summary row with tomorrow's forecast.
         return @<MudTh Class="mud-table-cell-custom-group date-row" colspan="@(hasSolcastData ? 5 : 6)">
-                @SummaryEntry(DateTime.UtcNow.Date.AddDays(1), inverterManagerService.InverterState.TomorrowForecastKWH)
+                @SummaryEntry(DateTime.Now.Date.AddDays(1), null)
             </MudTh>;
     }
     
@@ -133,11 +135,19 @@
     
     private RenderFragment SummaryEntry(DateTime? date, decimal? forecastTotal)
     {
-        if (date != null && date.Value.Date == DateTime.UtcNow.Date)
+        if (date != null)
         {
-            // Get the *whole* forecast for today, not the partial one.
-            forecastTotal = inverterManagerService.InverterState.TodayForecastKWH;
+            if (date.Value.Date == DateTime.UtcNow.Date)
+            {
+                // Get the *whole* forecast for today, not the partial one.
+                forecastTotal = inverterManagerService.InverterState.TodayForecastKWH;
+            }
+            else if (date.Value.Date == DateTime.UtcNow.AddDays(1).Date)
+            {
+                forecastTotal = inverterManagerService.InverterState.TomorrowForecastKWH;
+            }
         }
+        
 
         RenderFragment? forecastFragment = null;
         if (forecastTotal != null)
