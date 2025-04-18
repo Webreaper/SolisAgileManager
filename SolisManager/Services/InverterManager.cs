@@ -991,6 +991,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                 Action = SlotAction.Charge,
                                 Explanation = "IOG Smart-Charge active",
                                 Type = AutoOverrideType.IOGSmartCharge,
+                                OverrideAmps = config.IntelligentGoAmps,
                                 OverridePrice = iogPrice
                             };
                         }

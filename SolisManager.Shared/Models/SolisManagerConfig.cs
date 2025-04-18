@@ -23,6 +23,7 @@ public record SolisManagerConfig
     public bool SolcastExtraUpdates { get; set; } = false;
 
     public bool IntelligentGoCharging { get; set; } = false;
+    public int? IntelligentGoAmps { get; set; } = null;
     
     // Solcast Rules
     public bool SkipOvernightCharge { get; set; }

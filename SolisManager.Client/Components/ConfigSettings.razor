@@ -62,9 +62,11 @@
         {
             <div class="config-fields">
                 <h5>Intelligent Go options</h5>
-                <ConfigSettingHelp HelpText="If your tariff is Intelligent Go, this option will attempt to charge the house battery when daytime cheap dispatch charge slots are provided by Octopus">
+                <ConfigSettingHelp HelpText="If your tariff is Intelligent Go, this option will attempt to charge the house battery when daytime cheap dispatch charge slots are provided by Octopus. You can optionally specify the Charge Amps to be used (leave blank for the default global setting)">
                     <MudCheckBox Label="Intelligent Go Charging" @bind-Value="@config.IntelligentGoCharging" class="wrapped-field"
                                  Disabled="@(!config.TariffIsIntelligentGo)"/>
+                    <MudNumericField T="int?" @bind-Value="@config.IntelligentGoAmps" Label="IOG Charge Amps"
+                                 Disabled="@(!config.TariffIsIntelligentGo)" Variant="UIConstants.MudVariant"/>
                 </ConfigSettingHelp>
             </div>
         }
