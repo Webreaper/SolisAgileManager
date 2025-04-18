@@ -12,7 +12,7 @@
         <ChildContent>
             @if (isSimulateMode)
             {
-                <div class="simulate-indicator" title="Simulation mode enabled - no changes will be applied to the inverter">
+                <div class="simulate-indicator" title="Simulation mode enabled - changes will not be applied to the inverter">
                     Simulation Mode
                     @if (inverterManagerService.InverterState.Prices.Any())
                     {
