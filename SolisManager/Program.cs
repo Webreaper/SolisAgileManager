@@ -129,6 +129,14 @@ public class Program
         if(isDocker)
             logger.LogInformation("Running in Docker");
         
+        string timeZoneName;
+        if (TimeZoneInfo.Local.IsDaylightSavingTime(DateTime.Now))
+            timeZoneName = TimeZoneInfo.Local.DaylightName;
+        else
+            timeZoneName = TimeZoneInfo.Local.StandardName;
+
+        logger.LogInformation("Current timezone: {Tz}", timeZoneName);
+        
         // First, load the config
         var config = app.Services.GetRequiredService<SolisManagerConfig>();
         if (!config.ReadFromFile(ConfigFolder))
@@ -176,7 +184,7 @@ public class Program
         // ingestion on the hour). Don't run at first startup.
         app.Services.UseScheduler(s => s
             .Schedule<SolcastScheduler>()
-            .Cron("13 0,9 * * *")
+            .Cron("13 1,9 * * *")
             .Zoned(TimeZoneInfo.Local));
 
         // An additional scheduler for a midday solcast updated. This will

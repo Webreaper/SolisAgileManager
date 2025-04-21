@@ -23,7 +23,12 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
             if (responseCache?.sites == null || !responseCache.sites.Any())
                 return null;
 
-            return responseCache?.sites.SelectMany(x => x.updates).Max(x => x.lastUpdate);
+            var lastUpdate = responseCache?.sites.SelectMany(x => x.updates).Max(x => x.lastUpdate);
+
+            if( lastUpdate != null ) 
+                return lastUpdate.Value.ToLocalTime();
+
+            return null;
         }
     }
 
@@ -83,7 +88,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
             // Save the response
             site.updates.Add(response);
             // Update the date
-            responseCache.date = DateOnly.FromDateTime(response.lastUpdate);
+            responseCache.date = DateOnly.FromDateTime(response.lastUpdate.ToLocalTime());
         }
         else
             logger.LogInformation("No new forecast entries received from Solcast");
