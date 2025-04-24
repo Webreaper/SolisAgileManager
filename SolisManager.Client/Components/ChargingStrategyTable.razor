@@ -147,10 +147,9 @@
                 forecastTotal = inverterManagerService.InverterState.TomorrowForecastKWH;
             }
         }
-        
 
         RenderFragment? forecastFragment = null;
-        if (forecastTotal != null)
+        if (forecastTotal != null && forecastTotal != 0)
         {
             var dampedForecast = Math.Round(forecastTotal.Value * forecastDamping, 2);
             var ForcastDescription = $"Forecast PV for {date:dd-MMM}";
