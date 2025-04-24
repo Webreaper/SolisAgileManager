@@ -837,9 +837,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             if (await inverterAPI.UpdateInverterState(InverterState))
             {
                 var stateMsg = string.Format(
-                    $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW}kW, " +
-                    $"House Load = {InverterState.HouseLoadkW}kW, Forecast today: {InverterState.TodayForecastKWH}kWh, " +
-                    $"tomorrow: {InverterState.TomorrowForecastKWH}kWh");
+                    $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW:F2}kW, " +
+                    $"House Load = {InverterState.HouseLoadkW:F2}kW, Forecast today: {InverterState.TodayForecastKWH:F2}kWh, " +
+                    $"tomorrow: {InverterState.TomorrowForecastKWH:F2}kWh");
 
                 if (stateMsg != lastStateMessage)
                 {
