@@ -45,7 +45,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
     {
-        var solcast = solcastApi.GetSolcastForecast();
+        var solcast = solcastApi.GetSolcastForecasts();
 
         // Store the last update time
         InverterState.SolcastTimeStamp = solcastApi.lastAPIUpdate;

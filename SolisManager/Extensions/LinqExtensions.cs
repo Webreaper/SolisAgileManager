@@ -30,4 +30,13 @@ public static class LinqExtensions
         return source[firstItemIndex .. lastItemIndex];
     }
 
+    public static void RemoveWhere<TKey, TValue>(this IDictionary<TKey, TValue> dict, 
+        Func<TKey, bool> selector)
+    {
+        var keys = dict.Keys.Where(selector).ToList();
+        foreach (var key in keys)
+        {
+            dict.Remove(key);
+        }
+    }
 }
