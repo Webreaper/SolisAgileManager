@@ -12,37 +12,14 @@ namespace SolisManager.APIWrappers;
 /// </summary>
 public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentProvider, ILogger<SolcastAPI> logger)
 {
-    private DateTime? FurthestFutureForecastUtc
-    {
-        get
-        {
-            if (solcastCache?.sites == null)
-                return null;
-
-            var allForecasts = solcastCache?.sites?
-                .SelectMany(x => x.forecasts)
-                .ToList();
-
-            if( allForecasts != null && allForecasts.Any() )
-                return allForecasts.Max(x => x.Key);
-
-            return null;
-        }
-    }
-    
-    public DateTime? lastAPIUpdate
+    public DateTime? LastAPIUpdateUTC
     {
         get
         {
             if (solcastCache?.sites == null || !solcastCache.sites.Any())
                 return null;
 
-            var lastUpdate = FurthestFutureForecastUtc;
-
-            if( lastUpdate != null ) 
-                return lastUpdate.Value.ToLocalTime();
-
-            return null;
+            return solcastCache.sites.Max( x => x.lastSolcastUpdate);
         }
     }
 
