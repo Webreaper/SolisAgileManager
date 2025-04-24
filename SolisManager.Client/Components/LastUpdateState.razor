@@ -28,5 +28,5 @@
     private double DataAgeMins => (DateTime.UtcNow - InverterState!.InverterDataTimestamp).TotalMinutes; 
     private string Style => "update-text " + (DarkMode ? "update-text-dark" : string.Empty);
     private string StaleStyle => "stale-data " + (DarkMode ? "stale-data-dark" : string.Empty);
-    private string SolcastUpdate => InverterState?.SolcastTimeStamp?.DisplayDateTime() ?? "never";
+    private string SolcastUpdate => InverterState?.SolcastTimeStamp?.ToLocalTime().DisplayDateTime() ?? "never";
 }
