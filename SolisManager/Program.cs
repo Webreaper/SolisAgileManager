@@ -193,7 +193,7 @@ public class Program
         // depends on the config setting.
         app.Services.UseScheduler(s => s
             .Schedule<SolcastExtraScheduler>()
-            .Cron("13 13 * * *")
+            .Cron("13 12 * * *")
             .Zoned(TimeZoneInfo.Local));
 
         // Scheduler for updating the inverter date/time to avoid drift
