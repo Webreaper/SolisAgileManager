@@ -425,6 +425,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             foreach (var entry in rawData.data)
             {
+                if (entry.homeLoadTodayEnergy < 0)
+                {
+                    logger.LogWarning("Discarding historic data with negative home load: {T}", entry.timeStr);
+                    continue;
+                }
+                
                 if (ParseTimeStr(entry.timeStr, out var date))
                 {
                     result.Add(new InverterFiveMinData(date,
