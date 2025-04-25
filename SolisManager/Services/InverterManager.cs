@@ -42,8 +42,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if( inverterImplementation != null )
             inverterAPI = inverterImplementation;
     }
-    
-    private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
+
+    private void UpdateWithLatestForecast()
     {
         var solcast = solcastApi.GetSolcastForecasts();
 
@@ -58,8 +58,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             .Sum(x => x.ForecastkWh);
         InverterState.TomorrowForecastKWH = solcast.Where( x => x.PeriodStart.ToLocalTime().Date == DateTime.Now.Date.AddDays(1) )
             .Sum(x => x.ForecastkWh);
+    }
+    
+    private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
+    {
+        var solcast = solcastApi.GetSolcastForecasts();
 
-        if (slots == null || ! slots.Any())
+        if (solcast == null || !solcast.Any() || slots == null || ! slots.Any())
             return;
 
         var lookup = solcast.ToDictionary(x => x.PeriodStart.ToLocalTime());
@@ -833,6 +838,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             InverterState.LastUpdate = DateTime.UtcNow;
 
+            // Get the latest forecast from Solcast
+            UpdateWithLatestForecast();
+            
             // Get the battery charge state from the inverter
             if (await inverterAPI.UpdateInverterState(InverterState))
             {
