@@ -205,9 +205,9 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         {
             return data.Select( x => new SolarForecast
             {  
-                PeriodStart = x.Key, 
+                PeriodStartUtc = x.Key, 
                 ForecastkWh = x.Value
-            }).OrderBy(x => x.PeriodStart)
+            }).OrderBy(x => x.PeriodStartUtc)
                 .ToList();
         }
 

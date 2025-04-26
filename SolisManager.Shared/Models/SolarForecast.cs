@@ -6,11 +6,11 @@ namespace SolisManager.Shared.Models;
 public class SolarForecast
 {
     public decimal ForecastkWh { get; set; }
-    public DateTime PeriodStart { get; set; }
+    public DateTime PeriodStartUtc { get; set; }
     
     public override string ToString()
     {
-        return $"{PeriodStart} = {ForecastkWh}kWh";
+        return $"{PeriodStartUtc} = {ForecastkWh}kWh";
     }
 
 }
