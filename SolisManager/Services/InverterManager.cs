@@ -45,18 +45,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private void UpdateWithLatestForecast()
     {
-        var solcast = solcastApi.GetSolcastForecasts();
+        var forecasts = solcastApi.GetSolcastForecasts();
 
         // Store the last update time
         InverterState.SolcastTimeStamp = solcastApi.LastAPIUpdateUTC;
             
-        if (solcast == null || !solcast.Any())
+        if (forecasts == null || !forecasts.Any())
             return;
 
         // Calculate the totals for today and tomorrow
-        InverterState.TodayForecastKWH = solcast.Where( x => x.PeriodStart.ToLocalTime().Date == DateTime.Now.Date )
+        InverterState.TodayForecastKWH = forecasts.Where( x => x.PeriodStartUtc.Date == DateTime.UtcNow.Date )
             .Sum(x => x.ForecastkWh);
-        InverterState.TomorrowForecastKWH = solcast.Where( x => x.PeriodStart.ToLocalTime().Date == DateTime.Now.Date.AddDays(1) )
+        InverterState.TomorrowForecastKWH = forecasts.Where( x => x.PeriodStartUtc.Date == DateTime.UtcNow.AddDays(1).Date )
             .Sum(x => x.ForecastkWh);
     }
     
@@ -67,7 +67,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (solcast == null || !solcast.Any() || slots == null || ! slots.Any())
             return;
 
-        var lookup = solcast.ToDictionary(x => x.PeriodStart.ToLocalTime());
+        var lookup = solcast.ToDictionary(x => x.PeriodStartUtc.ToLocalTime());
 
         var matchedData = false;
         foreach (var slot in slots)
