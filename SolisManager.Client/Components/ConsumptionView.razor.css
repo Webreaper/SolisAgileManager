@@ -1,0 +1,23 @@
+.chart-area {
+    height: calc(100vh - 200px);
+    width: 100%;
+}
+
+.title-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 10px;
+}
+
+.product-selector {
+    flex: 1;
+}
+
+@media screen and (min-width: 900px) {
+    .product-selector {
+        max-width: 500px;
+    }
+}

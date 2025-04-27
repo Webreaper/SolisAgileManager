@@ -1239,6 +1239,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
+    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    {
+        if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
+        {
+            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
+
+            return consumption;
+        }
+
+        return null;
+    }
+    
     public async Task ResetSimulation()
     {
         if (config.Simulate)

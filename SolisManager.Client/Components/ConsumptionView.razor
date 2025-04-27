@@ -1,0 +1,39 @@
+@inject IInverterManagerService inverterManagerService
+
+<PageTitle>Solis Manager</PageTitle>
+
+<ErrorBoundary>
+    <TopStatusBar PageTitle="Consumption"/>
+
+    @if (string.IsNullOrEmpty(config.OctopusAPIKey) || string.IsNullOrEmpty(config.OctopusAccountNumber))
+    {
+        <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
+    }
+    else if( loading )
+    {
+        <ProgressIndicator ProgressText="Loading price Data..."/>
+    }
+</ErrorBoundary>
+
+@code {
+    private bool loading = true;
+    private SolisManagerConfig? config = null;
+    private async Task RecalcConsmption()
+    {
+        var end = DateTime.UtcNow;
+        var start = end.AddDays(-30);
+        var consumption = await inverterManagerService.GetConsumption(start, end);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        config = await inverterManagerService.GetConfig();
+
+        await RecalcConsmption();
+
+        loading = false;
+        StateHasChanged();
+
+        await base.OnInitializedAsync();
+    }
+}

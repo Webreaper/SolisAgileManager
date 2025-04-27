@@ -274,37 +274,66 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
     
-    public async Task<string?> GetCurrentOctopusTariffCode(string apiKey, string accountNumber)
+    private enum MeterType
+    {
+        Import,
+        Export
+    };
+
+    private async Task<IEnumerable<OctopusMeterPoints>> GetMeters(string apiKey, string accountNumber)
     {
         var accountDetails = await GetOctopusAccount(apiKey, accountNumber);
-        
+
         if (accountDetails != null)
         {
             var now = DateTime.UtcNow;
-            var currentProperty = accountDetails.properties.FirstOrDefault(x => x.moved_in_at < now && x.moved_out_at == null);
+            var currentProperty =
+                accountDetails.properties.FirstOrDefault(x => x.moved_in_at < now && x.moved_out_at == null);
 
             if (currentProperty != null)
-            {
-                var exportMeter = currentProperty.electricity_meter_points.FirstOrDefault(x => !x.is_export);
-                if (exportMeter != null)
-                {
-                    // Look for a contract with no end date.
-                    var contract = exportMeter.agreements.FirstOrDefault(x => x.valid_from < now && x.valid_to == null);
-
-                    // It's possible it has an end-date set, that's later than today. 
-                    if( contract == null )
-                        contract = exportMeter.agreements.FirstOrDefault(x => x.valid_from < now && x.valid_to != null && x.valid_to > now);
-
-                    if (contract != null)
-                    {
-                        logger.LogInformation("Found Octopus Product/Contract: {P}, Starts {S:dd-MMM-yyyy}",
-                            contract.tariff_code, contract.valid_from);
-                        return contract.tariff_code;
-                    }
-                }
-            }
+                return currentProperty.electricity_meter_points;
         }
 
+        return [];
+    }
+
+    private async Task<OctopusMeterPoints?> GetMeter(string apiKey, string accountNumber, MeterType type)
+    {
+        var meters = await GetMeters(apiKey, accountNumber);
+
+        if (meters.Any())
+        {
+            bool export = type == MeterType.Export;
+            return meters.FirstOrDefault(x => x.is_export == export);
+        }
+        
+        return null;
+    }
+
+    
+    public async Task<string?> GetCurrentOctopusTariffCode(string apiKey, string accountNumber)
+    {
+        var importMeter = await GetMeter(apiKey, accountNumber, MeterType.Import);
+        var now = DateTime.UtcNow;
+
+        if (importMeter != null)
+        {
+            // Look for a contract with no end date.
+            var contract = importMeter.agreements.FirstOrDefault(x => x.valid_from < now && x.valid_to == null);
+
+            // It's possible it has an end-date set, that's later than today. 
+            if (contract == null)
+                contract = importMeter.agreements.FirstOrDefault(x =>
+                    x.valid_from < now && x.valid_to != null && x.valid_to > now);
+
+            if (contract != null)
+            {
+                logger.LogInformation("Found Octopus Product/Contract: {P}, Starts {S:dd-MMM-yyyy}",
+                    contract.tariff_code, contract.valid_from);
+                return contract.tariff_code;
+            }
+        }
+        
         return null;
     }
 
@@ -366,6 +395,97 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         return null;
     }
+
+    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(string apiKey, string accountNumber, DateTime startDate, DateTime endDate)
+    {
+        // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
+        //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
+        var meters = await GetMeters(apiKey, accountNumber);
+
+        var importMeter = meters.FirstOrDefault(x => !x.is_export);
+        var exportMeter = meters.FirstOrDefault(x => x.is_export);
+        var token = await GetAuthToken(apiKey);
+
+        if (importMeter != null && exportMeter != null && ! string.IsNullOrEmpty(token))
+        {
+            var importMeterTask = GetConsumptionForMeter(token, importMeter, startDate, endDate);
+            var exportMeterTask = GetConsumptionForMeter(token, exportMeter, startDate, endDate);
+
+            await Task.WhenAll(importMeterTask, exportMeterTask);
+
+            var importConsumption = await importMeterTask;
+            var exportConsumption = await exportMeterTask;
+
+            var lookup = importConsumption.results.ToDictionary(
+                x => x.interval_start,
+                x => new OctopusConsumption{PeriodStart = x.interval_start, ImportConsumption = x.consumption});
+
+            foreach (var import in exportConsumption.results)
+            {
+                if( lookup.TryGetValue(import.interval_start, out var consumptionValue))
+                    consumptionValue.ExportConsumption = import.consumption;
+            }
+
+            return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+        }
+
+        return null;
+    }
+   
+    public async Task<Consumption?> GetConsumptionForMeter(string authToken, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
+    {
+        // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
+        //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
+
+        ArgumentNullException.ThrowIfNull(meter);
+
+        var serial = meter.meters.FirstOrDefault()?.serial_number;
+
+        if (!string.IsNullOrEmpty(serial))
+        {
+            try
+            {
+                var url = "https://api.octopus.energy"
+                    .WithHeader("Authorization", authToken)
+                    .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                    .AppendPathSegment("/v1/electricity-meter-points")
+                    .AppendPathSegment(meter.mpan)
+                    .AppendPathSegment("meters")
+                    .AppendPathSegment(serial)
+                    .AppendPathSegment("consumption")
+                    .SetQueryParams(new
+                    {
+                        period_from = startDate,
+                        period_to = endDate,
+                        page_size = 100,
+                        order_by = "period"
+                    });
+
+                var result = await url.GetJsonAsync<Consumption?>();
+
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            catch (FlurlHttpException ex)
+            {
+                if (ex.StatusCode == (int)HttpStatusCode.TooManyRequests)
+                {
+                    logger.LogWarning("Octpus API failed - too many requests. Waiting 3 seconds before next call...");
+                    await Task.Delay(3000);
+                }
+                else
+                    logger.LogError("HTTP Exception getting octopus tariff rates: {E}", ex);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving rates from Octopus");
+            }
+        }
+
+        return null;
+    }
     
     public record OctopusAgreement(string tariff_code, DateTime? valid_from, DateTime? valid_to);
     public record OctopusMeter(string serial_number);
@@ -374,4 +494,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     public record OctopusAccountDetails(string number, OctopusProperty[] properties);
     
     private record OctopusPrices(int count, OctopusPriceSlot[] results);
+
+    public record Consumption(int count, IEnumerable<ConsumptionRecord> results);
+    public record ConsumptionRecord(decimal consumption, DateTime interval_start, DateTime interval_end);
+
 }
