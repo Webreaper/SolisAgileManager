@@ -5,7 +5,7 @@
 <ErrorBoundary>
     <TopStatusBar PageTitle="Consumption"/>
 
-    @if (string.IsNullOrEmpty(config.OctopusAPIKey) || string.IsNullOrEmpty(config.OctopusAccountNumber))
+    @if(!accountValid)
     {
         <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
     }
@@ -16,6 +16,7 @@
 </ErrorBoundary>
 
 @code {
+    private bool accountValid = false;
     private bool loading = true;
     private SolisManagerConfig? config = null;
     private async Task RecalcConsmption()
@@ -28,7 +29,8 @@
     protected override async Task OnInitializedAsync()
     {
         config = await inverterManagerService.GetConfig();
-
+        accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
+        
         await RecalcConsmption();
 
         loading = false;

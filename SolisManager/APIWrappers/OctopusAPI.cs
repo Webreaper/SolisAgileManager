@@ -398,15 +398,19 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(string apiKey, string accountNumber, DateTime startDate, DateTime endDate)
     {
+        logger.LogInformation("Querying consumption date from {S} to {E}", startDate, endDate);
+        
+        // Do this first and cache it for the following requests
+        var token = await GetAuthToken(apiKey);
+
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
         var meters = await GetMeters(apiKey, accountNumber);
 
         var importMeter = meters.FirstOrDefault(x => !x.is_export);
         var exportMeter = meters.FirstOrDefault(x => x.is_export);
-        var token = await GetAuthToken(apiKey);
 
-        if (importMeter != null && exportMeter != null && ! string.IsNullOrEmpty(token))
+        if (importMeter != null && exportMeter != null && !string.IsNullOrEmpty(token))
         {
             var importMeterTask = GetConsumptionForMeter(token, importMeter, startDate, endDate);
             var exportMeterTask = GetConsumptionForMeter(token, exportMeter, startDate, endDate);
@@ -416,17 +420,21 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var importConsumption = await importMeterTask;
             var exportConsumption = await exportMeterTask;
 
-            var lookup = importConsumption.results.ToDictionary(
-                x => x.interval_start,
-                x => new OctopusConsumption{PeriodStart = x.interval_start, ImportConsumption = x.consumption});
-
-            foreach (var import in exportConsumption.results)
+            if (importConsumption != null && exportConsumption != null)
             {
-                if( lookup.TryGetValue(import.interval_start, out var consumptionValue))
-                    consumptionValue.ExportConsumption = import.consumption;
-            }
 
-            return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+                var lookup = importConsumption.results.ToDictionary(
+                    x => x.interval_start,
+                    x => new OctopusConsumption { PeriodStart = x.interval_start, ImportConsumption = x.consumption });
+
+                foreach (var import in exportConsumption.results)
+                {
+                    if (lookup.TryGetValue(import.interval_start, out var consumptionValue))
+                        consumptionValue.ExportConsumption = import.consumption;
+                }
+
+                return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+            }
         }
 
         return null;

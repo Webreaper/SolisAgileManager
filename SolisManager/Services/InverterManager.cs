@@ -1244,10 +1244,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
             var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
-
             return consumption;
         }
-
+        
+        logger.LogWarning("Attempted to get consumption, but no account number specified");
         return null;
     }
     
