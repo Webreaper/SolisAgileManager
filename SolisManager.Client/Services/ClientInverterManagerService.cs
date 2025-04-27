@@ -30,8 +30,13 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
 
     public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
     {
-        var url = $"inverter/consumption/{start}/{end}";
-        var result = await httpClient.GetFromJsonAsync<IEnumerable<OctopusConsumption>?>(url);
+        var url = $"inverter/consumption";
+        var req = new ConsumptionRequest { Start = start, End = end };
+        
+        var response = await httpClient.PostAsJsonAsync(url, req);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<IEnumerable<OctopusConsumption>>();
+
         if (result != null)
             return result;
 

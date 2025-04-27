@@ -69,11 +69,11 @@ public static class EndpointMapper
                 return TypedResults.Ok(result);
             });
 
-        group.MapGet("consumption/{start}/{end}",
-            async (DateTime start, DateTime end, 
+        group.MapPost("consumption",
+            async (ConsumptionRequest req, 
                 [FromServices] IInverterManagerService service) =>
             {
-                var result = await service.GetConsumption(start, end);
+                var result = await service.GetConsumption(req.Start, req.End);
                 return TypedResults.Ok(result);
             });
 

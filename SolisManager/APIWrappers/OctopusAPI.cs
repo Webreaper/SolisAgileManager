@@ -484,11 +484,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     await Task.Delay(3000);
                 }
                 else
-                    logger.LogError("HTTP Exception getting octopus tariff rates: {E}", ex);
+                    logger.LogError("HTTP Exception getting octopus consumption data rates: {E}", ex);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving rates from Octopus");
+                logger.LogError(ex, "Error retrieving consumption data from Octopus");
             }
         }
 
