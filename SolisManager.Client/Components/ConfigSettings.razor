@@ -83,8 +83,8 @@
             </ConfigSettingHelp>
             <ConfigSettingHelp>
                 <HelpContent>
-                    Solcast has an API rate-limit of 10 calls per day, so solcast data will only be pulled at just after
-                    midnight each day, and once more at 9am. This data will be cached (in a file called 
+                    Solcast has an API rate-limit of 10 calls per day, so solcast data will only be requested just after
+                    9am each day, and then again at just after 7pm. This data will be cached (in a file called 
                     <code>Solcast-cache.json</code>). <br/>
                     If you want an additional update at midday to update the solcast forecast as the day progresses, enable 
                     this option. However, note that if you are using Solcast elsewhere (e.g., in Home Assistant) this may 
