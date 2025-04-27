@@ -42,27 +42,32 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if( inverterImplementation != null )
             inverterAPI = inverterImplementation;
     }
-    
-    private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
+
+    private void UpdateWithLatestForecast()
     {
-        var solcast = solcastApi.GetSolcastForecast();
+        var forecasts = solcastApi.GetSolcastForecasts();
 
         // Store the last update time
-        InverterState.SolcastTimeStamp = solcastApi.lastAPIUpdate;
+        InverterState.SolcastTimeStamp = solcastApi.LastAPIUpdateUTC;
             
-        if (solcast == null || !solcast.Any())
+        if (forecasts == null || !forecasts.Any())
             return;
 
         // Calculate the totals for today and tomorrow
-        InverterState.TodayForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.Now.Date )
+        InverterState.TodayForecastKWH = forecasts.Where( x => x.PeriodStartUtc.Date == DateTime.UtcNow.Date )
             .Sum(x => x.ForecastkWh);
-        InverterState.TomorrowForecastKWH = solcast.Where( x => x.PeriodStart.Date == DateTime.Now.Date.AddDays(1) )
+        InverterState.TomorrowForecastKWH = forecasts.Where( x => x.PeriodStartUtc.Date == DateTime.UtcNow.AddDays(1).Date )
             .Sum(x => x.ForecastkWh);
+    }
+    
+    private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
+    {
+        var solcast = solcastApi.GetSolcastForecasts();
 
-        if (slots == null || ! slots.Any())
+        if (solcast == null || !solcast.Any() || slots == null || ! slots.Any())
             return;
 
-        var lookup = solcast.ToDictionary(x => x.PeriodStart);
+        var lookup = solcast.ToDictionary(x => x.PeriodStartUtc.ToLocalTime());
 
         var matchedData = false;
         foreach (var slot in slots)
@@ -150,29 +155,42 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private async Task EnrichHistoryWithInverterData()
     {
+        var today = DateTime.UtcNow.Date;
+
         // Find any days where there's no data, and add them to the list to backfill.
         // Ignore export, because there's some days when we won't export anything
-        var daysToProcess = executionHistory.GroupBy(x => x.Start.Date)
-            .Where(x => x.Sum(r => r.ActualKWH) == 0 ||
-                                                   x.Sum(r => r.ImportedKWH) == 0 ||
-                                                   x.Sum(r => r.HouseLoadKWH) == 0 ||
-                                                   x.Sum(r => r.Temperature) == 0 ||
-                                                   // Temp bugfix for when we write import data as export data
-                                                   x.All(r => r.ImportedKWH == r.ExportedKWH))
-            .Select(x => x.Key)
-            .OrderDescending()
+        var totals = executionHistory.GroupBy(x => x.Start.Date)
+            .Where(x => x.Key != today)
+            .Select(x => new
+            {
+                Date = x.Key,
+                TotalActualKWH = x.Sum(r => r.ActualKWH),
+                TotalImportedKWH = x.Sum(r => r.ImportedKWH),
+                TotalExportedKWH = x.Sum(r => r.ExportedKWH),
+                TotalHouseLoadKWH = x.Sum(r => r.HouseLoadKWH),
+                TotalTemperature = x.Sum(r => r.Temperature),
+            })
+            .ToList();
+
+        // We always reprocess today
+        var daysToProcess = new HashSet<DateTime> { today };
+
+        var zeroDataDays = totals.Where(x =>
+                x.TotalActualKWH == 0 ||
+                x.TotalTemperature == 0 ||
+                x.TotalImportedKWH == 0 ||
+                x.TotalHouseLoadKWH == 0)
+            .Select(x => x.Date)
             .ToList();
         
-        var today = DateTime.UtcNow.Date;
-        
-        if( ! daysToProcess.Exists(x => x == today))
-            daysToProcess.Insert(0, today);
+        foreach (var day in zeroDataDays)
+            daysToProcess.Add(day);
         
         logger.LogInformation("Enriching history with PV yield for {D} days", daysToProcess.Count());
 
         var allData = new List<InverterFiveMinData>();
 
-        foreach (var day in daysToProcess)
+        foreach (var day in daysToProcess.OrderDescending())
         {
             var data = await inverterAPI.GetHistoricData(day);
 
@@ -203,9 +221,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         bool changes = false;
         
-        foreach (var batch in batches)
+        foreach (var batch in batches.OrderBy(x => x.Key))
         {
-            if (lookup.TryGetValue(batch.Key, out var historyEntry))
+            if (lookup.TryGetValue(batch.Key.ToLocalTime(), out var historyEntry))
             {
                 historyEntry.ActualKWH = batch.Sum(x => x.actual);
                 historyEntry.ImportedKWH = batch.Sum(x => x.import);
@@ -213,6 +231,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 historyEntry.HouseLoadKWH = batch.Sum(x => x.load);
                 historyEntry.Temperature = batch.Average(x => x.temperature);
                 changes = true;
+            }
+            else
+            {
+                logger.LogDebug("Batch for {D} did not match a history entry", batch.Key);
             }
         }
         
@@ -613,9 +635,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
 
-            EvaluateSolcastThresholdRule(slots);
             EvaluatePriceBasedRules(slots);
             EvaluateScheduleActionRules(slots);
+            EvaluateSolcastThresholdRule(slots);
             EvaluateDumpAndRechargeIfFreeRule(slots);
         }
         catch (Exception ex)
@@ -742,16 +764,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             // forecast is non-zero, is the end of night. 
             // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
             // do for now.
+            // Note that we assume the 30 mins before sunset is 'night', and the first hour of daylight
+            // is also 'night' since it's unlikely we'll generate anything then.
             DateTime? nightStart = null, nightEnd = null;
 
             foreach (var slot in slots)
             {
                 if (nightStart == null && slot.pv_est_kwh == 0)
-                    nightStart = slot.valid_from;
+                    nightStart = slot.valid_from.AddMinutes(-30);
 
                 if (nightStart != null && slot.pv_est_kwh > 0)
                 {
-                    nightEnd = slot.valid_to;
+                    nightEnd = slot.valid_to.AddHours(1);
                     break;
                 }
             }
@@ -814,13 +838,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             InverterState.LastUpdate = DateTime.UtcNow;
 
+            // Get the latest forecast from Solcast
+            UpdateWithLatestForecast();
+            
             // Get the battery charge state from the inverter
             if (await inverterAPI.UpdateInverterState(InverterState))
             {
                 var stateMsg = string.Format(
-                    $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW}kW, " +
-                    $"House Load = {InverterState.HouseLoadkW}kW, Forecast today: {InverterState.TodayForecastKWH}kWh, " +
-                    $"tomorrow: {InverterState.TomorrowForecastKWH}kWh");
+                    $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW:F2}kW, " +
+                    $"House Load = {InverterState.HouseLoadkW:F2}kW, Forecast today: {InverterState.TodayForecastKWH:F2}kWh, " +
+                    $"tomorrow: {InverterState.TomorrowForecastKWH:F2}kWh");
 
                 if (stateMsg != lastStateMessage)
                 {
@@ -972,6 +999,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                 Action = SlotAction.Charge,
                                 Explanation = "IOG Smart-Charge active",
                                 Type = AutoOverrideType.IOGSmartCharge,
+                                OverrideAmps = config.IntelligentGoAmps,
                                 OverridePrice = iogPrice
                             };
                         }

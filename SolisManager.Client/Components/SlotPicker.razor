@@ -1,6 +1,6 @@
 
 <div class="slot-picker">
-    <MudSelect T="TimeSpan?" @bind-Value="SlotTime" @bind-Value:after="SlotValueChanged" Label="@Label" Disabled="Disabled">
+    <MudSelect T="TimeSpan?" @bind-Value="SlotTime" @bind-Value:after="SlotValueChanged" Label="@Label" Disabled="Disabled" Variant="UIConstants.MudVariant">
         @foreach (var slot in slots)
         {
             <MudSelectItem T="TimeSpan?" Class="slot-item" Value="@slot">@TimeString(slot)</MudSelectItem>

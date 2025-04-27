@@ -3,14 +3,16 @@
 {
     <div class="@Style">
         Last Update: @InverterState.LastUpdate.ToLocalTime().DisplayDateTime(),
-        Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime()
-        @if (DataAgeMins > staleThresholdMins)
-        {
-            <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
-                (stale)
-            </span>
-        }
-        , last Octopus Rates update: @InverterState.PricesUpdate.ToLocalTime().DisplayDateTime(),
+        <text>
+            Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime()
+            @if (DataAgeMins > staleThresholdMins)
+            {
+                <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
+                    (stale)
+                </span>
+            }
+        </text>,
+        last Octopus Rates update: @InverterState.PricesUpdate.ToLocalTime().DisplayDateTime(),
         last Solcast update: @SolcastUpdate
     </div>
 }
@@ -28,5 +30,5 @@
     private double DataAgeMins => (DateTime.UtcNow - InverterState!.InverterDataTimestamp).TotalMinutes; 
     private string Style => "update-text " + (DarkMode ? "update-text-dark" : string.Empty);
     private string StaleStyle => "stale-data " + (DarkMode ? "stale-data-dark" : string.Empty);
-    private string SolcastUpdate => InverterState?.SolcastTimeStamp?.DisplayDateTime() ?? "never";
+    private string SolcastUpdate => InverterState?.SolcastTimeStamp?.ToLocalTime().DisplayDateTime() ?? "never";
 }

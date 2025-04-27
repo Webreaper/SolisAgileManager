@@ -1,13 +1,9 @@
-using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
-using Flurl;
 using Flurl.Http;
 using SolisManager.Extensions;
-using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
-using static SolisManager.Extensions.EnergyExtensions;
 namespace SolisManager.APIWrappers;
 
 /// <summary>
@@ -16,18 +12,18 @@ namespace SolisManager.APIWrappers;
 /// </summary>
 public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentProvider, ILogger<SolcastAPI> logger)
 {
-    public DateTime? lastAPIUpdate
+    public DateTime? LastAPIUpdateUTC
     {
         get
         {
-            if (responseCache?.sites == null || !responseCache.sites.Any())
+            if (solcastCache?.sites == null || !solcastCache.sites.Any())
                 return null;
 
-            return responseCache?.sites.SelectMany(x => x.updates).Max(x => x.lastUpdate);
+            return solcastCache.sites.Max( x => x.lastSolcastUpdate);
         }
     }
 
-    private SolcastResponseCache? responseCache = null;
+    private readonly SolcastResponseCache solcastCache = new ();
 
     private string DiskCachePath => Path.Combine(Program.ConfigFolder, $"Solcast-cache.json");
 
@@ -38,8 +34,9 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
             return;
         
         await LoadCachedSolcastDataFromDisk();
-
-        if (responseCache == null || !responseCache.sites.SelectMany(x => x.updates).Any() || lastAPIUpdate?.Date != DateTime.Now.Date)
+        
+        // If we haven't got any updates, or the max cached value is in the past, we need to do an update
+        if (solcastCache.sites.Any( x => x.UpdateIsStale))
         {
             logger.LogInformation("Solcast startup - no cache available so running one-off update...");
             await GetNewSolcastForecasts();
@@ -48,62 +45,55 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
     
     private async Task LoadCachedSolcastDataFromDisk()
     {
-        if (responseCache == null)
+        var file = DiskCachePath;
+
+        if (File.Exists(file))
         {
-            var file = DiskCachePath;
+            var json = await File.ReadAllTextAsync(file);
+            logger.LogInformation("Loaded cached Solcast data from {F}", file);
+            
+            var loadedResponseCache = JsonSerializer.Deserialize<SolcastResponseCache>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (File.Exists(file))
+            if (loadedResponseCache != null)
             {
-                var json = await File.ReadAllTextAsync(file);
-                logger.LogInformation("Loaded cached Solcast data from {F}", file);
-                
-                responseCache = JsonSerializer.Deserialize<SolcastResponseCache>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                solcastCache.sites.Clear();
+                solcastCache.sites.AddRange(loadedResponseCache.sites);
             }
-
         }
-
-        responseCache ??= new();
     }
 
     private async Task CacheSolcastResponse(string siteId, SolcastResponse response)
     {
-        // Check we have an active cache object. 
-        var today = DateOnly.FromDateTime(DateTime.Now.Date);
+        ArgumentNullException.ThrowIfNull(solcastCache);
+
+        if (response.forecasts == null || !response.forecasts.Any())
+        {
+            logger.LogInformation("No new forecast entries received from Solcast for Site {S}", siteId);
+            return;
+        }
+
+        var cachedSite = solcastCache.sites.FirstOrDefault(x => x.siteId == siteId);
+        if (cachedSite == null)
+        {
+            cachedSite = new SolcastResponseCacheEntry { siteId = siteId };
+            solcastCache.sites.Add(cachedSite);
+        }
+
+        // Update the solcast last update entry
+        cachedSite.lastSolcastUpdate = response.lastUpdate;
         
-        if (responseCache == null || responseCache.date != today)
+        foreach (var forecast in response.forecasts)
         {
-            if( responseCache != null && responseCache.date != null)
-                logger.LogInformation("New day - discarding solcast cache for {D}", responseCache.date);
-            
-            // If we didn't have one, or today is a different date to the date in the
-            // existing cache, then throw everything away and start again. It's a new
-            // day, it's a new dawn, etc etc.
-            responseCache = new SolcastResponseCache{ date = today };
+            // Add or Overwrite the existing forecast with the new ones.
+            cachedSite.forecasts[forecast.period_end] = forecast.pv_estimate;
         }
+
+        // Now, clear out any entries older than 2 days
+        cachedSite.forecasts.RemoveWhere(x => x.Date <= DateTime.UtcNow.AddDays(-2).Date);
         
-        var site = responseCache.sites.FirstOrDefault(x => x.siteId == siteId);
-        if (site == null)
-        {
-            site = new SolcastResponseCacheEntry { siteId = siteId };
-            responseCache.sites.Add(site);
-        }
-
-        if (!site.updates.Exists(x => x.lastUpdate == response.lastUpdate))
-        {
-            logger.LogInformation("Caching Solcast Response with {E} entries", response.forecasts?.Count() ?? 0);
-            
-            // Save the response
-            site.updates.Add(response);
-            // Update the date
-            responseCache.date = DateOnly.FromDateTime(response.lastUpdate);
-        }
-        else
-            logger.LogInformation("No new forecast entries received from Solcast");
-
-        if (site.updates.Count > 3)
-            logger.LogError("Unexpected solcast response cache count = {C}", site.updates.Count);
-
-        var json = JsonSerializer.Serialize(responseCache, new JsonSerializerOptions { WriteIndented = true });
+        logger.LogInformation("Caching Solcast Response with {E} entries", response.forecasts?.Count() ?? 0);
+        
+        var json = JsonSerializer.Serialize(solcastCache, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(DiskCachePath, json);
     }
     
@@ -129,19 +119,6 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         }
     }
 
-    private SolcastResponse GetFakeSolcastResponse(string siteId)
-    {
-        var rnd = new Random();
-        var start = DateTime.UtcNow.RoundToHalfHour();
-        var fakeForecasts = Enumerable.Range(0, 97).Select(x => new SolcastForecast
-        {
-            period_end = start.AddMinutes(30 * x),
-            pv_estimate = (decimal)(rnd.NextDouble() * 5.0),
-
-        });
-        return new SolcastResponse { lastUpdate = DateTime.UtcNow, forecasts = fakeForecasts.ToList() };
-    }
-    
     private async Task GetNewSolcastForecast(string siteIdentifier)
     {
         // First, check we've got the cache initialised
@@ -205,12 +182,12 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
 
     private IEnumerable<SolarForecast>? GetSolcastDataFromCache()
     {
-        if (!config.SolcastValid() || responseCache == null)
+        if (!config.SolcastValid())
             return null;
 
         Dictionary<DateTime, decimal> data = new();
 
-        foreach (var site in responseCache.sites)
+        foreach (var site in solcastCache.sites)
         {
             var siteData = AggregateSiteData(site);
 
@@ -228,9 +205,9 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         {
             return data.Select( x => new SolarForecast
             {  
-                PeriodStart = x.Key, 
+                PeriodStartUtc = x.Key, 
                 ForecastkWh = x.Value
-            }).OrderBy(x => x.PeriodStart)
+            }).OrderBy(x => x.PeriodStartUtc)
                 .ToList();
         }
 
@@ -242,19 +219,14 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         Dictionary<DateTime, decimal> data = new();
 
         // Iterate through the updates, starting oldest first
-        foreach (var update in siteData.updates.OrderBy(x => x.lastUpdate))
+        foreach (var forecast in siteData.forecasts.OrderBy(x => x.Key))
         {
-            if (update.forecasts == null)
-                continue;
-            
-            foreach (var datapoint in update.forecasts)
-            {
-                var start = datapoint.period_end.AddMinutes(-30);
+            // Value is the period_end, so convert to period-start
+            var start = forecast.Key.AddMinutes(-30);
 
-                // Divide the kW figure by 2 to get the power, and save into 
-                // the dict, overwriting anything that came before.
-                data[start] = (datapoint.pv_estimate / 2.0M); 
-            }
+            // Divide the kW figure by 2 to get the power, and save into 
+            // the dict, overwriting anything that came before.
+            data[start] = (forecast.Value / 2.0M); 
         }
         
         return data.Select(x => (x.Key, x.Value))
@@ -262,7 +234,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
             .ToList();
     }
 
-    public IEnumerable<SolarForecast>? GetSolcastForecast()
+    public IEnumerable<SolarForecast>? GetSolcastForecasts()
     {
         try
         {
@@ -287,14 +259,17 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
     
     private record SolcastResponseCache
     {
-        public DateOnly? date { get; set; }
         public List<SolcastResponseCacheEntry> sites { get; init; } = [];
     };
 
     private record SolcastResponseCacheEntry
     {
         public string siteId { get; set; } = string.Empty;
-        public List<SolcastResponse> updates { get; init; } = [];
+        public DateTime? lastSolcastUpdate { get; set; } = null;
+        public Dictionary<DateTime, decimal> forecasts { get; set; } = [];
+
+        public bool UpdateIsStale => lastSolcastUpdate == null || !forecasts.Any() ||
+                                     (DateTime.Now  - lastSolcastUpdate.Value).TotalHours > 6;
     };
 
     private record SolcastResponse
@@ -306,8 +281,6 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
     private record SolcastForecast
     {
         public decimal pv_estimate { get; set;  }
-        public decimal pv_estimate10 { get; set;  }
-        public decimal pv_estimate90 { get; set;  }
         public DateTime period_end { get; set; }
 
         public override string ToString()
