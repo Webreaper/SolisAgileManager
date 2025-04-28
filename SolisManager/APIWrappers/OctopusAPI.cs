@@ -46,7 +46,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .SetQueryParams(new
                 {
                     period_from = from,
-                    period_to = to
+                    period_to = to,
+                    is_business = false
                 });
             
             var result = await url.GetJsonAsync<OctopusPrices?>();
@@ -266,6 +267,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .GetStringAsync();
 
             var result = JsonSerializer.Deserialize<OctopusAccountDetails>(response);
+            
             return result;
         }
         catch (Exception ex)
@@ -414,8 +416,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (importMeter != null && exportMeter != null && !string.IsNullOrEmpty(token))
         {
-            var importMeterTask = GetConsumptionForMeter(token, importMeter, startDate, endDate);
-            var exportMeterTask = GetConsumptionForMeter(token, exportMeter, startDate, endDate);
+            var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, startDate, endDate);
+            var exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, startDate, endDate);
 
             await Task.WhenAll(importMeterTask, exportMeterTask);
 
@@ -442,8 +444,10 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
    
-    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string authToken, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
     {
+        var authToken = await GetAuthToken(apiKey);
+        
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
 
@@ -456,6 +460,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             try
             {
                 var url = "https://api.octopus.energy"
+                    .WithOctopusAuth(authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
                     .WithOctopusAuth(authToken)
                     .AppendPathSegment("/v1/electricity-meter-points")
@@ -481,8 +486,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     while (!string.IsNullOrEmpty(result?.next))
                     {
                         result = await result.next
-                            .WithHeader("User-Agent", userAgentProvider.UserAgent)
                             .WithOctopusAuth(authToken)
+                            .WithHeader("User-Agent", userAgentProvider.UserAgent)
                             .GetJsonAsync<Consumption?>();
 
                         if (result != null)

@@ -9,9 +9,16 @@
     {
         <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
     }
-    else if( loading )
+    else if( loading || consumptionData == null)
     {
         <ProgressIndicator ProgressText="Loading price Data..."/>
+    }
+    else
+    {
+        @foreach (var data in consumptionData)
+        {
+            <div>@data.PeriodStart - @data.ImportConsumption, @data.ExportConsumption</div>
+        }
     }
 </ErrorBoundary>
 
@@ -19,12 +26,13 @@
     private bool accountValid = false;
     private bool loading = true;
     private SolisManagerConfig? config = null;
-    
+    private IEnumerable<OctopusConsumption>? consumptionData = null;
+
     private async Task RecalcConsmption()
     {
         var end = DateTime.UtcNow.AddDays(-1);
         var start = end.AddDays(-30);
-        var consumption = await inverterManagerService.GetConsumption(start, end);
+        consumptionData = await inverterManagerService.GetConsumption(start, end);
     }
 
     protected override async Task OnInitializedAsync()
