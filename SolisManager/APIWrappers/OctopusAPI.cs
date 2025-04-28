@@ -17,6 +17,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     .SetSize(1)
                     .SetAbsoluteExpiration(TimeSpan.FromDays(7));
     
+    private readonly MemoryCacheEntryOptions _accountCacheOptions =
+        new MemoryCacheEntryOptions()
+            .SetSize(1)
+            .SetAbsoluteExpiration(TimeSpan.FromDays(1));
+
     private readonly MemoryCacheEntryOptions _authTokenCacheOptions =
         new MemoryCacheEntryOptions()
             .SetSize(1)
@@ -286,6 +291,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     private async Task<IEnumerable<OctopusMeterPoints>> GetMeters(string apiKey, string accountNumber)
     {
+        string cacheKey = "octopus-meter-" + accountNumber.ToLower();
+        
+        if (memoryCache.TryGetValue<IEnumerable<OctopusMeterPoints>>(cacheKey, out var meters) && meters != null)
+            return meters;
+
         var accountDetails = await GetOctopusAccount(apiKey, accountNumber);
 
         if (accountDetails != null)
@@ -295,9 +305,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 accountDetails.properties.FirstOrDefault(x => x.moved_in_at < now && x.moved_out_at == null);
 
             if (currentProperty != null)
-                return currentProperty.electricity_meter_points;
+            {
+                meters = currentProperty.electricity_meter_points; 
+                memoryCache.Set(cacheKey, meters, _accountCacheOptions);
+                return meters;
+            }
         }
 
+        
         return [];
     }
 
@@ -436,7 +451,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     if (lookup.TryGetValue(import.interval_start, out var consumptionValue))
                         consumptionValue.ExportConsumption = import.consumption;
                 }
-
+               
                 return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
             }
         }
@@ -453,6 +468,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         ArgumentNullException.ThrowIfNull(meter);
 
+        // Which meter to use? Use the last one.
         var serial = meter.meters.LastOrDefault()?.serial_number;
 
         if (!string.IsNullOrEmpty(serial))
@@ -462,22 +478,21 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 var url = "https://api.octopus.energy"
                     .WithOctopusAuth(authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
-                    .WithOctopusAuth(authToken)
                     .AppendPathSegment("/v1/electricity-meter-points")
                     .AppendPathSegment(meter.mpan)
                     .AppendPathSegment("meters")
                     .AppendPathSegment(serial)
-                    .AppendPathSegment("consumption")
+                    .AppendPathSegment("consumption/")
                     .SetQueryParams(new
-                   {
-                       period_from = startDate,
-                       period_to = endDate,
-                       page_size = 100,
-                       order_by = "period"
-                   });
-
-                var result = await url.GetJsonAsync<Consumption?>();
-
+                    {
+                        period_from = startDate,
+                        period_to = endDate,
+                        page_size = 100,
+                        order_by = "period"
+                    });
+                    
+                var result = await url.GetJsonAsync<Consumption>();
+                
                 if (result != null)
                 {
                     var results = new List<ConsumptionRecord>(result.results);

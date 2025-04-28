@@ -13,7 +13,6 @@ public static class GeneralExtensions
     public static IFlurlRequest WithOctopusAuth(this IFlurlRequest req, string? token)
     {
         ArgumentException.ThrowIfNullOrEmpty(token);
-
         req.WithHeader("Authorization", token);
         return req;
     }

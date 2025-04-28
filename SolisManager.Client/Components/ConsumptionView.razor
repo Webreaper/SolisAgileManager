@@ -23,9 +23,9 @@
 </ErrorBoundary>
 
 @code {
-    private bool accountValid = false;
+    private bool accountValid;
     private bool loading = true;
-    private SolisManagerConfig? config = null;
+    private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
 
     private async Task RecalcConsmption()
@@ -33,6 +33,7 @@
         var end = DateTime.UtcNow.AddDays(-1);
         var start = end.AddDays(-30);
         consumptionData = await inverterManagerService.GetConsumption(start, end);
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
