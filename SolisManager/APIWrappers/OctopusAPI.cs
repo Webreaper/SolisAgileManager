@@ -27,7 +27,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
-    public async Task<IEnumerable<OctopusPriceSlot>> GetOctopusRates(string tariffCode, DateTime? startTime = null, DateTime? endTime = null)
+    public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime? startTime = null, DateTime? endTime = null)
     {
         if (startTime == null)
             startTime = DateTime.UtcNow;
@@ -71,13 +71,15 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         result.count, first, last, tariffCode);
 
                     // Never go out more than 2 days - so 96 slots
-                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots, 96);
-
+                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots, 96)
+                                                            .Where(x => x.valid_from >= from && x.valid_to <= to)
+                                                            .ToList();
+                    
                     // Now, ensure we're in the right TZ
                     foreach (var thirtyMinSlot in thirtyMinSlots)
                     {
                         thirtyMinSlot.valid_from = thirtyMinSlot.valid_from.ToLocalTime();
-                        thirtyMinSlot.valid_to = thirtyMinSlot.valid_to.ToLocalTime();
+                        thirtyMinSlot.valid_to = thirtyMinSlot.valid_to!.Value.ToLocalTime();
                     }
                     
                     return thirtyMinSlots;
@@ -107,13 +109,16 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     /// </summary>
     /// <param name="slots"></param>
     /// <returns></returns>
-    private IEnumerable<OctopusPriceSlot> SplitToHalfHourSlots(IEnumerable<OctopusPriceSlot> slots, int maxToReturn)
+    private IEnumerable<OctopusRate> SplitToHalfHourSlots(IEnumerable<OctopusRate> slots, int maxToReturn)
     {
-        List<OctopusPriceSlot> result = new();
+        List<OctopusRate> result = new();
 
         foreach (var slot in slots.OrderBy(x => x.valid_from))
         {
-            var slotLength = slot.valid_to - slot.valid_from;
+            if (slot.valid_to == null)
+                slot.valid_to = slot.valid_from.AddMinutes(30);
+            
+            var slotLength = slot.valid_to.Value - slot.valid_from;
 
             if ((int)slotLength.TotalMinutes == 30)
             {
@@ -124,24 +129,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var start = slot.valid_from;
             while (start < slot.valid_to)
             {
-                var smallSlot = new OctopusPriceSlot
+                var smallSlot = new OctopusRate
                 {
                     valid_from = start,
                     valid_to = start.AddMinutes(30),
-                    ActionReason = slot.ActionReason,
-                    PlanAction = slot.PlanAction,
-                    PriceType = slot.PriceType,
                     value_inc_vat = slot.value_inc_vat,
-                    pv_est_kwh = slot.pv_est_kwh,
-                    // These will get calculated
-                    ManualOverride = null,
-                    AutoOverride = null,
-                    ScheduledOverride = null,
                 };
                 
-                if( smallSlot.valid_to > DateTime.UtcNow)
-                    result.Add(smallSlot);
-                
+                result.Add(smallSlot);
                 start = start.AddMinutes(30);
             }
         }
@@ -447,12 +442,21 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
                 var lookup = importConsumption.ToDictionary(
                     x => x.interval_start,
-                    x => new OctopusConsumption { PeriodStart = x.interval_start, ImportConsumption = x.consumption });
+                    x => new OctopusConsumption
+                    {
+                        PeriodStart = x.interval_start, 
+                        ImportConsumption = x.consumption,
+                        Tariff = x.tariff ?? "Unknown",
+                        ImportPrice = x.price ?? 0,
+                    });
 
-                foreach (var import in exportConsumption)
+                foreach (var export in exportConsumption)
                 {
-                    if (lookup.TryGetValue(import.interval_start, out var consumptionValue))
-                        consumptionValue.ExportConsumption = import.consumption;
+                    if (lookup.TryGetValue(export.interval_start, out var consumptionValue))
+                    {
+                        consumptionValue.ExportConsumption = export.consumption;
+                        consumptionValue.ExportPrice = export.price ?? 0;
+                    }
                 }
                 
                 return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
@@ -480,37 +484,46 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (tariffs.Any())
         {
+            // Create a set of tasks for each tariff that applied during the period
             var tasks = tariffs.Select(x => GetOctopusTariffRates(x.tariff_code, minDate, maxDate)).ToList();
             
+            // Get the rates
             var results = await Task.WhenAll(tasks);
             
-            var prices = results.ToDictionary(x => x.tariff, x => x.rates.ToDictionary(x => x.valid_from));
+            // Create a multi-level lookup that will go from tariff code => date => price
+            var prices = results.ToDictionary(x => x.tariff, 
+                                    x => x.rates.ToDictionary(x => x.valid_from));
 
+            // Now, loop through the consumption objects and resolve their rates
             foreach (var consumption in consumptions)
             {
+                // First, find the tariff that applied at the point of consumption
                 var tariff = tariffs.OrderByDescending(x => x.valid_from)
                     .FirstOrDefault(x => x.valid_from < consumption.interval_start)
                     .tariff_code;
 
                 if (!string.IsNullOrEmpty(tariff))
                 {
+                    // Store the tariff
                     consumption.tariff = tariff;
 
+                    // Now find the rate for the tariff at that time
                     if (prices.TryGetValue(tariff, out var rates))
                     {
                         if (rates.TryGetValue(consumption.interval_start, out var rate))
                         {
+                            // We got a price - save it. 
                             consumption.price = rate.value_inc_vat;
                         }
                     }
                 }
+                else
+                    logger.LogWarning("No tariff found for consumption on {D}", consumption.interval_start);
             }
-
-            logger.LogInformation($"Loads of prices back: {@prices}");
         }
     }
 
-    private async Task<(string tariff, IEnumerable<OctopusPriceSlot> rates)> GetOctopusTariffRates(string tariffCode, DateTime startDate, DateTime endDate)
+    private async Task<(string tariff, IEnumerable<OctopusRate> rates)> GetOctopusTariffRates(string tariffCode, DateTime startDate, DateTime endDate)
     {
         var rates = await GetOctopusRates(tariffCode, startDate, endDate);
         return (tariffCode, rates);
@@ -594,7 +607,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     public record OctopusProperty(int id, OctopusMeterPoints[] electricity_meter_points, DateTime? moved_in_at, DateTime? moved_out_at);
     public record OctopusAccountDetails(string number, OctopusProperty[] properties);
     
-    private record OctopusPrices(int count, OctopusPriceSlot[] results);
+    private record OctopusPrices(int count, OctopusRate[] results);
 
     public record Consumption(int count, IEnumerable<ConsumptionRecord> results, string? next);
 

@@ -15,10 +15,26 @@
     }
     else
     {
-        @foreach (var data in consumptionData)
-        {
-            <div>@data.PeriodStart - @data.ImportConsumption, @data.ExportConsumption</div>
-        }
+         <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                <MudTh>Period</MudTh>
+                <MudTh>Tariff</MudTh>
+                <MudTh>Import (kWh)</MudTh>
+                <MudTh>Import Price (p/kWh)</MudTh>
+                <MudTh>Export (kWh)</MudTh>
+                <MudTh>Export Price (p/kWh)</MudTh>
+                <MudTh>Net Cost</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.PeriodStart</MudTd>
+                <MudTd>@context.Tariff</MudTd>
+                <MudTd>@Math.Round((decimal)context.ImportConsumption, 2)</MudTd>
+                <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
+                <MudTd>@Math.Round((decimal)context.ExportConsumption, 2)</MudTd>
+                <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
+                <MudTd>@Math.Round(context.Cost, 2)</MudTd>
+            </RowTemplate>
+        </MudTable>
     }
 </ErrorBoundary>
 
