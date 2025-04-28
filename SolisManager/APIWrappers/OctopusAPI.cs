@@ -425,11 +425,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             if (importConsumption != null && exportConsumption != null)
             {
 
-                var lookup = importConsumption.results.ToDictionary(
+                var lookup = importConsumption.ToDictionary(
                     x => x.interval_start,
                     x => new OctopusConsumption { PeriodStart = x.interval_start, ImportConsumption = x.consumption });
 
-                foreach (var import in exportConsumption.results)
+                foreach (var import in exportConsumption)
                 {
                     if (lookup.TryGetValue(import.interval_start, out var consumptionValue))
                         consumptionValue.ExportConsumption = import.consumption;
@@ -442,7 +442,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
    
-    public async Task<Consumption?> GetConsumptionForMeter(string authToken, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string authToken, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
     {
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
@@ -464,18 +464,32 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     .AppendPathSegment(serial)
                     .AppendPathSegment("consumption")
                     .SetQueryParams(new
-                    {
-                        period_from = startDate,
-                        period_to = endDate,
-                        page_size = 100,
-                        order_by = "period"
-                    });
+                   {
+                       period_from = startDate,
+                       period_to = endDate,
+                       page_size = 100,
+                       order_by = "period"
+                   });
 
                 var result = await url.GetJsonAsync<Consumption?>();
 
                 if (result != null)
                 {
-                    return result;
+                    var results = new List<ConsumptionRecord>(result.results);
+
+                    // Paginate
+                    while (!string.IsNullOrEmpty(result?.next))
+                    {
+                        result = await result.next
+                            .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                            .WithOctopusAuth(authToken)
+                            .GetJsonAsync<Consumption?>();
+
+                        if (result != null)
+                            results.AddRange(result.results);
+                    }
+                    
+                    return results;
                 }
             }
             catch (FlurlHttpException ex)
@@ -494,7 +508,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
         }
 
-        return null;
+        return [];
     }
     
     public record OctopusAgreement(string tariff_code, DateTime? valid_from, DateTime? valid_to);
@@ -505,7 +519,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     
     private record OctopusPrices(int count, OctopusPriceSlot[] results);
 
-    public record Consumption(int count, IEnumerable<ConsumptionRecord> results);
+    public record Consumption(int count, IEnumerable<ConsumptionRecord> results, string? next);
     public record ConsumptionRecord(decimal consumption, DateTime interval_start, DateTime interval_end);
 
 }
