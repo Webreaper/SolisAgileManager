@@ -52,8 +52,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .SetQueryParams(new
                 {
                     period_from = from,
-                    period_to = to,
-                    is_business = false
+                    period_to = to
                 });
             
             var result = await url.GetJsonAsync<OctopusPrices?>();
@@ -369,6 +368,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var response = await "https://api.octopus.energy/"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/{code}")
+                .AppendQueryParam("is_business", false)
                 .GetStringAsync();
 
             tariff = JsonSerializer.Deserialize<OctopusTariffResponse>(response);
@@ -480,18 +480,42 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (tariffs.Any())
         {
-            var tasks = tariffs.Select(x => new
+            var tasks = tariffs.Select(x => GetOctopusTariffRates(x.tariff_code, minDate, maxDate)).ToList();
+            
+            var results = await Task.WhenAll(tasks);
+            
+            var prices = results.ToDictionary(x => x.tariff, x => x.rates.ToDictionary(x => x.valid_from));
+
+            foreach (var consumption in consumptions)
             {
-                x.tariff_code, 
-                task = GetOctopusRates(x.tariff_code, minDate, maxDate)
-            });
-            
-            var results = await Task.WhenAll(tasks.Select(async x => (x.tariff_code, await x.task)));
-            
-            logger.LogInformation($"Loads of prices back: {@results}");
+                var tariff = tariffs.OrderByDescending(x => x.valid_from)
+                    .FirstOrDefault(x => x.valid_from < consumption.interval_start)
+                    .tariff_code;
+
+                if (!string.IsNullOrEmpty(tariff))
+                {
+                    consumption.tariff = tariff;
+
+                    if (prices.TryGetValue(tariff, out var rates))
+                    {
+                        if (rates.TryGetValue(consumption.interval_start, out var rate))
+                        {
+                            consumption.price = rate.value_inc_vat;
+                        }
+                    }
+                }
+            }
+
+            logger.LogInformation($"Loads of prices back: {@prices}");
         }
     }
-   
+
+    private async Task<(string tariff, IEnumerable<OctopusPriceSlot> rates)> GetOctopusTariffRates(string tariffCode, DateTime startDate, DateTime endDate)
+    {
+        var rates = await GetOctopusRates(tariffCode, startDate, endDate);
+        return (tariffCode, rates);
+    }
+    
     public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
     {
         var authToken = await GetAuthToken(apiKey);
@@ -573,6 +597,13 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private record OctopusPrices(int count, OctopusPriceSlot[] results);
 
     public record Consumption(int count, IEnumerable<ConsumptionRecord> results, string? next);
-    public record ConsumptionRecord(decimal consumption, DateTime interval_start, DateTime interval_end);
 
+    public record ConsumptionRecord
+    {
+        public decimal consumption { get; set; }
+        public DateTime interval_start { get; set; }
+        public DateTime interval_end { get; set; }
+        public string? tariff { get; set; }
+        public decimal? price { get; set; }
+    }
 }
