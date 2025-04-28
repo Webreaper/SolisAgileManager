@@ -27,13 +27,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
-    public async Task<IEnumerable<OctopusPriceSlot>> GetOctopusRates(string tariffCode, DateTime? startTime = null)
+    public async Task<IEnumerable<OctopusPriceSlot>> GetOctopusRates(string tariffCode, DateTime? startTime = null, DateTime? endTime = null)
     {
         if (startTime == null)
             startTime = DateTime.UtcNow;
 
         var from = startTime.Value;
-        var to = startTime.Value.AddDays(5);
+        // Use the end time passed in or default to 5 days from now
+        var to = endTime ?? startTime.Value.AddDays(5);
 
         var product = tariffCode.GetProductFromTariffCode();
         
@@ -441,6 +442,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
             if (importConsumption != null && exportConsumption != null)
             {
+                await EnrichConsumptionWithTariffPricess(importConsumption, importMeter);
+                await EnrichConsumptionWithTariffPricess(exportConsumption, exportMeter);
 
                 var lookup = importConsumption.ToDictionary(
                     x => x.interval_start,
@@ -451,12 +454,42 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     if (lookup.TryGetValue(import.interval_start, out var consumptionValue))
                         consumptionValue.ExportConsumption = import.consumption;
                 }
-               
+                
                 return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
             }
         }
 
         return null;
+    }
+
+    private async Task EnrichConsumptionWithTariffPricess(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints meter)
+    {
+        var minDate = consumptions.Min(x => x.interval_start);
+        var maxDate = consumptions.Max(x => x.interval_end);
+
+        var tariffs = new List<(DateTime? valid_from, String tariff_code)>();
+        
+        foreach (var agreement in meter.agreements.OrderBy(x => x.valid_from))
+        {
+            if (agreement.valid_to < minDate)
+                continue;
+            if (agreement.valid_from > maxDate)
+                break;
+            tariffs.Add( (agreement.valid_from, agreement.tariff_code) );
+        }
+
+        if (tariffs.Any())
+        {
+            var tasks = tariffs.Select(x => new
+            {
+                x.tariff_code, 
+                task = GetOctopusRates(x.tariff_code, minDate, maxDate)
+            });
+            
+            var results = await Task.WhenAll(tasks.Select(async x => (x.tariff_code, await x.task)));
+            
+            logger.LogInformation($"Loads of prices back: {@results}");
+        }
     }
    
     public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
