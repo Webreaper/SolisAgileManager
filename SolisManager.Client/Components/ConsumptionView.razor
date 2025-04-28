@@ -46,8 +46,8 @@
 
     private async Task RecalcConsmption()
     {
-        var start = new DateTime(2025, 2, 13, 9, 0, 0);
-        var end = start.AddDays(4);
+        var end = DateTime.UtcNow;
+        var start = end.AddDays(-30);
         consumptionData = await inverterManagerService.GetConsumption(start, end);
         StateHasChanged();
     }
