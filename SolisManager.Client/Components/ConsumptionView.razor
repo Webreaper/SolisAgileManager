@@ -19,9 +19,10 @@
     private bool accountValid = false;
     private bool loading = true;
     private SolisManagerConfig? config = null;
+    
     private async Task RecalcConsmption()
     {
-        var end = DateTime.UtcNow;
+        var end = DateTime.UtcNow.AddDays(-1);
         var start = end.AddDays(-30);
         var consumption = await inverterManagerService.GetConsumption(start, end);
     }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
+using static SolisManager.Extensions.GeneralExtensions;
 
 namespace SolisManager.APIWrappers;
 
@@ -85,7 +86,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 await Task.Delay(3000);
             }
             else
-                logger.LogError("HTTP Exception getting octopus tariff rates: {E}", ex);
+                logger.LogError("HTTP Exception getting octopus tariff rates: {E})", ex);
         }
         catch (Exception ex)
         {
@@ -203,8 +204,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         var payload = new { query = krakenQuery, variables = variables };
 
         var responseStr = await "https://api.octopus.energy"
-            .WithHeader("Authorization", token)
             .WithHeader("User-Agent", userAgentProvider.UserAgent)
+            .WithOctopusAuth(token)
             .AppendPathSegment("/v1/graphql/")
             .PostJsonAsync(payload)
             .ReceiveString();
@@ -248,7 +249,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private record KrakenResponse(KrakenToken obtainKrakenToken);
 
     private record KrakenTokenResponse(KrakenResponse data);
-
+    
+    
     public async Task<OctopusAccountDetails?> GetOctopusAccount(string apiKey, string accountNumber)
     {
         var token = await GetAuthToken(apiKey);
@@ -258,8 +260,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         try
         {
             var response = await "https://api.octopus.energy/"
-                .WithHeader("Authorization", token)
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                .WithOctopusAuth(token)
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
                 .GetStringAsync();
 
@@ -447,15 +449,15 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         ArgumentNullException.ThrowIfNull(meter);
 
-        var serial = meter.meters.FirstOrDefault()?.serial_number;
+        var serial = meter.meters.LastOrDefault()?.serial_number;
 
         if (!string.IsNullOrEmpty(serial))
         {
             try
             {
                 var url = "https://api.octopus.energy"
-                    .WithHeader("Authorization", authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                    .WithOctopusAuth(authToken)
                     .AppendPathSegment("/v1/electricity-meter-points")
                     .AppendPathSegment(meter.mpan)
                     .AppendPathSegment("meters")

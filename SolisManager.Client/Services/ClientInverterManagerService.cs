@@ -32,13 +32,19 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
     {
         var url = $"inverter/consumption";
         var req = new ConsumptionRequest { Start = start, End = end };
-        
-        var response = await httpClient.PostAsJsonAsync(url, req);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<IEnumerable<OctopusConsumption>>();
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync(url, req);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<OctopusConsumption>>();
 
-        if (result != null)
-            return result;
+            if (result != null)
+                return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to retreive consumption");
+        }
 
         return null;
     }
