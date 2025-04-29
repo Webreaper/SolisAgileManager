@@ -41,8 +41,8 @@
                     <MudTh>Tariff</MudTh>
                     <MudTh>Import (kWh)</MudTh>
                     <MudTh>Import Price (p/kWh)</MudTh>
-                    <MudTh>Export (kWh)</MudTh>
                     <MudTh>Import Cost (£)</MudTh>
+                    <MudTh>Export (kWh)</MudTh>
                     <MudTh>Export Price (p/kWh)</MudTh>
                     <MudTh>Export Profit (£)</MudTh>
                     <MudTh>Net Cost (£)</MudTh>
@@ -54,18 +54,11 @@
                     <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
                     <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
                     <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportPrice), 2)</MudTd>
-                    <MudTd>
-                        <Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/>
-                    </MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/></MudTd>
                     <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
                     <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportPrice), 2)</MudTd>
-                    <MudTd>
-                        <Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/>
-                    </MudTd>
-                    <MudTd>
-                        <Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"
-                               Colours="Price.ColorType.PositiveRed"/>
-                    </MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/></MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"Colours="Price.ColorType.PositiveRed"/></MudTd>
                 </GroupHeaderTemplate>
                 <RowTemplate>
                     <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
