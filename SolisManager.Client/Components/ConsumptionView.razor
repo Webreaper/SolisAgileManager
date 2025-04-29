@@ -22,17 +22,21 @@
                 <MudTh>Import (kWh)</MudTh>
                 <MudTh>Import Price (p/kWh)</MudTh>
                 <MudTh>Export (kWh)</MudTh>
+                <MudTh>Import Cost (£)</MudTh>
                 <MudTh>Export Price (p/kWh)</MudTh>
-                <MudTh>Net Cost</MudTh>
+                <MudTh>Export Profit (£)</MudTh>
+                <MudTh>Net Cost (£)</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@context.PeriodStart</MudTd>
+                <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
                 <MudTd>@context.Tariff</MudTd>
                 <MudTd>@Math.Round((decimal)context.ImportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
+                <MudTd>£@Math.Round(context.ImportCost / 100.0M, 2)</MudTd>
                 <MudTd>@Math.Round((decimal)context.ExportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
-                <MudTd>@Math.Round(context.Cost, 2)</MudTd>
+                <MudTd>£@Math.Round(context.ExportProfit / 100.0M, 2)</MudTd>
+                <MudTd>£@Math.Round(context.NetCost / 100.0M, 2)</MudTd>
             </RowTemplate>
         </MudTable>
     }

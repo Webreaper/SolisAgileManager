@@ -8,5 +8,7 @@ public class OctopusConsumption
     public decimal ExportConsumption { get; set; }
     public decimal ImportPrice { get; set; }
     public decimal ExportPrice { get; set; }
-    public decimal Cost => (ImportPrice * ImportConsumption) - (ExportPrice * ExportConsumption);
+    public decimal ImportCost => ImportPrice * ImportConsumption;
+    public decimal ExportProfit => ExportPrice * ExportConsumption;
+    public decimal NetCost => ImportCost - ExportProfit;
 }
