@@ -18,8 +18,8 @@
                                  XValue="@(e => e.Date)"
                                  YValue="@(e => e.CostGBP)"
                                  SeriesType="SeriesType.Bar"
-                                 Color="dodgerblue"
-                                 Stroke="@(new SeriesStroke { Color = "dodgerblue", Width = 3 })"/>
+                                 Color="lightgrey"
+                                 PointColor="e => GetColor(e)"/>
             </ApexChart>
         </div>
     }
@@ -35,8 +35,9 @@
         public decimal CostGBP { get; set; }
     }
     
-    public IEnumerable<ChartItem>? groupedData = null;
-    
+    private IEnumerable<ChartItem>? groupedData = null;
+    private string GetColor(ChartItem item) => item.CostGBP > 0 ? "firebrick" : "green";
+
     protected override Task OnParametersSetAsync()
     {
         groupedData = (ChartData ?? []) 

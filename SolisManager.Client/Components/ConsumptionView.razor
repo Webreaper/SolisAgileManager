@@ -5,13 +5,13 @@
 <ErrorBoundary>
     <TopStatusBar PageTitle="Consumption" @bind-SelectedView="selectedView" ViewSettingName="cost-view"/>
 
-    @if(!accountValid)
+    @if(accountValid != null &&!accountValid.Value)
     {
         <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
     }
     else if( loading || consumptionData == null)
     {
-        <ProgressIndicator ProgressText="Loading price Data..."/>
+        <ProgressIndicator ProgressText="Loading consumption and tariff data..."/>
     }
     else
     {
@@ -79,7 +79,7 @@
 </ErrorBoundary>
 
 @code {
-    private bool accountValid;
+    private bool? accountValid = null;
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
