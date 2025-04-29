@@ -21,3 +21,17 @@
         max-width: 500px;
     }
 }
+
+.consumption-header {
+    display: flex;
+    flex-direction: row;
+    column-gap: 10px;
+    margin: 10px;
+}
+
+.total-cost {
+    display: flex;
+    flex-direction: row;
+    column-gap: 5px;
+    align-content: baseline;
+}

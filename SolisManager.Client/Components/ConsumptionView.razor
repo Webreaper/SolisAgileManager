@@ -3,7 +3,20 @@
 <PageTitle>Solis Manager</PageTitle>
 
 <ErrorBoundary>
-    <TopStatusBar PageTitle="Consumption" @bind-SelectedView="selectedView" ViewSettingName="cost-view"/>
+    <TopStatusBar PageTitle="Costs" @bind-SelectedView="selectedView" ViewSettingName="cost-view">
+        <ChildContent>
+            <div>
+                <MudSelect T="int" @bind-Value="dayRange" @bind-Value:after="RecalcConsmption" Label="Range" 
+                           Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                    @foreach (var range in DateRanges)
+                    {
+                        <MudSelectItem T="int" Value="@range.days">@range.name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div class="total-cost">Total Net Cost: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
+        </ChildContent>
+    </TopStatusBar>
 
     @if(accountValid != null &&!accountValid.Value)
     {
@@ -84,7 +97,19 @@
     private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
+    private int dayRange = 30;
 
+    private (string name, int days)[] DateRanges =
+    [
+        ("1 week", 7),
+        ("30 days", 30),
+        ("3 months", 90),
+        ("6 months", 180),
+    ]; 
+    
+
+    private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
+    
     private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, Func<OctopusConsumption, decimal> selector)
     {
         var nonZeroRates = rates.Where(x => selector(x) > 0.05M).ToList();
@@ -102,12 +127,16 @@
         IsInitiallyExpanded = false,
         Selector = (e) => e.PeriodStart.Date
     };
-    
+
     private async Task RecalcConsmption()
     {
+        loading = true;
+        StateHasChanged();
+        
         var end = DateTime.UtcNow;
-        var start = end.AddDays(-30);
+        var start = end.AddDays(-1 * dayRange);
         consumptionData = await inverterManagerService.GetConsumption(start, end);
+        loading = false;
         StateHasChanged();
     }
 
@@ -117,9 +146,6 @@
         accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
         
         await RecalcConsmption();
-
-        loading = false;
-        StateHasChanged();
 
         await base.OnInitializedAsync();
     }
