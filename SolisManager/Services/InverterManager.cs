@@ -272,8 +272,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                 var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, DateTime.UtcNow, DateTime.UtcNow.AddDays(3));
 
-                slots = rates.Take(96)
-                             .Select(x => new PricePlanSlot
+                slots = rates.Select(x => new PricePlanSlot
                 {
                     value_inc_vat = x.value_inc_vat,
                     valid_from = x.valid_from,
