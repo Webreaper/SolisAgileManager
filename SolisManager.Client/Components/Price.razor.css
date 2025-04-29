@@ -1,0 +1,13 @@
+
+.price-green {
+    font-weight: bold;
+    color: green;
+}
+
+.price-red {
+    font-weight: bold;
+    color: firebrick;
+}
+
+.price-none { 
+}

@@ -32,11 +32,11 @@
                 <MudTd>@context.Tariff</MudTd>
                 <MudTd>@Math.Round((decimal)context.ImportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
-                <MudTd>£@Math.Round(context.ImportCost / 100.0M, 2)</MudTd>
+                <MudTd><Price Value="@(context.ImportCost / 100M)" /></MudTd>
                 <MudTd>@Math.Round((decimal)context.ExportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
-                <MudTd>£@Math.Round(context.ExportProfit / 100.0M, 2)</MudTd>
-                <MudTd>£@Math.Round(context.NetCost / 100.0M, 2)</MudTd>
+                <MudTd><Price Value="@(context.ExportProfit/ 100M)" /></MudTd>
+                <MudTd><Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -47,7 +47,7 @@
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
-
+    
     private async Task RecalcConsmption()
     {
         var end = DateTime.UtcNow;

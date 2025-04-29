@@ -1,0 +1,26 @@
+<div class="@PriceClass">
+    £@Math.Round(Value, 2)
+</div>
+
+@code {
+    [Parameter]
+    public decimal Value { get; set; }
+
+    [Parameter] public ColorType Colours { get; set; } = ColorType.None;
+
+    public enum ColorType
+    {
+        None,
+        PositiveGreen,
+        PositiveRed
+    }
+    
+    private string PriceClass => (Math.Round(Value, 2), Colours) switch
+    { 
+        (< 0, ColorType.PositiveGreen) => "price-red",
+        (> 0, ColorType.PositiveGreen) => "price-green",
+        (< 0, ColorType.PositiveRed) => "price-green",
+        (> 0, ColorType.PositiveRed) => "price-red",
+        _ => "price-none",
+    };
+}
