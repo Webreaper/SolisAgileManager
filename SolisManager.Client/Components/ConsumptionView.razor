@@ -32,10 +32,10 @@
                 <MudTh Class="mud-table-cell-custom-group date-row"><DateDisplay Date="@((DateTime?)context.Key)"/></MudTh>
                 <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
                 <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
-                <MudTd>@Math.Round(context.Items.Average(x => x.ImportPrice), 2)</MudTd>
+                <MudTd>@Math.Round(context.Items.Where(x => x.ImportConsumption > 0).Average(x => x.ImportPrice), 2)</MudTd>
                 <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost)/100M)" /></MudTd>
                 <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
-                <MudTd>@Math.Round(context.Items.Average(x => x.ExportPrice), 2)</MudTd>
+                <MudTd>@Math.Round(context.Items.Where(x => x.ExportConsumption > 0).Average(x => x.ExportPrice), 2)</MudTd>
                 <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit)/100m)" /></MudTd>
                 <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost)/100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
             </GroupHeaderTemplate>
