@@ -2,12 +2,15 @@
 .price-green {
     font-weight: bold;
     color: green;
+    text-align: right;
 }
 
 .price-red {
     font-weight: bold;
     color: firebrick;
+    text-align: right;
 }
 
-.price-none { 
+.price-none {
+    text-align: right;
 }
