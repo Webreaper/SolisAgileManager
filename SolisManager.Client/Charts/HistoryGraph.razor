@@ -51,7 +51,7 @@
                              Items="FilteredHistoryData"
                              Name="PV Yield (kWh)"
                              XValue="@(e => e.Start)"
-                             YValue="@(e => e.ActualKWH)"
+                             YValue="@(e => Math.Max(0, e.ActualKWH))"
                              SeriesType="SeriesType.Area"
                              Color="darkorange"
                              Stroke="@(new SeriesStroke { Color = "darkorange", Width = 1 })"/>
@@ -65,10 +65,7 @@
     public IEnumerable<HistoryEntry>? HistoryData { get; set; }
     
     private int? defaultDays = 3;
-    private IEnumerable<HistoryEntry> FilteredHistoryData => HistoryData?
-        // Filter out negative values that the inverter sometimes returns.
-                                .Where(x => x.ActualKWH < 0 &&
-                                    x.Start > DateTime.UtcNow.AddDays(-1 * (defaultDays ?? 7))) ?? [];
+    private IEnumerable<HistoryEntry> FilteredHistoryData => HistoryData?.Where(x => x.Start > DateTime.UtcNow.AddDays(-1 * (defaultDays ?? 7))) ?? [];
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
     private string GetBatteryColor(HistoryEntry slot) => "darkred";
