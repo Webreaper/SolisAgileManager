@@ -225,6 +225,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             if (lookup.TryGetValue(batch.Key.ToLocalTime(), out var historyEntry))
             {
+                // Sometimes the inverter is naughty and gives us negative yield....
                 historyEntry.ActualKWH = Math.Max(0, batch.Sum(x => x.actual));
                 historyEntry.ImportedKWH = batch.Sum(x => x.import);
                 historyEntry.ExportedKWH = batch.Sum(x => x.export);
