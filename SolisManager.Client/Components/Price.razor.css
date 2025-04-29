@@ -8,13 +8,13 @@
 }
 
 .price-red {
-    color: firebrick;
+    color: darkred;
 }
 
 .price-red-dark {
-    color: orangered;
+    color: rgb(235, 60, 60);
 }
 
 .price-green-dark {
-    color: forestgreen;
+    color: limegreen;
 }
