@@ -27,15 +27,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
-    public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime? startTime = null, DateTime? endTime = null)
+    public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime? from, DateTime? to)
     {
-        if (startTime == null)
-            startTime = DateTime.UtcNow;
-
-        var from = startTime.Value;
-        // Use the end time passed in or default to 5 days from now
-        var to = endTime ?? startTime.Value.AddDays(5);
-
         var product = tariffCode.GetProductFromTariffCode();
         
         // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/

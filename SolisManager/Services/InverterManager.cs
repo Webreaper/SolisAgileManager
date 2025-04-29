@@ -270,7 +270,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 logger.LogTrace("Refreshing data...");
 
-                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode);
+                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, DateTime.UtcNow, DateTime.UtcNow.AddDays(3));
 
                 slots = rates.Take(96)
                              .Select(x => new PricePlanSlot
@@ -1314,8 +1314,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         logger.LogInformation("Running comparison for {A} vs {B}...", tariffA, tariffB);
 
-        var ratesATask = octopusAPI.GetOctopusRates(tariffA);
-        var ratesBTask = octopusAPI.GetOctopusRates(tariffB);
+        var start = DateTime.UtcNow;
+        var end = DateTime.UtcNow.AddDays(3);
+        
+        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end);
+        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end);
 
         await Task.WhenAll(ratesATask, ratesBTask);
         
