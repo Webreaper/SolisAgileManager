@@ -42,15 +42,16 @@
             <RowTemplate>
                 <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
                 <MudTd>@context.Tariff</MudTd>
-                <MudTd>@Math.Round((decimal)context.ImportConsumption, 2)</MudTd>
+                <MudTd>@Math.Round(context.ImportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
                 <MudTd><Price Value="@(context.ImportCost / 100M)" /></MudTd>
-                <MudTd>@Math.Round((decimal)context.ExportConsumption, 2)</MudTd>
+                <MudTd>@Math.Round(context.ExportConsumption, 2)</MudTd>
                 <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
                 <MudTd><Price Value="@(context.ExportProfit/ 100M)" /></MudTd>
                 <MudTd><Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
             </RowTemplate>
         </MudTable>
+        <div><strong>Note:</strong> Consumption costs are currently shown without the standing charge.</div>
     }
 </ErrorBoundary>
 
