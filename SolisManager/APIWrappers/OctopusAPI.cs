@@ -82,9 +82,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {E:dd-MMM-yyyy HH:mm}) for product {Code}",
                         rates.Count, first, last, tariffCode);
 
-                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots)
-                                                            .Where(x => x.valid_from >= from && x.valid_to <= to)
-                                                            .ToList();
+                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots);
                     
                      // Now, ensure we're in the right TZ
                     foreach (var thirtyMinSlot in thirtyMinSlots)
