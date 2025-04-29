@@ -512,8 +512,12 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var results = await Task.WhenAll(tasks);
             
             // Create a multi-level lookup that will go from tariff code => date => price
+            // The DistinctBy here is needed because the time-difference when we cross the 
+            // DST boundary can result in two tariff entries for the same time - which causes
+            // the dictionary to blow up. So discard one, arbitrarily.
             var prices = results.ToDictionary(x => x.tariff, 
-                                    x => x.rates.ToDictionary(x => x.valid_from));
+                                    x => x.rates.DistinctBy(x => x.valid_from)
+                                                           .ToDictionary(x => x.valid_from));
 
             // Now, loop through the consumption objects and resolve their rates
             foreach (var consumption in consumptions)

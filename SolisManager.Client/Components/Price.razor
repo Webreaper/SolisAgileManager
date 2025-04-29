@@ -6,6 +6,9 @@
     [Parameter]
     public decimal Value { get; set; }
 
+    [CascadingParameter] 
+    protected bool DarkMode { get; set; }
+
     [Parameter] public ColorType Colours { get; set; } = ColorType.None;
 
     public enum ColorType
@@ -15,12 +18,16 @@
         PositiveRed
     }
     
-    private string PriceClass => (Math.Round(Value, 2), Colours) switch
+    private string PriceClass => "price " + (Math.Round(Value, 2), Colours, DarkMode) switch
     { 
-        (< 0, ColorType.PositiveGreen) => "price-red",
-        (> 0, ColorType.PositiveGreen) => "price-green",
-        (< 0, ColorType.PositiveRed) => "price-green",
-        (> 0, ColorType.PositiveRed) => "price-red",
-        _ => "price-none",
+        (< 0, ColorType.PositiveGreen, false) => "price-red",
+        (> 0, ColorType.PositiveGreen, false) => "price-green",
+        (< 0, ColorType.PositiveRed, false) => "price-green",
+        (> 0, ColorType.PositiveRed, false) => "price-red",
+        (< 0, ColorType.PositiveGreen, true) => "price-red-dark",
+        (> 0, ColorType.PositiveGreen, true) => "price-green-dark",
+        (< 0, ColorType.PositiveRed, true) => "price-green-dark",
+        (> 0, ColorType.PositiveRed, true) => "price-red-dark",
+        _ => string.Empty,
     };
 }
