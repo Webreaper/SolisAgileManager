@@ -215,7 +215,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             }
         }
 
-        var lookup = executionHistory.ToDictionary(x => x.Start);
+        var lookup = executionHistory.DistinctBy(x => x.Start)
+                                                                .ToDictionary(x => x.Start);
+        
         var batches = oneMinuteData.GroupBy(x => x.start.GetRoundedToMinutes(30))
             .ToList();
 
@@ -271,14 +273,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 logger.LogTrace("Refreshing data...");
 
-                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, DateTime.UtcNow, DateTime.UtcNow.AddDays(3));
+                var start = DateTime.Now.RoundToHalfHour();
+                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, start.AddDays(3));
 
-                slots = rates.Select(x => new PricePlanSlot
-                {
-                    value_inc_vat = x.value_inc_vat,
-                    valid_from = x.valid_from,
-                    valid_to = x.valid_to ?? DateTime.MaxValue
-                });
+                slots = rates.Where(x => x.valid_from >= start )
+                             .Select(x => new PricePlanSlot
+                            {
+                                value_inc_vat = x.value_inc_vat,
+                                valid_from = x.valid_from,
+                                valid_to = x.valid_to ?? DateTime.MaxValue
+                            }).ToList();
 
                 // Stamp the last time we did an update
                 InverterState.PricesUpdate = DateTime.UtcNow;
