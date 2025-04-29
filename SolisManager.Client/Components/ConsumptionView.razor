@@ -15,7 +15,8 @@
     }
     else
     {
-         <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true" Breakpoint="Breakpoint.None">
+        <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true" 
+                  Breakpoint="Breakpoint.None" GroupBy="_groupDefinition" >
             <HeaderContent>
                 <MudTh>Period</MudTh>
                 <MudTh>Tariff</MudTh>
@@ -27,6 +28,17 @@
                 <MudTh>Export Profit (£)</MudTh>
                 <MudTh>Net Cost (£)</MudTh>
             </HeaderContent>
+            <GroupHeaderTemplate>
+                <MudTh Class="mud-table-cell-custom-group date-row"><DateDisplay Date="@((DateTime?)context.Key)"/></MudTh>
+                <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
+                <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
+                <MudTd>@Math.Round(context.Items.Average(x => x.ImportPrice), 2)</MudTd>
+                <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost)/100M)" /></MudTd>
+                <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
+                <MudTd>@Math.Round(context.Items.Average(x => x.ExportPrice), 2)</MudTd>
+                <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit)/100m)" /></MudTd>
+                <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost)/100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
+            </GroupHeaderTemplate>
             <RowTemplate>
                 <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
                 <MudTd>@context.Tariff</MudTd>
@@ -47,6 +59,15 @@
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
+    
+    private TableGroupDefinition<OctopusConsumption> _groupDefinition = new()
+    {
+        GroupName = "Period",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.PeriodStart.Date
+    };
     
     private async Task RecalcConsmption()
     {
