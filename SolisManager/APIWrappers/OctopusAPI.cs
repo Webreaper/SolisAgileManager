@@ -448,29 +448,41 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
             if (importConsumption != null && exportConsumption != null)
             {
-                await EnrichConsumptionWithTariffPricess(importConsumption, importMeter);
-                await EnrichConsumptionWithTariffPricess(exportConsumption, exportMeter);
-
-                var lookup = importConsumption.ToDictionary(
-                    x => x.interval_start,
-                    x => new OctopusConsumption
-                    {
-                        PeriodStart = x.interval_start, 
-                        ImportConsumption = x.consumption,
-                        Tariff = x.tariff ?? "Unknown",
-                        ImportPrice = x.price ?? 0,
-                    });
-
-                foreach (var export in exportConsumption)
+                if (importConsumption.Any())
                 {
-                    if (lookup.TryGetValue(export.interval_start, out var consumptionValue))
+                    await EnrichConsumptionWithTariffPricess(importConsumption, importMeter);
+
+                    var lookup = importConsumption.ToDictionary(
+                        x => x.interval_start,
+                        x => new OctopusConsumption
+                        {
+                            PeriodStart = x.interval_start,
+                            ImportConsumption = x.consumption,
+                            Tariff = x.tariff ?? "Unknown",
+                            ImportPrice = x.price ?? 0,
+                        });
+
+                    if (exportConsumption.Any())
                     {
-                        consumptionValue.ExportConsumption = export.consumption;
-                        consumptionValue.ExportPrice = export.price ?? 0;
+                        await EnrichConsumptionWithTariffPricess(exportConsumption, exportMeter);
+
+                        foreach (var export in exportConsumption)
+                        {
+                            if (lookup.TryGetValue(export.interval_start, out var consumptionValue))
+                            {
+                                consumptionValue.ExportConsumption = export.consumption;
+                                consumptionValue.ExportPrice = export.price ?? 0;
+                            }
+                        }
+
                     }
+                    else
+                        logger.LogWarning("No consumption data found from export meter");
+                    
+                    return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
                 }
-                
-                return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+
+                logger.LogWarning("No consumption data found from import meter");
             }
         }
 

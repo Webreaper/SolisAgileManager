@@ -98,7 +98,7 @@
     private IEnumerable<OctopusConsumption>? consumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private int dayRange = 30;
-    private string ProgressMessage => $"Loading {dayRange} day of consumption and tariff data..." + 
+    private string ProgressMessage => $"Loading {dayRange} days of consumption and tariff data..." + 
                                       (dayRange <= 30 ? string.Empty : " Please be patient, this may take some time.");
 
     private (string name, int days)[] DateRanges =
