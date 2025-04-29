@@ -61,6 +61,12 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             {
                 if (result.count != 0 && result.results != null)
                 {
+                    // Some tariffs don't have an end date. So go through and fill in the end date with 
+                    // an hour into the future, so we can split to 30 minute slots properly.
+                    foreach( var rate in result.results )
+                        if (rate.valid_to == null)
+                            rate.valid_to = DateTime.UtcNow.AddHours(1);
+                    
                     // Ensure they're in date order. Sometimes they come back in random order!!!
                     var orderedSlots = result.results!.OrderBy(x => x.valid_from).ToList();
 
@@ -71,11 +77,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         result.count, first, last, tariffCode);
 
                     // Never go out more than 2 days - so 96 slots
-                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots, 96)
+                    var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots)
                                                             .Where(x => x.valid_from >= from && x.valid_to <= to)
                                                             .ToList();
                     
-                    // Now, ensure we're in the right TZ
+                     // Now, ensure we're in the right TZ
                     foreach (var thirtyMinSlot in thirtyMinSlots)
                     {
                         thirtyMinSlot.valid_from = thirtyMinSlot.valid_from.ToLocalTime();
@@ -109,7 +115,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     /// </summary>
     /// <param name="slots"></param>
     /// <returns></returns>
-    private IEnumerable<OctopusRate> SplitToHalfHourSlots(IEnumerable<OctopusRate> slots, int maxToReturn)
+    private IEnumerable<OctopusRate> SplitToHalfHourSlots(IEnumerable<OctopusRate> slots)
     {
         List<OctopusRate> result = new();
 
@@ -141,7 +147,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
         }
 
-        return result.Take(maxToReturn).ToList();
+        return result.ToList();
     }
 
     private async Task<string?> GetAuthToken(string apiKey)
@@ -526,6 +532,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private async Task<(string tariff, IEnumerable<OctopusRate> rates)> GetOctopusTariffRates(string tariffCode, DateTime startDate, DateTime endDate)
     {
         var rates = await GetOctopusRates(tariffCode, startDate, endDate);
+        if( !rates.Any())
+            logger.LogWarning("No rates returned for {T} between {S} and {E}", tariffCode, startDate, endDate);
+        
         return (tariffCode, rates);
     }
     

@@ -272,7 +272,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                 var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode);
 
-                slots = rates.Select(x => new PricePlanSlot
+                slots = rates.Take(96)
+                             .Select(x => new PricePlanSlot
                 {
                     value_inc_vat = x.value_inc_vat,
                     valid_from = x.valid_from,
@@ -1321,9 +1322,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return new TariffComparison
         {
             TariffA = tariffA,
-            TariffAPrices = await ratesATask,
+            TariffAPrices = (await ratesATask).Take(96).ToList(),
             TariffB = tariffB,
-            TariffBPrices = await ratesBTask
+            TariffBPrices = (await ratesBTask).Take(96).ToList(),
         };
     }
 
