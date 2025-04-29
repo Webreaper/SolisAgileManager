@@ -225,7 +225,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             if (lookup.TryGetValue(batch.Key.ToLocalTime(), out var historyEntry))
             {
-                historyEntry.ActualKWH = batch.Sum(x => x.actual);
+                historyEntry.ActualKWH = Math.Max(0, batch.Sum(x => x.actual));
                 historyEntry.ImportedKWH = batch.Sum(x => x.import);
                 historyEntry.ExportedKWH = batch.Sum(x => x.export);
                 historyEntry.HouseLoadKWH = batch.Sum(x => x.load);
