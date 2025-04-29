@@ -24,7 +24,7 @@
     }
     else if( loading || consumptionData == null)
     {
-        <ProgressIndicator ProgressText="Loading consumption and tariff data..."/>
+        <ProgressIndicator ProgressText="@ProgressMessage"/>
     }
     else
     {
@@ -98,13 +98,18 @@
     private IEnumerable<OctopusConsumption>? consumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private int dayRange = 30;
+    private string ProgressMessage => $"Loading {dayRange} day of consumption and tariff data..." + 
+                                      (dayRange <= 30 ? string.Empty : " Please be patient, this may take some time.");
 
     private (string name, int days)[] DateRanges =
     [
         ("1 week", 7),
+        ("2 weeks", 14),
         ("30 days", 30),
+        ("60 days", 60),
         ("3 months", 90),
         ("6 months", 180),
+        ("This year", (int)(DateTime.UtcNow -new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
     ]; 
     
 
