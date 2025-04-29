@@ -61,22 +61,34 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             {
                 if (result.count != 0 && result.results != null)
                 {
+                    var rates = new List<OctopusRate>(result.results);
+
+                    // Paginate
+                    while (!string.IsNullOrEmpty(result?.next))
+                    {
+                        result = await result.next
+                            .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                            .GetJsonAsync<OctopusPrices?>();
+
+                        if (result != null)
+                            rates.AddRange(result.results);
+                    }
+
                     // Some tariffs don't have an end date. So go through and fill in the end date with 
                     // an hour into the future, so we can split to 30 minute slots properly.
-                    foreach( var rate in result.results )
+                    foreach( var rate in rates )
                         if (rate.valid_to == null)
                             rate.valid_to = DateTime.UtcNow.AddHours(1);
                     
                     // Ensure they're in date order. Sometimes they come back in random order!!!
-                    var orderedSlots = result.results!.OrderBy(x => x.valid_from).ToList();
+                    var orderedSlots = rates.OrderBy(x => x.valid_from).ToList();
 
                     var first = orderedSlots.FirstOrDefault()?.valid_from;
                     var last = orderedSlots.LastOrDefault()?.valid_to;
                     logger.LogInformation(
                         "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {E:dd-MMM-yyyy HH:mm}) for product {Code}",
-                        result.count, first, last, tariffCode);
+                        rates.Count, first, last, tariffCode);
 
-                    // Never go out more than 2 days - so 96 slots
                     var thirtyMinSlots = SplitToHalfHourSlots(orderedSlots)
                                                             .Where(x => x.valid_from >= from && x.valid_to <= to)
                                                             .ToList();
@@ -616,7 +628,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     public record OctopusProperty(int id, OctopusMeterPoints[] electricity_meter_points, DateTime? moved_in_at, DateTime? moved_out_at);
     public record OctopusAccountDetails(string number, OctopusProperty[] properties);
     
-    private record OctopusPrices(int count, OctopusRate[] results);
+    private record OctopusPrices(int count, OctopusRate[] results, string? next);
 
     public record Consumption(int count, IEnumerable<ConsumptionRecord> results, string? next);
 
