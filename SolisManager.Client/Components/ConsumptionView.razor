@@ -39,11 +39,11 @@
                 <HeaderContent>
                     <MudTh>Period</MudTh>
                     <MudTh>Tariff</MudTh>
-                    <MudTh>Import (kWh)</MudTh>
-                    <MudTh>Import Price (p/kWh)</MudTh>
+                    <MudTh>Imported (kWh)</MudTh>
+                    <MudTh>Import Price Paid (p/kWh)</MudTh>
                     <MudTh>Import Cost (£)</MudTh>
-                    <MudTh>Export (kWh)</MudTh>
-                    <MudTh>Export Price (p/kWh)</MudTh>
+                    <MudTh>Exported (kWh)</MudTh>
+                    <MudTh>Export Price Earned (p/kWh)</MudTh>
                     <MudTh>Export Profit (£)</MudTh>
                     <MudTh>Net Cost (£)</MudTh>
                 </HeaderContent>
@@ -53,10 +53,10 @@
                     </MudTh>
                     <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
                     <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
-                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportPrice), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportConsumption, x => x.ImportCost), 2)</MudTd>
                     <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/></MudTd>
                     <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
-                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportPrice), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportConsumption, x => x.ExportProfit), 2)</MudTd>
                     <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/></MudTd>
                     <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"Colours="Price.ColorType.PositiveRed"/></MudTd>
                 </GroupHeaderTemplate>
@@ -108,11 +108,17 @@
 
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
     
-    private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, Func<OctopusConsumption, decimal> selector)
+    private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
+                    Func<OctopusConsumption, decimal> consumptionSelector,
+                    Func<OctopusConsumption, decimal> costSelector)
     {
-        var nonZeroRates = rates.Where(x => selector(x) > 0.05M).ToList();
-        if (nonZeroRates.Any())
-            return nonZeroRates.Average(selector);
+        var consumptionSlots = rates.Where(x => consumptionSelector(x) > 0.05M).ToList();
+        if (consumptionSlots.Any())
+        {
+            var totalConsumption = consumptionSlots.Sum(consumptionSelector);
+            var totalCost = consumptionSlots.Sum(costSelector);
+            return totalCost / totalConsumption;
+        }
 
         return 0;
     }
