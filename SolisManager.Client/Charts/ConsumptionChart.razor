@@ -1,0 +1,68 @@
+@using ApexCharts
+
+@inherits ChartBase<ConsumptionChart.ChartItem>
+
+<ErrorBoundary>
+    @if (groupedData != null)
+    {
+        <div class="chart-area">
+            <ApexChart @ref="chart"
+                       TItem="ChartItem"
+                       XAxisType="XAxisType.Datetime"
+                       Options="@Options"
+                       Height="@("100%")">
+
+                <ApexPointSeries TItem="ChartItem"
+                                 Items="@groupedData"
+                                 Name="Cost"
+                                 XValue="@(e => e.Date)"
+                                 YValue="@(e => e.CostGBP)"
+                                 SeriesType="SeriesType.Bar"
+                                 Color="dodgerblue"
+                                 Stroke="@(new SeriesStroke { Color = "dodgerblue", Width = 3 })"/>
+            </ApexChart>
+        </div>
+    }
+</ErrorBoundary>
+
+@code {
+    [Parameter]
+    public IEnumerable<OctopusConsumption>? ChartData { get; set; }
+
+    public class ChartItem
+    {
+        public DateTime Date { get; set; }
+        public decimal CostGBP { get; set; }
+    }
+    
+    public IEnumerable<ChartItem>? groupedData = null;
+    
+    protected override Task OnParametersSetAsync()
+    {
+        groupedData = (ChartData ?? []) 
+            .GroupBy(x => x.PeriodStart.Date)
+            .Select(x => new ChartItem
+                {
+                    Date = x.Key.Date,
+                    CostGBP = x.Sum(c => c.NetCost / 100M)
+                })
+            .ToList();
+
+        return base.OnParametersSetAsync();
+    }
+
+    protected override void SetOptions(ApexChartOptions<ChartItem> options)
+    {
+        var yAxis = new List<YAxis>();
+
+        yAxis.Add(new YAxis
+        {
+            Title = new AxisTitle { Text = "Cost (£)" },
+            SeriesName = "Cost",
+            DecimalsInFloat = 2
+        });
+        
+        options.Yaxis = yAxis;
+        options.Xaxis = new XAxis { Labels = new XAxisLabels { DatetimeUTC = false } };
+    }
+}

@@ -3,7 +3,7 @@
 <PageTitle>Solis Manager</PageTitle>
 
 <ErrorBoundary>
-    <TopStatusBar PageTitle="Consumption"/>
+    <TopStatusBar PageTitle="Consumption" @bind-SelectedView="selectedView" ViewSettingName="cost-view"/>
 
     @if(!accountValid)
     {
@@ -15,42 +15,65 @@
     }
     else
     {
-        <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true" 
-                  Breakpoint="Breakpoint.None" GroupBy="_groupDefinition" >
-            <HeaderContent>
-                <MudTh>Period</MudTh>
-                <MudTh>Tariff</MudTh>
-                <MudTh>Import (kWh)</MudTh>
-                <MudTh>Import Price (p/kWh)</MudTh>
-                <MudTh>Export (kWh)</MudTh>
-                <MudTh>Import Cost (£)</MudTh>
-                <MudTh>Export Price (p/kWh)</MudTh>
-                <MudTh>Export Profit (£)</MudTh>
-                <MudTh>Net Cost (£)</MudTh>
-            </HeaderContent>
-            <GroupHeaderTemplate>
-                <MudTh Class="mud-table-cell-custom-group date-row"><DateDisplay Date="@((DateTime?)context.Key)"/></MudTh>
-                <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
-                <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
-                <MudTd>@Math.Round(context.Items.Where(x => x.ImportConsumption > 0).Average(x => x.ImportPrice), 2)</MudTd>
-                <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost)/100M)" /></MudTd>
-                <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
-                <MudTd>@Math.Round(context.Items.Where(x => x.ExportConsumption > 0).Average(x => x.ExportPrice), 2)</MudTd>
-                <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit)/100m)" /></MudTd>
-                <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost)/100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
-            </GroupHeaderTemplate>
-            <RowTemplate>
-                <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
-                <MudTd>@context.Tariff</MudTd>
-                <MudTd>@Math.Round(context.ImportConsumption, 2)</MudTd>
-                <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
-                <MudTd><Price Value="@(context.ImportCost / 100M)" /></MudTd>
-                <MudTd>@Math.Round(context.ExportConsumption, 2)</MudTd>
-                <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
-                <MudTd><Price Value="@(context.ExportProfit/ 100M)" /></MudTd>
-                <MudTd><Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed" /></MudTd>
-            </RowTemplate>
-        </MudTable>
+        @if (selectedView == ViewSelector.ViewType.Chart)
+        {
+            <ConsumptionChart ChartData="consumptionData"/>
+        }
+        else
+        {
+            <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true"
+                      Breakpoint="Breakpoint.None" GroupBy="_groupDefinition">
+                <HeaderContent>
+                    <MudTh>Period</MudTh>
+                    <MudTh>Tariff</MudTh>
+                    <MudTh>Import (kWh)</MudTh>
+                    <MudTh>Import Price (p/kWh)</MudTh>
+                    <MudTh>Export (kWh)</MudTh>
+                    <MudTh>Import Cost (£)</MudTh>
+                    <MudTh>Export Price (p/kWh)</MudTh>
+                    <MudTh>Export Profit (£)</MudTh>
+                    <MudTh>Net Cost (£)</MudTh>
+                </HeaderContent>
+                <GroupHeaderTemplate>
+                    <MudTh Class="mud-table-cell-custom-group date-row">
+                        <DateDisplay Date="@((DateTime?)context.Key)"/>
+                    </MudTh>
+                    <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
+                    <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportPrice), 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/>
+                    </MudTd>
+                    <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportPrice), 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/>
+                    </MudTd>
+                    <MudTd>
+                        <Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"
+                               Colours="Price.ColorType.PositiveRed"/>
+                    </MudTd>
+                </GroupHeaderTemplate>
+                <RowTemplate>
+                    <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
+                    <MudTd>@context.Tariff</MudTd>
+                    <MudTd>@Math.Round(context.ImportConsumption, 2)</MudTd>
+                    <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.ImportCost / 100M)"/>
+                    </MudTd>
+                    <MudTd>@Math.Round(context.ExportConsumption, 2)</MudTd>
+                    <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.ExportProfit / 100M)"/>
+                    </MudTd>
+                    <MudTd>
+                        <Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed"/>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
         <div><strong>Note:</strong> Consumption costs are currently shown without the standing charge.</div>
     }
 </ErrorBoundary>
@@ -60,6 +83,16 @@
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<OctopusConsumption>? consumptionData = null;
+    private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
+
+    private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, Func<OctopusConsumption, decimal> selector)
+    {
+        var nonZeroRates = rates.Where(x => selector(x) > 0.05M).ToList();
+        if (nonZeroRates.Any())
+            return nonZeroRates.Average(selector);
+
+        return 0;
+    }
     
     private TableGroupDefinition<OctopusConsumption> _groupDefinition = new()
     {
