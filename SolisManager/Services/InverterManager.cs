@@ -145,6 +145,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     .ToList();
 
                 executionHistory.AddRange(entries);
+
+                // Fix bad data in old execution history entries.
+                foreach (var entry in executionHistory)
+                {
+                    entry.ActualKWH = Math.Max(0, entry.ActualKWH);
+                    entry.ExportedKWH = Math.Max(0, entry.ExportedKWH);
+                    entry.HouseLoadKWH = Math.Max(0, entry.HouseLoadKWH);
+                    entry.ImportedKWH = Math.Max(0, entry.ImportedKWH);
+                }
             }
         }
         catch (Exception ex)
@@ -152,7 +161,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             logger.LogError(ex, "Failed to load execution history");
         }
     }
-
+    
     private async Task EnrichHistoryWithInverterData()
     {
         var today = DateTime.UtcNow.Date;
