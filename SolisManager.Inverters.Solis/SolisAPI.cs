@@ -438,10 +438,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                         entry.batteryPower,
                         entry.pSum / 1000M,
                         entry.familyLoadPower,
-                        entry.homeLoadTodayEnergy - lastHouseTotal,
-                        entry.eToday - lastYieldTotal,
-                        entry.gridPurchasedTodayEnergy - lastImportTotal,
-                        entry.gridSellTodayEnergy - lastExportTotal,
+                        Math.Max(0,entry.homeLoadTodayEnergy - lastHouseTotal),
+                        Math.Max(0, entry.eToday - lastYieldTotal),
+                        Math.Max(0, entry.gridPurchasedTodayEnergy - lastImportTotal),
+                        Math.Max(0, entry.gridSellTodayEnergy - lastExportTotal),
                         entry.inverterTemperature
                     ));
 

@@ -227,11 +227,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             if (lookup.TryGetValue(batch.Key.ToLocalTime(), out var historyEntry))
             {
-                // Sometimes the inverter is naughty and gives us negative yield etc....
-                historyEntry.ActualKWH = batch.Sum(x => Math.Max(0, x.actual));
-                historyEntry.ImportedKWH = batch.Sum(x => Math.Max(0, x.import));
-                historyEntry.ExportedKWH = batch.Sum(x => Math.Max(0, x.export));
-                historyEntry.HouseLoadKWH = batch.Sum(x => Math.Max(0, x.load));
+                historyEntry.ActualKWH = batch.Sum(x => x.actual);
+                historyEntry.ImportedKWH = batch.Sum(x => x.import);
+                historyEntry.ExportedKWH = batch.Sum(x => x.export);
+                historyEntry.HouseLoadKWH = batch.Sum(x => x.load);
                 historyEntry.Temperature = batch.Average(x => x.temperature);
                 changes = true;
             }
