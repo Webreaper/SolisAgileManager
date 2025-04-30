@@ -136,8 +136,9 @@
     {
         loading = true;
         StateHasChanged();
-        
-        var end = DateTime.UtcNow;
+
+        // Go back one day - always ignore yesterday because there's never accurate data for it.
+        var end = DateTime.UtcNow.AddDays(-1);
         var start = end.AddDays(-1 * dayRange);
         consumptionData = await inverterManagerService.GetConsumption(start, end);
         loading = false;
