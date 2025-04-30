@@ -193,7 +193,7 @@ for some imported power; a green total indicates that you made money from your e
 Alternatively you can view the net cost/profit as chart. This view allows you to quickly see which days
 cost you, and which days made you money. 
 
-![Costs Graph](https://github.com/user-attachments/assets/395b26e6-cbe8-426e-b00a-b448921b1de7)
+
 
 You can select the timespan for the table and graph to view up to 6 months of history - note that longer
 time periods involve a lot of data, so can take quite a few API calls and time to process the totals.
