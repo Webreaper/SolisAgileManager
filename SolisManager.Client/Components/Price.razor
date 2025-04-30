@@ -1,5 +1,5 @@
 <div class="@PriceClass">
-    £@Math.Round(Value, 2)
+    @ValueStr
 </div>
 
 @code {
@@ -11,6 +11,8 @@
 
     [Parameter] public ColorType Colours { get; set; } = ColorType.None;
 
+    private string ValueStr => $"£{Math.Round(Value, 2):F2}";
+    
     public enum ColorType
     {
         None,
