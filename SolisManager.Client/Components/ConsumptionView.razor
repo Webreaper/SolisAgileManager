@@ -51,7 +51,7 @@
                     <MudTh Class="mud-table-cell-custom-group date-row">
                         <DateDisplay Date="@((DateTime?)context.Key)"/>
                     </MudTh>
-                    <MudTd>@context.Items.FirstOrDefault()?.Tariff)</MudTd>
+                    <MudTd>@TariffSummary(context.Items.FirstOrDefault())</MudTd>
                     <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
                     <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportConsumption, x => x.ImportCost), 2)</MudTd>
                     <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/></MudTd>
@@ -105,7 +105,7 @@
         ("This year", (int)(DateTime.UtcNow -new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
     ]; 
     
-
+    private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
     
     private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 

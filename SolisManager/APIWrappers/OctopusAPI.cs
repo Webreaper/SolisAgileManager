@@ -29,6 +29,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime? from, DateTime? to)
     {
+        var cacheKey = $"{tariffCode.ToLower()}-{from:yyyyMMddHHmmss}-{to:yyyyMMddHHmmss}";
+
+        if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate> rates))
+            return rates;
+        
         var product = tariffCode.GetProductFromTariffCode();
         
         // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/
@@ -48,23 +53,23 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     period_to = to
                 });
             
-            var result = await url.GetJsonAsync<OctopusPrices?>();
+            var prices = await url.GetJsonAsync<OctopusPrices?>();
 
-            if (result != null)
+            if (prices != null)
             {
-                if (result.count != 0 && result.results != null)
+                if (prices.count != 0 && prices.results != null)
                 {
-                    var rates = new List<OctopusRate>(result.results);
+                    rates = new List<OctopusRate>(prices.results);
 
                     // Paginate
-                    while (!string.IsNullOrEmpty(result?.next))
+                    while (!string.IsNullOrEmpty(prices?.next))
                     {
-                        result = await result.next
+                        prices = await prices.next
                             .WithHeader("User-Agent", userAgentProvider.UserAgent)
                             .GetJsonAsync<OctopusPrices?>();
 
-                        if (result != null)
-                            rates.AddRange(result.results);
+                        if (prices != null)
+                            rates.AddRange(prices.results);
                     }
 
                     // Some tariffs don't have an end date. So go through and fill in the end date with 
@@ -90,6 +95,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         thirtyMinSlot.valid_from = thirtyMinSlot.valid_from.ToLocalTime();
                         thirtyMinSlot.valid_to = thirtyMinSlot.valid_to!.Value.ToLocalTime();
                     }
+                    
+                    memoryCache.Set(cacheKey, rates, _productCacheOptions);
                     
                     return thirtyMinSlots;
                 }
@@ -263,8 +270,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     
     public async Task<OctopusAccountDetails?> GetOctopusAccount(string apiKey, string accountNumber)
     {
+        var cacheKey = $"account-{accountNumber.ToLower()}";
         var token = await GetAuthToken(apiKey);
 
+        if( memoryCache.TryGetValue<OctopusAccountDetails>(cacheKey, out var accountDetails ) )
+            return accountDetails;
         // https://api.octopus.energy/v1/accounts/{number}
 
         try
@@ -275,9 +285,12 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
                 .GetStringAsync();
 
-            var result = JsonSerializer.Deserialize<OctopusAccountDetails>(response);
+            accountDetails = JsonSerializer.Deserialize<OctopusAccountDetails>(response);
             
-            return result;
+            if( accountDetails != null )
+                memoryCache.Set(cacheKey, accountDetails, _authTokenCacheOptions);
+            
+            return accountDetails;
         }
         catch (Exception ex)
         {
@@ -372,7 +385,6 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var response = await "https://api.octopus.energy/"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/{code}")
-                .AppendQueryParam("is_business", false)
                 .GetStringAsync();
 
             tariff = JsonSerializer.Deserialize<OctopusTariffResponse>(response);
@@ -385,6 +397,32 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to get Octopus tariff details");
+        }
+
+        return null;
+    }
+
+    private async Task<decimal?> GetStandingChargeFromTariff(string tariffCode)
+    {
+        var cacheKey = "standing-charge-" + tariffCode.ToLower();
+        
+        if (memoryCache.TryGetValue<decimal?>(cacheKey, out var tariffStandingCharge))
+            return tariffStandingCharge;
+
+        var productCode = tariffCode.GetProductFromTariffCode();
+        var product = await GetOctopusTariffs(productCode);
+
+        if (product != null)
+        {
+            var region = product.single_register_electricity_tariffs
+                .FirstOrDefault(x => x.Value.direct_debit_monthly.code == tariffCode);
+            
+            if(region.Value != null)
+            {
+                tariffStandingCharge = region.Value.direct_debit_monthly.standing_charge_inc_vat;
+                memoryCache.Set(cacheKey, tariffStandingCharge, _productCacheOptions);
+                return tariffStandingCharge;
+            }
         }
 
         return null;
@@ -426,7 +464,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         
         // Do this first and cache it for the following requests
         var token = await GetAuthToken(apiKey);
-
+        
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
         var meters = await GetMeters(apiKey, accountNumber);
@@ -448,7 +486,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             {
                 if (importConsumption.Any())
                 {
-                    await EnrichConsumptionWithTariffPricess(importConsumption, importMeter);
+                    await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true);
 
                     var lookup = importConsumption.ToDictionary(
                         x => x.interval_start,
@@ -457,12 +495,13 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             PeriodStart = x.interval_start,
                             ImportConsumption = x.consumption,
                             Tariff = x.tariff ?? "Unknown",
+                            DailyStandingCharge = x.dailyStandingCharge,
                             ImportPrice = x.price ?? 0,
                         });
 
                     if (exportConsumption.Any())
                     {
-                        await EnrichConsumptionWithTariffPricess(exportConsumption, exportMeter);
+                        await EnrichConsumptionWithTariffPrices(exportConsumption, exportMeter, false);
 
                         foreach (var export in exportConsumption)
                         {
@@ -487,7 +526,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
 
-    private async Task EnrichConsumptionWithTariffPricess(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints meter)
+    private async Task EnrichConsumptionWithTariffPrices(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints meter, bool getStandingCharge)
     {
         var minDate = consumptions.Min(x => x.interval_start);
         var maxDate = consumptions.Max(x => x.interval_end);
@@ -541,6 +580,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             consumption.price = rate.value_inc_vat;
                         }
                     }
+
+                    if (getStandingCharge)
+                        consumption.dailyStandingCharge = await GetStandingChargeFromTariff(tariff);
                 }
                 else
                     logger.LogWarning("No tariff found for consumption on {D}", consumption.interval_start);
@@ -557,17 +599,18 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return (tariffCode, rates);
     }
     
-    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meter, DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meterPoints, DateTime startDate, DateTime endDate)
     {
         var authToken = await GetAuthToken(apiKey);
         
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
 
-        ArgumentNullException.ThrowIfNull(meter);
+        ArgumentNullException.ThrowIfNull(meterPoints);
 
         // Which meter to use? Use the last one.
-        var serial = meter.meters.LastOrDefault()?.serial_number;
+        var meter = meterPoints.meters.LastOrDefault();
+        var serial = meter?.serial_number;
 
         if (!string.IsNullOrEmpty(serial))
         {
@@ -577,7 +620,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     .WithOctopusAuth(authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
                     .AppendPathSegment("/v1/electricity-meter-points")
-                    .AppendPathSegment(meter.mpan)
+                    .AppendPathSegment(meterPoints.mpan)
                     .AppendPathSegment("meters")
                     .AppendPathSegment(serial)
                     .AppendPathSegment("consumption/")
@@ -645,6 +688,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         public DateTime interval_start { get; set; }
         public DateTime interval_end { get; set; }
         public string? tariff { get; set; }
+        public decimal? dailyStandingCharge { get; set; }
         public decimal? price { get; set; }
     }
 }
