@@ -45,19 +45,20 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
     
     private async Task LoadCachedSolcastDataFromDisk()
     {
-        var file = DiskCachePath;
-
-        if (File.Exists(file))
+        if (!solcastCache.sites.Any())
         {
-            var json = await File.ReadAllTextAsync(file);
-            logger.LogInformation("Loaded cached Solcast data from {F}", file);
-            
-            var loadedResponseCache = JsonSerializer.Deserialize<SolcastResponseCache>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var file = DiskCachePath;
 
-            if (loadedResponseCache != null)
+            if (File.Exists(file))
             {
-                solcastCache.sites.Clear();
-                solcastCache.sites.AddRange(loadedResponseCache.sites);
+                var json = await File.ReadAllTextAsync(file);
+                logger.LogInformation("Loaded cached Solcast data from {F}", file);
+
+                var loadedResponseCache = JsonSerializer.Deserialize<SolcastResponseCache>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (loadedResponseCache != null)
+                    solcastCache.sites.AddRange(loadedResponseCache.sites);
             }
         }
     }
@@ -269,7 +270,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
         public Dictionary<DateTime, decimal> forecasts { get; set; } = [];
 
         public bool UpdateIsStale => lastSolcastUpdate == null || !forecasts.Any() ||
-                                     (DateTime.Now  - lastSolcastUpdate.Value).TotalHours > 6;
+                                     (DateTime.Now  - lastSolcastUpdate.Value).TotalHours > 16;
     };
 
     private record SolcastResponse
