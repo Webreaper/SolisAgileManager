@@ -137,8 +137,12 @@
         loading = true;
         StateHasChanged();
 
-        // Go back one day - always ignore yesterday because there's never accurate data for it.
-        var end = DateTime.UtcNow.AddDays(-1);
+        // Consumption data is rarely available before 2pm so if it's before 
+        // that skip 2 days. Otherwise go back one day. 
+        // Even then, export data may not be available...
+        int offset = DateTime.UtcNow.Hour < 14 ? -2 : -1;
+        
+        var end = DateTime.UtcNow.AddDays(offset);
         var start = end.AddDays(-1 * dayRange);
         consumptionData = await inverterManagerService.GetConsumption(start, end);
         loading = false;
