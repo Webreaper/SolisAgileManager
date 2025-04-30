@@ -28,6 +28,27 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         return new TariffComparison();
     }
 
+    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    {
+        var url = $"inverter/consumption";
+        var req = new ConsumptionRequest { Start = start, End = end };
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync(url, req);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<OctopusConsumption>>();
+
+            if (result != null)
+                return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to retreive consumption");
+        }
+
+        return null;
+    }
+
     public async Task OverrideSlotAction(ManualOverrideRequest request)
     {
         await httpClient.PostAsJsonAsync("inverter/overrideslotaction", request);

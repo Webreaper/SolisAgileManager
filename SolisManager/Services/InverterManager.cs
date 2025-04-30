@@ -16,7 +16,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private readonly List<HistoryEntry> executionHistory = [];
     private const string executionHistoryFile = "SolisManagerExecutionHistory.csv";
     private readonly NewVersionResponse appVersion = new();
-    private List<OctopusPriceSlot>? simulationData;
+    private List<PricePlanSlot>? simulationData;
     private const int maxExecutionHistory = 180 * 48;
 
     private readonly SolisManagerConfig config;
@@ -60,7 +60,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             .Sum(x => x.ForecastkWh);
     }
     
-    private void EnrichWithSolcastData(IEnumerable<OctopusPriceSlot>? slots)
+    private void EnrichWithSolcastData(IEnumerable<PricePlanSlot>? slots)
     {
         var solcast = solcastApi.GetSolcastForecasts();
 
@@ -88,11 +88,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             logger.LogError("Solcast Data was retrieved, but no entries matched current slots");
     }
 
-    private async Task AddToExecutionHistory(OctopusPriceSlot slot)
+    private async Task AddToExecutionHistory(PricePlanSlot planSlot)
     {
         try
         {
-            var newEntry = new HistoryEntry(slot, InverterState);
+            var newEntry = new HistoryEntry(planSlot, InverterState);
             var lastEntry = executionHistory.LastOrDefault();
 
             if (lastEntry == null || lastEntry.Start != newEntry.Start)
@@ -145,6 +145,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     .ToList();
 
                 executionHistory.AddRange(entries);
+
+                // Fix bad data in old execution history entries.
+                foreach (var entry in executionHistory)
+                {
+                    entry.ActualKWH = Math.Max(0, entry.ActualKWH);
+                    entry.ExportedKWH = Math.Max(0, entry.ExportedKWH);
+                    entry.HouseLoadKWH = Math.Max(0, entry.HouseLoadKWH);
+                    entry.ImportedKWH = Math.Max(0, entry.ImportedKWH);
+                }
             }
         }
         catch (Exception ex)
@@ -152,7 +161,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             logger.LogError(ex, "Failed to load execution history");
         }
     }
-
+    
     private async Task EnrichHistoryWithInverterData()
     {
         var today = DateTime.UtcNow.Date;
@@ -215,7 +224,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             }
         }
 
-        var lookup = executionHistory.ToDictionary(x => x.Start);
+        var lookup = executionHistory.DistinctBy(x => x.Start)
+                                                                .ToDictionary(x => x.Start);
+        
         var batches = oneMinuteData.GroupBy(x => x.start.GetRoundedToMinutes(30))
             .ToList();
 
@@ -260,7 +271,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             var overrides = GetExistingManualSlotOverrides();
 
             // Our working set
-            IEnumerable<OctopusPriceSlot> slots;
+            IEnumerable<PricePlanSlot> slots;
 
             if (config.Simulate && simulationData != null)
             {
@@ -270,7 +281,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 logger.LogTrace("Refreshing data...");
 
-                slots = await octopusAPI.GetOctopusRates(config.OctopusProductCode);
+                var start = DateTime.Now.RoundToHalfHour();
+                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, start.AddDays(3));
+
+                slots = rates.Where(x => x.valid_from >= start )
+                             .Select(x => new PricePlanSlot
+                            {
+                                value_inc_vat = x.value_inc_vat,
+                                valid_from = x.valid_from,
+                                valid_to = x.valid_to ?? DateTime.MaxValue
+                            }).ToList();
 
                 // Stamp the last time we did an update
                 InverterState.PricesUpdate = DateTime.UtcNow;
@@ -293,7 +313,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    private void LogSlotUpdateDetails(IEnumerable<OctopusPriceSlot> slots)
+    private void LogSlotUpdateDetails(IEnumerable<PricePlanSlot> slots)
     {
         if (slots.Any())
         {
@@ -321,7 +341,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     /// Where the actual work happens - this gets evaluated every time a config
     /// setting is changed, or otherwise every 5 minutes.
     /// </summary>
-    private async Task RecalculateSlotPlan(IEnumerable<OctopusPriceSlot> sourceSlots)
+    private async Task RecalculateSlotPlan(IEnumerable<PricePlanSlot> sourceSlots)
     {
         // Take a copy so we can reprocess
         var slots = sourceSlots.Clone();
@@ -348,7 +368,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ExecuteSlotChanges(processedSlots);
     }
 
-    private void ExecuteSimulationUpdates(IEnumerable<OctopusPriceSlot> slots)
+    private void ExecuteSimulationUpdates(IEnumerable<PricePlanSlot> slots)
     {
         if (config.Simulate)
         {
@@ -381,7 +401,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             });
     }
 
-    private void ApplyPreviouManualOverrides(IEnumerable<OctopusPriceSlot> slots, IEnumerable<ManualOverrideRequest> overrides)
+    private void ApplyPreviouManualOverrides(IEnumerable<PricePlanSlot> slots, IEnumerable<ManualOverrideRequest> overrides)
     {
         var lookup = overrides.ToDictionary(x => x.SlotStart);
         foreach (var slot in slots)
@@ -395,7 +415,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
     
-    private async Task ExecuteSlotChanges(IEnumerable<OctopusPriceSlot> slots)
+    private async Task ExecuteSlotChanges(IEnumerable<PricePlanSlot> slots)
     {
         var firstSlot = slots.FirstOrDefault();
         if (firstSlot != null)
@@ -441,7 +461,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     /// </summary>
     /// <param name="slots"></param>
     /// <returns></returns>
-    private List<OctopusPriceSlot> EvaluateSlotActions(OctopusPriceSlot[]? slots)
+    private List<PricePlanSlot> EvaluateSlotActions(PricePlanSlot[]? slots)
     {
         if (slots == null)
             return [];
@@ -457,8 +477,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 slot.ActionReason = "Average price - no charge or discharge required";
             }
             
-            OctopusPriceSlot[]? cheapestSlots = null;
-            OctopusPriceSlot[]? priciestSlots = null;
+            PricePlanSlot[]? cheapestSlots = null;
+            PricePlanSlot[]? priciestSlots = null;
             decimal cheapestPrice = 100, mostExpensivePrice = 0;
             
             // See what the difference is between the target SOC and what we need now.
@@ -648,7 +668,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return slots.ToList();
     }
 
-    private void EvaluateDumpAndRechargeIfFreeRule(OctopusPriceSlot[] slots)
+    private void EvaluateDumpAndRechargeIfFreeRule(PricePlanSlot[] slots)
     {
         // Now it gets interesting. Find the groups of slots that have negative prices. So we
         // might end up with 3 negative prices, and another group of 7 negative prices. For any
@@ -673,7 +693,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
     
-    private void EvaluateScheduleActionRules(OctopusPriceSlot[] slots)
+    private void EvaluateScheduleActionRules(PricePlanSlot[] slots)
     {
         // Now apply any scheduled actions to the slots for the next 24-48 hours. 
         if (config.ScheduledActions != null && config.ScheduledActions.Any())
@@ -728,7 +748,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
     
-    private void EvaluatePriceBasedRules(OctopusPriceSlot[] slots)
+    private void EvaluatePriceBasedRules(PricePlanSlot[] slots)
     {
         var extraReason = string.Empty;
 
@@ -752,7 +772,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    private void EvaluateSolcastThresholdRule(OctopusPriceSlot[] slots)
+    private void EvaluateSolcastThresholdRule(PricePlanSlot[] slots)
     {
         var dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
         
@@ -798,7 +818,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     }
 
 
-    private void CreateSomeNegativeSlots(IEnumerable<OctopusPriceSlot> slots)
+    private void CreateSomeNegativeSlots(IEnumerable<PricePlanSlot> slots)
     {
         if (Debugger.IsAttached && ! slots.Any(x => x.value_inc_vat < 0))
         {
@@ -809,7 +829,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             
             var rand = new Random();
             var index = rand.Next(averageSlots.Length);
-            List<OctopusPriceSlot> negs = [averageSlots[index]];
+            List<PricePlanSlot> negs = [averageSlots[index]];
             for (int n = 0; n < rand.Next(5, 9); n++)
             {
                 if (--index > 0)
@@ -953,7 +973,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ExecuteSlotChanges(InverterState.Prices);
     }
 
-    private async Task ApplyIOGDispatches(IEnumerable<OctopusPriceSlot> slots)
+    private async Task ApplyIOGDispatches(IEnumerable<PricePlanSlot> slots)
     {
         if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })
         {
@@ -968,7 +988,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 var dispatches = await octopusAPI.GetIOGSmartChargeTimes(config.OctopusAPIKey, config.OctopusAccountNumber);
                 if (dispatches != null && dispatches.Any())
                 {
-                    var iogChargeSlots = new Dictionary<DateTime, OctopusPriceSlot>();
+                    var iogChargeSlots = new Dictionary<DateTime, PricePlanSlot>();
                     
                     foreach (var dispatch in dispatches)
                     {
@@ -1239,6 +1259,18 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
+    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    {
+        if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
+        {
+            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
+            return consumption;
+        }
+        
+        logger.LogWarning("Attempted to get consumption, but no account number specified");
+        return null;
+    }
+    
     public async Task ResetSimulation()
     {
         if (config.Simulate)
@@ -1294,17 +1326,20 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         logger.LogInformation("Running comparison for {A} vs {B}...", tariffA, tariffB);
 
-        var ratesATask = octopusAPI.GetOctopusRates(tariffA);
-        var ratesBTask = octopusAPI.GetOctopusRates(tariffB);
+        var start = DateTime.UtcNow;
+        var end = DateTime.UtcNow.AddDays(3);
+        
+        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end);
+        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end);
 
         await Task.WhenAll(ratesATask, ratesBTask);
         
         return new TariffComparison
         {
             TariffA = tariffA,
-            TariffAPrices = await ratesATask,
+            TariffAPrices = (await ratesATask).Take(96).ToList(),
             TariffB = tariffB,
-            TariffBPrices = await ratesBTask
+            TariffBPrices = (await ratesBTask).Take(96).ToList(),
         };
     }
 

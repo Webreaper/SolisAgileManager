@@ -14,6 +14,7 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 * Cross platform (runs on Linux, Windows, Mac, RaspPi, and docker). Very simple installation and setup
 * Works with all Octopus Smart Tariffs (Agile, Cosy, Intelligent Go, Go, Flux, etc)
 * SolCast PV forecasting to add charge/discharge strategy
+* Costs view showing day-by-day whether your system is in profit or loss
 * Scheduled actions let you charge/discharge/hold the battery SOC for particular times every day
 * Simple manual overrides - Charge or Discharge your battery with a simple click (no SolisCloud login/password)
 * Comparison Feature to track relative prices between your current tariff and alternatives, for tariff-hoppers
@@ -178,6 +179,24 @@ You'll also need to set some other config settings that control the way the char
 
 * Simulate-only - if checked, the app will run and simulate what it _would have done_ without actually making
   any changes to the behaviour.
+
+### Octopus Costs / Profits View
+
+The Costs screen allows you to see the electricity costs for your current tariffs - both import and export.
+The table view shows the amount you've imported, and the average price you paid for that imported power. 
+The exported columns show the price you were paid for the exported excess generation. The Net Cost figure
+tells you whether you were in profit or loss on a given day. A red total indicates that you've had to pay
+for some imported power; a green total indicates that you made money from your export that day.
+
+![Costs Table](https://github.com/user-attachments/assets/a1c03edd-abab-4130-aa45-265d3adc9929)
+
+Alternatively you can view the net cost/profit as chart. This view allows you to quickly see which days
+cost you, and which days made you money. 
+
+![Costs Graph](https://github.com/user-attachments/assets/395b26e6-cbe8-426e-b00a-b448921b1de7)
+
+You can select the timespan for the table and graph to view up to 6 months of history - note that longer
+time periods involve a lot of data, so can take quite a few API calls and time to process the totals.
 
 ### Intelligent Go Dispatch Management
 

@@ -1,0 +1,161 @@
+@inject IInverterManagerService inverterManagerService
+
+<PageTitle>Solis Manager</PageTitle>
+
+<ErrorBoundary>
+    <TopStatusBar PageTitle="Costs" @bind-SelectedView="selectedView" ViewSettingName="cost-view">
+        <ChildContent>
+            <div>
+                <MudSelect T="int" @bind-Value="dayRange" @bind-Value:after="RecalcConsmption" Label="Range" 
+                           Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                    @foreach (var range in DateRanges)
+                    {
+                        <MudSelectItem T="int" Value="@range.days">@range.name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
+        </ChildContent>
+    </TopStatusBar>
+
+    @if(accountValid != null &&!accountValid.Value)
+    {
+        <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
+    }
+    else if( loading || consumptionData == null)
+    {
+        <ProgressIndicator ProgressText="@ProgressMessage"/>
+    }
+    else
+    {
+        @if (selectedView == ViewSelector.ViewType.Chart)
+        {
+            <ConsumptionChart ChartData="consumptionData"/>
+        }
+        else
+        {
+            <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true"
+                      Breakpoint="Breakpoint.None" GroupBy="_groupDefinition">
+                <HeaderContent>
+                    <MudTh>Period</MudTh>
+                    <MudTh>Tariff</MudTh>
+                    <MudTh>Imported (kWh)</MudTh>
+                    <MudTh>Import Price Paid (p/kWh)</MudTh>
+                    <MudTh>Import Cost (£)</MudTh>
+                    <MudTh>Exported (kWh)</MudTh>
+                    <MudTh>Export Price Earned (p/kWh)</MudTh>
+                    <MudTh>Export Profit (£)</MudTh>
+                    <MudTh>Net Cost (£)</MudTh>
+                </HeaderContent>
+                <GroupHeaderTemplate>
+                    <MudTh Class="mud-table-cell-custom-group date-row">
+                        <DateDisplay Date="@((DateTime?)context.Key)"/>
+                    </MudTh>
+                    <MudTd>@TariffSummary(context.Items.FirstOrDefault())</MudTd>
+                    <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportConsumption, x => x.ImportCost), 2)</MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/></MudTd>
+                    <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
+                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportConsumption, x => x.ExportProfit), 2)</MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/></MudTd>
+                    <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"Colours="Price.ColorType.PositiveRed"/></MudTd>
+                </GroupHeaderTemplate>
+                <RowTemplate>
+                    <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
+                    <MudTd>@context.Tariff</MudTd>
+                    <MudTd>@Math.Round(context.ImportConsumption, 2)</MudTd>
+                    <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.ImportCost / 100M)"/>
+                    </MudTd>
+                    <MudTd>@Math.Round(context.ExportConsumption, 2)</MudTd>
+                    <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
+                    <MudTd>
+                        <Price Value="@(context.ExportProfit / 100M)"/>
+                    </MudTd>
+                    <MudTd>
+                        <Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed"/>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
+        <div><strong>Note:</strong> Consumption costs are currently shown without the standing charge.</div>
+    }
+</ErrorBoundary>
+
+@code {
+    private bool? accountValid = null;
+    private bool loading = true;
+    private SolisManagerConfig? config;
+    private IEnumerable<OctopusConsumption>? consumptionData = null;
+    private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
+    private int dayRange = 30;
+    private string ProgressMessage => $"Loading {dayRange} days of consumption and tariff data..." + 
+                                      (dayRange <= 30 ? string.Empty : " Please be patient, this may take some time.");
+
+    private (string name, int days)[] DateRanges =
+    [
+        ("1 week", 7),
+        ("2 weeks", 14),
+        ("30 days", 30),
+        ("60 days", 60),
+        ("3 months", 90),
+        ("6 months", 180),
+        ("This year", (int)(DateTime.UtcNow -new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
+    ]; 
+    
+    private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
+    private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
+    
+    private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
+                    Func<OctopusConsumption, decimal> consumptionSelector,
+                    Func<OctopusConsumption, decimal> costSelector)
+    {
+        var consumptionSlots = rates.Where(x => consumptionSelector(x) > 0.05M).ToList();
+        if (consumptionSlots.Any())
+        {
+            var totalConsumption = consumptionSlots.Sum(consumptionSelector);
+            var totalCost = consumptionSlots.Sum(costSelector);
+            return totalCost / totalConsumption;
+        }
+
+        return 0;
+    }
+    
+    private TableGroupDefinition<OctopusConsumption> _groupDefinition = new()
+    {
+        GroupName = "Period",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.PeriodStart.Date
+    };
+
+    private async Task RecalcConsmption()
+    {
+        loading = true;
+        StateHasChanged();
+
+        // Consumption data is rarely available before 2pm so if it's before 
+        // that skip 2 days. Otherwise go back one day. 
+        // Even then, export data may not be available...
+        int offset = DateTime.UtcNow.Hour < 14 ? -2 : -1;
+        
+        var end = DateTime.UtcNow.AddDays(offset);
+        var start = end.AddDays(-1 * dayRange);
+        consumptionData = await inverterManagerService.GetConsumption(start, end);
+        loading = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        config = await inverterManagerService.GetConfig();
+        accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
+        
+        await RecalcConsmption();
+
+        await base.OnInitializedAsync();
+    }
+}

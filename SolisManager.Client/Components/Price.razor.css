@@ -1,0 +1,20 @@
+.price {
+    font-weight: bold;
+    text-align: right;
+}
+
+.price-green {
+    color: darkgreen;
+}
+
+.price-red {
+    color: darkred;
+}
+
+.price-red-dark {
+    color: rgb(235, 60, 60);
+}
+
+.price-green-dark {
+    color: limegreen;
+}

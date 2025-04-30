@@ -73,7 +73,7 @@ else
                 <MudTd Style="white-space: nowrap;">@context.Start.ToString("HH:mm") - @context.End.ToString("HH:mm")</MudTd>
                 <MudTd>@Math.Round(context.Price, 2)</MudTd>
                 <MudTd>@Math.Round((decimal)context.BatterySOC, 2)%</MudTd>
-                <MudTd>@Math.Round((decimal)context.Temperature, 1)</MudTd>
+                <MudTd>@Math.Round(context.Temperature, 1)</MudTd>
                 <MudTd>@Math.Round(GetDampedForecast(context), 2)</MudTd>
                 <MudTd>@Math.Round(context.ActualKWH, 2)</MudTd>
                 <MudTd>@Math.Round(context.ImportedKWH, 2)</MudTd>

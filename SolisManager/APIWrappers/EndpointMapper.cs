@@ -69,6 +69,14 @@ public static class EndpointMapper
                 return TypedResults.Ok(result);
             });
 
+        group.MapPost("consumption",
+            async (ConsumptionRequest req, 
+                [FromServices] IInverterManagerService service) =>
+            {
+                var result = await service.GetConsumption(req.Start, req.End);
+                return TypedResults.Ok(result);
+            });
+
         return group;
     }
 

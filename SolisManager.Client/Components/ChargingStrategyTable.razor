@@ -47,7 +47,7 @@
         }
         else
         {
-            <MudTable T="OctopusPriceSlot" Items="inverterManagerService.InverterState.Prices" FixedHeader="true" 
+            <MudTable T="PricePlanSlot" Items="inverterManagerService.InverterState.Prices" FixedHeader="true" 
                       GroupBy="_groupDefinition" Dense="true" Breakpoint="Breakpoint.None" Height="100%">
                 <ColGroup>
                     <col style="width:100px;"/>
@@ -125,7 +125,7 @@
             </MudTh>;
     }
     
-    private RenderFragment SummaryRow(TableGroupData<object, OctopusPriceSlot> groupData)
+    private RenderFragment SummaryRow(TableGroupData<object, PricePlanSlot> groupData)
     {
         var date = groupData.Key as DateTime?;
         var forecastTotal = groupData.Items.Sum(x => x.pv_est_kwh);
@@ -170,7 +170,7 @@
         </div>;
     }
     
-    private TableGroupDefinition<OctopusPriceSlot> _groupDefinition = new()
+    private TableGroupDefinition<PricePlanSlot> _groupDefinition = new()
     {
         GroupName = "Date",
         Indentation = false,
@@ -179,16 +179,16 @@
         Selector = (e) => e.valid_from.Date
     };
     
-    private string ForecastEstimate(OctopusPriceSlot s) => s.pv_est_kwh != null ? 
+    private string ForecastEstimate(PricePlanSlot s) => s.pv_est_kwh != null ? 
                         Math.Round(s.pv_est_kwh.Value * forecastDamping, 2).ToString(CultureInfo.InvariantCulture) : string.Empty;
 
-    private string ForecastTooltip(OctopusPriceSlot s) => $"Solcast Power forecast: {s.pv_est_kwh}kW";
+    private string ForecastTooltip(PricePlanSlot s) => $"Solcast Power forecast: {s.pv_est_kwh}kW";
     private bool hasSolcastData = false;
     private bool isSimulateMode = false;
     private bool manualOverridesExist = false;
     private decimal forecastDamping = 1M;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
-    private string PriceStyle(OctopusPriceSlot slot) => $"text-align:center;";
+    private string PriceStyle(PricePlanSlot planSlot) => $"text-align:center;";
     
     private async Task ChangeSlotAction(ManualOverrideRequest req)
     {

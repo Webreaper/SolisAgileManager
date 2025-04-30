@@ -1,0 +1,12 @@
+.chart-area {
+    height: calc(100vh - 200px);
+    width: 100%;
+}
+
+@media screen and (max-width: 900px) {
+    .chart-area {
+        height: calc(100vh - 400px);
+        margin-bottom: 100px;
+    }
+}
+

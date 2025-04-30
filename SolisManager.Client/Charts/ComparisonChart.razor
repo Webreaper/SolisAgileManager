@@ -1,18 +1,18 @@
 @using ApexCharts
 
-@inherits ChartBase<OctopusPriceSlot>
+@inherits ChartBase<OctopusRate>
 
 <ErrorBoundary>
     <div class="chart-area">
     @if (tariffDataAvailable)
     {
             <ApexChart @ref="chart"
-                       TItem="OctopusPriceSlot"
+                       TItem="OctopusRate"
                        XAxisType="XAxisType.Datetime"
                        Options="@Options"
                        Height="@("100%")">
 
-                <ApexPointSeries TItem="OctopusPriceSlot"
+                <ApexPointSeries TItem="OctopusRate"
                                  Items="@FirstSeries"
                                  Name="@FirstName"
                                  XValue="@(e => e.valid_from)"
@@ -21,7 +21,7 @@
                                  Color="dodgerblue"
                                  Stroke="@(new SeriesStroke { Color = "dodgerblue", Width = 3 })"/>
 
-                <ApexPointSeries TItem="OctopusPriceSlot"
+                <ApexPointSeries TItem="OctopusRate"
                                  Items="@SecondSeries"
                                  Name="@SecondName"
                                  XValue="@(e => e.valid_from)"
@@ -40,13 +40,13 @@
 
 @code {
     [Parameter]
-    public IEnumerable<OctopusPriceSlot>? FirstSeries { get; set; }
+    public IEnumerable<OctopusRate>? FirstSeries { get; set; }
 
     [Parameter]
     public string? FirstName { get; set; }
 
     [Parameter]
-    public IEnumerable<OctopusPriceSlot>? SecondSeries { get; set; }
+    public IEnumerable<OctopusRate>? SecondSeries { get; set; }
 
     [Parameter]
     public string? SecondName { get; set; }
@@ -77,14 +77,17 @@
             var maxA = FirstSeries!.Max(x => x.valid_to);
             var maxB = SecondSeries!.Max(x => x.valid_to);
 
-            var closest = new List<DateTime>{ maxA, maxB }.Min(x => x);
-        
-            await chart.ZoomXAsync(DateTime.Now.ToUnixTimeMilliseconds(), 
-                closest.ToUnixTimeMilliseconds());
+            var closest = new List<DateTime?> { maxA, maxB }.Min(x => x);
+
+            if (closest != null)
+            {
+                await chart.ZoomXAsync(DateTime.Now.ToUnixTimeMilliseconds(),
+                    closest.Value.ToUnixTimeMilliseconds());
+            }
         }
     }
 
-    protected override void SetOptions(ApexChartOptions<OctopusPriceSlot> options)
+    protected override void SetOptions(ApexChartOptions<OctopusRate> options)
     {
         var yAxis = new List<YAxis>();
 

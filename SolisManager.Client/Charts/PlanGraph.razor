@@ -1,18 +1,18 @@
 @using ApexCharts
 
-@inherits ChartBase<OctopusPriceSlot>
+@inherits ChartBase<PricePlanSlot>
 
 <ErrorBoundary>
     @if (Options != null && ChartData != null && ChartData.Any())
     {
         <div class="chart-area">
             <GraphActionLegend ChartTitle="Charging Strategy Graph"/>
-            <ApexChart @ref="chart" TItem="OctopusPriceSlot" 
+            <ApexChart @ref="chart" TItem="PricePlanSlot" 
                        XAxisType="XAxisType.Datetime"
                        Options="@Options"
                        Height="@("100%")">
 
-                <ApexPointSeries TItem="OctopusPriceSlot"
+                <ApexPointSeries TItem="PricePlanSlot"
                                  Items="ChartData"
                                  Name="Price"
                                  XValue="@(e => e.valid_from)"
@@ -26,11 +26,11 @@
 </ErrorBoundary>
 
 @code {
-    [Parameter] public IEnumerable<OctopusPriceSlot> ChartData { get; set; } = [];
+    [Parameter] public IEnumerable<PricePlanSlot> ChartData { get; set; } = [];
     
     private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
 
-    private string GetColor(OctopusPriceSlot slot) => GetActionColour(slot.ActionToExecute.action);
+    private string GetColor(PricePlanSlot planSlot) => GetActionColour(planSlot.ActionToExecute.action);
 
     private string GetActionColour(SlotAction action) =>
             action switch
@@ -51,7 +51,7 @@
                </div>;
     }
 
-    protected override void SetOptions(ApexChartOptions<OctopusPriceSlot> options)
+    protected override void SetOptions(ApexChartOptions<PricePlanSlot> options)
     {
         var yAxis = new List<YAxis>
         {

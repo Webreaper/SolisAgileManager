@@ -26,15 +26,15 @@ public class HistoryEntry
 
     public HistoryEntry() { }
 
-    public HistoryEntry(OctopusPriceSlot slot, SolisManagerState state)
+    public HistoryEntry(PricePlanSlot planSlot, SolisManagerState state)
     {
-        Start = slot.valid_from;
-        End = slot.valid_to;
-        Price = slot.value_inc_vat;
-        Type = slot.PriceType;
-        Action = slot.ActionToExecute.action;
-        ForecastKWH = slot.pv_est_kwh ?? 0;
-        Reason = slot.ActionReason;
+        Start = planSlot.valid_from;
+        End = planSlot.valid_to;
+        Price = planSlot.value_inc_vat;
+        Type = planSlot.PriceType;
+        Action = planSlot.ActionToExecute.action;
+        ForecastKWH = planSlot.pv_est_kwh ?? 0;
+        Reason = planSlot.ActionReason;
         BatterySOC = state.BatterySOC;
     }
 

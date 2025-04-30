@@ -41,4 +41,5 @@
     flex: 1 1;
     display: flex;
     justify-content: space-around;
+    align-items: baseline;
 }

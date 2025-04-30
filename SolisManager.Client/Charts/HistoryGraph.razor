@@ -51,7 +51,7 @@
                              Items="FilteredHistoryData"
                              Name="PV Yield (kWh)"
                              XValue="@(e => e.Start)"
-                             YValue="@(e => e.ActualKWH)"
+                             YValue="@(e => Math.Max(0, e.ActualKWH))"
                              SeriesType="SeriesType.Area"
                              Color="darkorange"
                              Stroke="@(new SeriesStroke { Color = "darkorange", Width = 1 })"/>

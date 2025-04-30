@@ -21,7 +21,8 @@
                     <div class="time-selection">
                         <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start" disabled="scheduledAction.Disabled"/>
                         <div class="schedule-field action-picker">
-                            <MudSelect @bind-Value="scheduledAction.Action" Label="Action" Disabled="scheduledAction.Disabled" Variant="UIConstants.MudVariant">
+                            <MudSelect @bind-Value="scheduledAction.Action" Label="Action" Disabled="scheduledAction.Disabled" Variant="UIConstants.MudVariant"
+                                       Dense="true" Margin="Margin.Dense">
                                 @SlotChoice(SlotAction.Charge)
                                 @SlotChoice(SlotAction.Discharge)
                                 @SlotChoice(SlotAction.DoNothing)
@@ -32,11 +33,11 @@
                         {
                             <div class="schedule-field soc-control">
                                 <MudNumericField T="int?" @bind-Value="@scheduledAction.SOCTrigger" Label="@SOCText(scheduledAction)"
-                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant"/>
+                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant" Margin="Margin.Dense"/>
                             </div>
                             <div class="schedule-field amps-control">
                                 <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps"
-                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant"/>
+                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant" Margin="Margin.Dense"/>
                             </div>
                         }
                         <div class="schedule-field">

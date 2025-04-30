@@ -23,11 +23,18 @@ public enum SlotAction
     Hold
 }
 
-public record OctopusPriceSlot
+public record OctopusRate
+{
+    public decimal value_inc_vat { get; set; }
+    public DateTime valid_from { get; set; }
+    public DateTime? valid_to { get; set; } = DateTime.MaxValue;
+}
+
+public record PricePlanSlot
 {
     public decimal value_inc_vat { get; set;  }
     public DateTime valid_from { get; set;  }
-    public DateTime valid_to { get; set;  }
+    public DateTime valid_to { get; set;  } = DateTime.UtcNow;
     public PriceType PriceType { get; set; } = PriceType.Average;
     public SlotAction PlanAction { get; set; } = SlotAction.DoNothing;
     
