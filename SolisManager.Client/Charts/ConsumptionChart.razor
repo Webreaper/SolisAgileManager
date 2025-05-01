@@ -15,7 +15,7 @@
                 <ApexPointSeries TItem="ChartItem"
                                  Items="@groupedData"
                                  Name="Cost"
-                                 XValue="@(e => e.Date)"
+                                 XValue="@(e => e.Key)"
                                  YValue="@(e => e.CostGBP)"
                                  SeriesType="SeriesType.Bar"
                                  Color="lightgrey"
@@ -29,9 +29,12 @@
     [Parameter]
     public IEnumerable<OctopusConsumption>? ChartData { get; set; }
 
+    [Parameter] 
+    public Func<DateTime, object> GroupingSelector { get; set; } = e => e.Date;
+
     public class ChartItem
     {
-        public DateTime Date { get; set; }
+        public object Key { get; set; }
         public decimal CostGBP { get; set; }
     }
     
@@ -41,10 +44,10 @@
     protected override Task OnParametersSetAsync()
     {
         groupedData = (ChartData ?? []) 
-            .GroupBy(x => x.PeriodStart.Date)
+            .GroupBy(x => GroupingSelector(x.PeriodStart))
             .Select(x => new ChartItem
                 {
-                    Date = x.Key.Date,
+                    Key = x.Key,
                     CostGBP = x.Sum(c => c.NetCost / 100M)
                 })
             .ToList();

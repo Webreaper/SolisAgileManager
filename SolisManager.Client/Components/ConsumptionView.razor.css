@@ -26,7 +26,7 @@
     display: flex;
     flex-direction: row;
     column-gap: 10px;
-    margin: 10px;
+    align-items: center;
 }
 
 .total-cost {
