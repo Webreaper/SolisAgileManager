@@ -32,7 +32,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
-    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime? from, DateTime? to)
+    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime from, DateTime to)
     {
         var cacheKey = $"prices-{tariffCode.ToLower()}-{from:yyyyMMddHHmm}-{to:yyyyMMddHHmm}";
 
@@ -40,6 +40,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             return rates;
 
         var product = tariffCode.GetProductFromTariffCode();
+        var pageSize = ((to - from).TotalDays / 30) * 200;
 
         // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/
 
@@ -55,7 +56,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .SetQueryParams(new
                 {
                     period_from = from,
-                    period_to = to
+                    period_to = to,
+                    page_size = pageSize
                 });
 
             var prices = await url.GetJsonAsync<OctopusPrices?>();
@@ -111,7 +113,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return [];
     }
 
-    public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime? from, DateTime? to)
+    public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime from, DateTime to)
     {
         var rates = await GetOctopusTariffPrices(tariffCode, from, to);
         
@@ -510,16 +512,18 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 {
                     await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true);
 
-                    var lookup = importConsumption.ToDictionary(
-                        x => x.interval_start,
-                        x => new OctopusConsumption
-                        {
-                            PeriodStart = x.interval_start,
-                            ImportConsumption = x.consumption,
-                            Tariff = x.tariff ?? "Unknown",
-                            DailyStandingCharge = x.dailyStandingCharge,
-                            ImportPrice = x.price ?? 0,
-                        });
+                    var lookup = importConsumption
+                            .DistinctBy(x => x.interval_start)
+                            .ToDictionary(
+                                x => x.interval_start,
+                                x => new OctopusConsumption
+                                {
+                                    PeriodStart = x.interval_start,
+                                    ImportConsumption = x.consumption,
+                                    Tariff = x.tariff ?? "Unknown",
+                                    DailyStandingCharge = x.dailyStandingCharge,
+                                    ImportPrice = x.price ?? 0,
+                                });
 
                     if (exportConsumption.Any())
                     {
@@ -634,6 +638,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         var meter = meterPoints.meters.LastOrDefault();
         var serial = meter?.serial_number;
 
+        var pageSize = ((endDate - startDate).TotalDays / 30) * 200;
+        
         if (!string.IsNullOrEmpty(serial))
         {
             try
@@ -650,7 +656,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     {
                         period_from = startDate,
                         period_to = endDate,
-                        page_size = 100,
+                        page_size = pageSize,
                         order_by = "period"
                     });
                     

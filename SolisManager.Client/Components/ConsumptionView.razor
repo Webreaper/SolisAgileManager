@@ -111,7 +111,8 @@
         ("60 days", 60),
         ("3 months", 90),
         ("6 months", 180),
-        ("This year", (int)(DateTime.UtcNow -new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
+        ("1 year", 365),
+        ("This year", (int)(DateTime.UtcNow - new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
     ];
 
     private readonly List<GroupingSelection<OctopusConsumption>> Groupings = new();
@@ -157,7 +158,6 @@
                 GroupingSelector = (e) => ISOWeek.GetWeekOfYear(e),
                 SummaryTextRenderer = x => @<div>Week @x.Key</div>,
             });
-
 
         Groupings.Add(new()
         {

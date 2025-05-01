@@ -26,16 +26,16 @@
 </ErrorBoundary>
 
 @code {
-    [Parameter]
+    [Parameter, EditorRequired]
     public IEnumerable<OctopusConsumption>? ChartData { get; set; }
 
-    [Parameter] 
+    [Parameter, EditorRequired] 
     public Func<DateTime, object> GroupingSelector { get; set; } = e => e.Date;
 
     public class ChartItem
     {
-        public object Key { get; set; }
-        public decimal CostGBP { get; set; }
+        public object Key { get; init; }
+        public decimal CostGBP { get; init; }
     }
     
     private IEnumerable<ChartItem>? groupedData = null;
