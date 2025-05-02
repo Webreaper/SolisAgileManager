@@ -559,7 +559,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         var tariffs = new List<(DateTime? valid_from, String tariff_code)>();
         
-        foreach (var agreement in meter.agreements.OrderBy(x => x.valid_from))
+        // For some reason it's possible to have a tariff agreement with the same
+        // start and end date. So filter them out!
+        var validAggreements = meter.agreements
+            .Where(x => (x.valid_to == null || (x.valid_to - x.valid_from)?.TotalDays > 0))
+            .OrderBy(x => x.valid_from)
+            .ToList();
+        
+        foreach (var agreement in validAggreements) 
         {
             if (agreement.valid_to < minDate)
                 continue;
