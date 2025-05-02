@@ -155,15 +155,15 @@
         Groupings.Add(new()
             {
                 Name = "Week",
-                GroupingSelector = (e) => ISOWeek.GetWeekOfYear(e),
-                SummaryTextRenderer = x => @<div>Week @x.Key</div>,
+                GroupingSelector = (e) => $"{e.Year} Week {ISOWeek.GetWeekOfYear(e)}",
+                SummaryTextRenderer = x => @<div>@x.Key</div>,
             });
 
         Groupings.Add(new()
         {
             Name = "Month",
-            GroupingSelector = e => e.Month,
-            SummaryTextRenderer = x => @<div>@DateTimeFormatInfo.CurrentInfo.GetMonthName((int)x.Key)</div>,
+            GroupingSelector = e => $"{DateTimeFormatInfo.CurrentInfo.GetAbbreviatedMonthName(e.Month)} {e.Year}",
+            SummaryTextRenderer = x => @<div>@x.Key)</div>,
         });
 
         foreach (var grouping in Groupings)
