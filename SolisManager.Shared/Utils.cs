@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
@@ -88,5 +89,21 @@ public static class Utils
             config.SnackbarConfiguration.ShowTransitionDuration = 250;
             config.SnackbarConfiguration.HideTransitionDuration = 150;
         });
+    }
+    
+    public static DateTime FirstDateOfWeek(this DateTime date)
+    {
+        var offset = date.DayOfWeek switch
+        {
+            DayOfWeek.Tuesday => 1,
+            DayOfWeek.Wednesday => 2,
+            DayOfWeek.Thursday => 3,
+            DayOfWeek.Friday => 4,
+            DayOfWeek.Saturday => 5,
+            DayOfWeek.Sunday => 6,
+            _ => 0
+        };
+        
+        return date.AddDays(-1 * offset);
     }
 }

@@ -115,7 +115,7 @@
         ("This year", (int)(DateTime.UtcNow - new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
     ];
 
-    private readonly List<GroupingSelection<OctopusConsumption>> Groupings = new();
+    private readonly List<GroupingSelection<OctopusConsumption, object>> Groupings = new();
     
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
@@ -139,8 +139,8 @@
     {
         public string Name { get; init; }
         public Func<DateTime, object> GroupingSelector { get; set; }
-        public TableGroupDefinition<OctopusConsumption> GroupingDefinition { get; set; }
-        public Func<TableGroupData<object,OctopusConsumption>, RenderFragment?> SummaryTextRenderer { get; init; }
+        public TableGroupDefinition<T> GroupingDefinition { get; set; }
+        public Func<TableGroupData<object,T>, RenderFragment?> SummaryTextRenderer { get; init; }
     }
 
     private void InitialiseGroupings()
