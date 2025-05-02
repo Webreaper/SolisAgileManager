@@ -12,7 +12,7 @@ public interface IInverterManagerService
 
     Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB);
 
-    Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end);
+    Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy);
 
     public Task OverrideSlotAction(ManualOverrideRequest change);
     public Task TestCharge();

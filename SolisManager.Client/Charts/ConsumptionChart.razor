@@ -1,22 +1,22 @@
 @using ApexCharts
 
-@inherits ChartBase<ConsumptionChart.ChartItem>
+@inherits ChartBase<GroupedConsumption>
 
 <ErrorBoundary>
-    @if (groupedData != null)
+    @if (ChartData != null)
     {
         <div class="chart-area">
             <ApexChart @ref="chart"
-                       TItem="ChartItem"
+                       TItem="GroupedConsumption"
                        XAxisType="XAxisType.Datetime"
                        Options="@Options"
                        Height="@("100%")">
 
-                <ApexPointSeries TItem="ChartItem"
-                                 Items="@groupedData"
+                <ApexPointSeries TItem="GroupedConsumption"
+                                 Items="@ChartData"
                                  Name="Cost"
-                                 XValue="@(e => e.Key)"
-                                 YValue="@(e => e.CostGBP)"
+                                 XValue="@(e => e.Description)"
+                                 YValue="@(e => e.NetCost)"
                                  SeriesType="SeriesType.Bar"
                                  Color="lightgrey"
                                  PointColor="e => GetColor(e)"/>
@@ -27,35 +27,11 @@
 
 @code {
     [Parameter, EditorRequired]
-    public IEnumerable<OctopusConsumption>? ChartData { get; set; }
+    public IEnumerable<GroupedConsumption>? ChartData { get; set; }
 
-    [Parameter, EditorRequired] 
-    public Func<DateTime, object> GroupingSelector { get; set; } = e => e.Date;
+    private string GetColor(GroupedConsumption item) => item.NetCost > 0 ? "firebrick" : "green";
 
-    public class ChartItem
-    {
-        public object Key { get; init; }
-        public decimal CostGBP { get; init; }
-    }
-    
-    private IEnumerable<ChartItem>? groupedData = null;
-    private string GetColor(ChartItem item) => item.CostGBP > 0 ? "firebrick" : "green";
-
-    protected override Task OnParametersSetAsync()
-    {
-        groupedData = (ChartData ?? []) 
-            .GroupBy(x => GroupingSelector(x.PeriodStart))
-            .Select(x => new ChartItem
-                {
-                    Key = x.Key,
-                    CostGBP = x.Sum(c => c.NetCost / 100M)
-                })
-            .ToList();
-
-        return base.OnParametersSetAsync();
-    }
-
-    protected override void SetOptions(ApexChartOptions<ChartItem> options)
+    protected override void SetOptions(ApexChartOptions<GroupedConsumption> options)
     {
         var yAxis = new List<YAxis>();
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
@@ -1259,18 +1260,64 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy)
     {
         if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
             var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
-            return consumption;
+            return GroupConsumptionData(consumption, groupBy);
         }
         
         logger.LogWarning("Attempted to get consumption, but no account number specified");
-        return null;
+        return [];
     }
     
+    
+    private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> consumption, GroupByType groupBy)
+    {
+        Func<OctopusConsumption, object> groupSelector = groupBy switch
+        {
+            GroupByType.Month => x => (x.PeriodStart.Year, x.PeriodStart.Month),
+            GroupByType.Week => x => (x.PeriodStart.Year, ISOWeek.GetWeekOfYear(x.PeriodStart)),
+            _ => x => x.PeriodStart.Date,
+        };
+
+        return consumption.GroupBy(groupSelector)
+            .Select(x => new GroupedConsumption
+            {
+                GroupingKey = x.Key,
+                Description = groupBy switch
+                {
+                    GroupByType.Week => $"{(((int year, int _))x.Key).year} Week {(((int _, int week))x.Key).week}",
+                    GroupByType.Month => $"{(((int year, int _))x.Key).year}-{(((int _, int month))x.Key).month}",
+                    _ => $"{((DateTime?)x.Key):dd-MMM-yyyy}"
+                },
+                Tariffs = string.Join( ", ",x.Select( x => x.Tariff).Distinct()),
+                TotalImport = x.Sum(x => x.ImportConsumption),
+                TotalExport = x.Sum(x => x.ExportConsumption),
+                TotalImportCost = x.Sum(x => x.ImportCost),
+                TotalExportProfit = x.Sum(x => x.ExportProfit),
+                AverageImportPrice = WeightedAverage(x, x => x.ImportConsumption, x => x.ImportCost),
+                AverageExportPrice = WeightedAverage(x, x => x.ExportConsumption, x => x.ExportProfit),
+                AverageStandingCharge = x.Average(x => x.DailyStandingCharge ?? 0),
+            }).ToList();
+    }
+    
+    private static decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
+        Func<OctopusConsumption, decimal> consumptionSelector,
+        Func<OctopusConsumption, decimal> costSelector)
+    {
+        var consumptionSlots = rates.Where(x => consumptionSelector(x) > 0.05M).ToList();
+        if (consumptionSlots.Any())
+        {
+            var totalConsumption = consumptionSlots.Sum(consumptionSelector);
+            var totalCost = consumptionSlots.Sum(costSelector);
+            return totalCost / totalConsumption;
+        }
+
+        return 0;
+    }
+
     public async Task ResetSimulation()
     {
         if (config.Simulate)

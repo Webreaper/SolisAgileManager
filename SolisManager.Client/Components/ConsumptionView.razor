@@ -13,11 +13,11 @@
                         <MudSelectItem T="int" Value="@range.days">@range.name</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="GroupingSelection<OctopusConsumption>" @bind-Value="selectedGrouping" @bind-Value:after="RecalcConsmption" 
+                <MudSelect T="GroupByType" @bind-Value="selectedGrouping" @bind-Value:after="RecalcConsmption" 
                            Label="Group By" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
-                    @foreach (var group in Groupings)
+                    @foreach (var group in Enum.GetValues<GroupByType>())
                     {
-                        <MudSelectItem T="GroupingSelection<OctopusConsumption>" Value="@group">@group.Name</MudSelectItem>
+                        <MudSelectItem T="GroupByType" Value="@group">@group.Humanize()</MudSelectItem>
                     }
                 </MudSelect>
                 <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
@@ -37,14 +37,13 @@
     {
         @if (selectedView == ViewSelector.ViewType.Chart)
         {
-            <ConsumptionChart ChartData="consumptionData" GroupingSelector="selectedGrouping.GroupingSelector"/>
+            <ConsumptionChart ChartData="consumptionData"/>
         }
         else
         {
-            <MudTable Items="consumptionData.OrderByDescending(x => x.PeriodStart)" Dense="true"
-                      Breakpoint="Breakpoint.None" GroupBy="selectedGrouping.GroupingDefinition">
+            <MudTable Items="consumptionData" Dense="true" Breakpoint="Breakpoint.None">
                 <HeaderContent>
-                    <MudTh>@selectedGrouping.Name</MudTh>
+                    <MudTh>Period</MudTh>
                     <MudTh>Tariff</MudTh>
                     <MudTh>Imported (kWh)</MudTh>
                     <MudTh>Import Price Paid (p/kWh)</MudTh>
@@ -54,35 +53,16 @@
                     <MudTh>Export Profit (£)</MudTh>
                     <MudTh>Net Cost (£)</MudTh>
                 </HeaderContent>
-                <GroupHeaderTemplate>
-                    <MudTh Class="mud-table-cell-custom-group date-row">
-                        @selectedGrouping.SummaryTextRenderer(context)
-                    </MudTh>
-                    <MudTd>@TariffSummary(context.Items.FirstOrDefault())</MudTd>
-                    <MudTd>@Math.Round(context.Items.Sum(x => x.ImportConsumption), 2)</MudTd>
-                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ImportConsumption, x => x.ImportCost), 2)</MudTd>
-                    <MudTd><Price Value="@(context.Items.Sum(x => x.ImportCost) / 100M)"/></MudTd>
-                    <MudTd>@Math.Round(context.Items.Sum(x => x.ExportConsumption), 2)</MudTd>
-                    <MudTd>@Math.Round(WeightedAverage(context.Items, x => x.ExportConsumption, x => x.ExportProfit), 2)</MudTd>
-                    <MudTd><Price Value="@(context.Items.Sum(x => x.ExportProfit) / 100m)"/></MudTd>
-                    <MudTd><Price Value="@(context.Items.Sum(x => x.NetCost) / 100M)"Colours="Price.ColorType.PositiveRed"/></MudTd>
-                </GroupHeaderTemplate>
                 <RowTemplate>
-                    <MudTd>@context.PeriodStart.DisplayDateTime()</MudTd>
-                    <MudTd>@context.Tariff</MudTd>
-                    <MudTd>@Math.Round(context.ImportConsumption, 2)</MudTd>
-                    <MudTd>@Math.Round(context.ImportPrice, 2)</MudTd>
-                    <MudTd>
-                        <Price Value="@(context.ImportCost / 100M)"/>
-                    </MudTd>
-                    <MudTd>@Math.Round(context.ExportConsumption, 2)</MudTd>
-                    <MudTd>@Math.Round(context.ExportPrice, 2)</MudTd>
-                    <MudTd>
-                        <Price Value="@(context.ExportProfit / 100M)"/>
-                    </MudTd>
-                    <MudTd>
-                        <Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed"/>
-                    </MudTd>
+                    <MudTd>@context.Description</MudTd>
+                    <MudTd>@context.Tariffs</MudTd>
+                    <MudTd>@Math.Round(context.TotalImport, 2)</MudTd>
+                    <MudTd>@Math.Round(context.AverageImportPrice, 2)</MudTd>
+                    <MudTd><Price Value="@(context.TotalImportCost / 100M)"/></MudTd>
+                    <MudTd>@Math.Round(context.TotalExport, 2)</MudTd>
+                    <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
+                    <MudTd><Price Value="@(context.TotalExportProfit / 100M)"/></MudTd>
+                    <MudTd><Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed"/></MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -95,13 +75,13 @@
     private bool? accountValid = null;
     private bool loading = true;
     private SolisManagerConfig? config;
-    private IEnumerable<OctopusConsumption>? consumptionData = null;
+    private IEnumerable<GroupedConsumption>? consumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private int dayRange = 30;
     private string ProgressMessage => $"Loading {dayRange} days of consumption and tariff data..." + 
                                       (dayRange <= 30 ? string.Empty : " Please be patient, this may take some time.");
-
-    private GroupingSelection<OctopusConsumption> selectedGrouping;
+    private GroupByType selectedGrouping = GroupByType.Day;
+    
 
     private (string name, int days)[] DateRanges =
     [
@@ -115,70 +95,10 @@
         ("This year", (int)(DateTime.UtcNow - new DateTime(DateTime.UtcNow.Year, 1, 1)).TotalDays),
     ];
 
-    private readonly List<GroupingSelection<OctopusConsumption>> Groupings = new();
-    
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
     
-    private decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
-                    Func<OctopusConsumption, decimal> consumptionSelector,
-                    Func<OctopusConsumption, decimal> costSelector)
-    {
-        var consumptionSlots = rates.Where(x => consumptionSelector(x) > 0.05M).ToList();
-        if (consumptionSlots.Any())
-        {
-            var totalConsumption = consumptionSlots.Sum(consumptionSelector);
-            var totalCost = consumptionSlots.Sum(costSelector);
-            return totalCost / totalConsumption;
-        }
-
-        return 0;
-    }
-
-    private class GroupingSelection<T>
-    {
-        public required string Name { get; init; }
-        public required Func<DateTime, object> GroupingSelector { get; set; }
-        public TableGroupDefinition<T> GroupingDefinition { get; set; }
-        public required Func<TableGroupData<object,T>, RenderFragment?> SummaryTextRenderer { get; init; }
-    }
-
-    private void InitialiseGroupings()
-    {
-        Groupings.Add(new GroupingSelection<OctopusConsumption>
-            {
-                Name = "Day",
-                GroupingSelector = x => x.Date,
-                SummaryTextRenderer = x => @<DateDisplay Date="@((DateTime?)x.Key)"/>,
-            });
-
-        Groupings.Add(new GroupingSelection<OctopusConsumption>
-            {
-                Name = "Week",
-                GroupingSelector = (e) => $"{e.Year} Week {ISOWeek.GetWeekOfYear(e)}",
-                SummaryTextRenderer = x => @<div>@x.Key</div>,
-            });
-
-        Groupings.Add(new GroupingSelection<OctopusConsumption>
-        {
-            Name = "Month",
-            GroupingSelector = e => $"{DateTimeFormatInfo.CurrentInfo.GetAbbreviatedMonthName(e.Month)} {e.Year}",
-            SummaryTextRenderer = x => @<div>@x.Key)</div>,
-        });
-
-        foreach (var grouping in Groupings)
-            grouping.GroupingDefinition = new()
-            {
-                GroupName = grouping.Name,
-                Indentation = false,
-                Expandable = true,
-                IsInitiallyExpanded = false,
-                Selector = x => grouping.GroupingSelector(x.PeriodStart)
-            };
-        
-        selectedGrouping = Groupings.First();
-    }
-
+   
     private async Task RecalcConsmption()
     {
         loading = true;
@@ -191,15 +111,14 @@
         
         var end = DateTime.UtcNow.AddDays(offset);
         var start = end.AddDays(-1 * dayRange);
-        consumptionData = await inverterManagerService.GetConsumption(start, end);
+        consumptionData = await inverterManagerService.GetConsumption(start, end, selectedGrouping);
+        
         loading = false;
         StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
     {
-        InitialiseGroupings();
-        
         config = await inverterManagerService.GetConfig();
         accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
         

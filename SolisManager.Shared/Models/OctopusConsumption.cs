@@ -13,3 +13,27 @@ public class OctopusConsumption
     public decimal ExportProfit => ExportPrice * ExportConsumption;
     public decimal NetCost => ImportCost - ExportProfit;
 }
+
+public enum GroupByType
+{
+    Day,
+    Week,
+    Month
+};
+
+public class GroupedConsumption
+{
+    public DateTime? StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public object? GroupingKey { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string Tariffs { get; set; } = string.Empty;
+    public decimal AverageStandingCharge { get; set; }
+    public decimal TotalImport { get; set; }
+    public decimal TotalImportCost { get; set; }
+    public decimal AverageImportPrice { get; set; }
+    public decimal TotalExport { get; set; }
+    public decimal TotalExportProfit { get; set; }
+    public decimal AverageExportPrice { get; set; }
+    public decimal NetCost => TotalImportCost - TotalExportProfit;
+}

@@ -73,7 +73,7 @@ public static class EndpointMapper
             async (ConsumptionRequest req, 
                 [FromServices] IInverterManagerService service) =>
             {
-                var result = await service.GetConsumption(req.Start, req.End);
+                var result = await service.GetConsumption(req.Start, req.End, req.GroupBy);
                 return TypedResults.Ok(result);
             });
 
