@@ -45,6 +45,7 @@
                 <HeaderContent>
                     <MudTh>Period</MudTh>
                     <MudTh>Tariff</MudTh>
+                    <MudTh>Standing Charge</MudTh>
                     <MudTh>Imported (kWh)</MudTh>
                     <MudTh>Import Price Paid (p/kWh)</MudTh>
                     <MudTh>Import Cost (£)</MudTh>
@@ -54,15 +55,16 @@
                     <MudTh>Net Cost (£)</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.Description</MudTd>
+                    <MudTd><DateDisplay Date="@context.StartTime"/></MudTd>
                     <MudTd>@context.Tariffs</MudTd>
+                    <MudTd>@Math.Round(context.AverageStandingCharge, 2)</MudTd>
                     <MudTd>@Math.Round(context.TotalImport, 2)</MudTd>
                     <MudTd>@Math.Round(context.AverageImportPrice, 2)</MudTd>
-                    <MudTd><Price Value="@(context.TotalImportCost / 100M)"/></MudTd>
+                    <MudTd><Price Value="@(context.TotalImportCost)"/></MudTd>
                     <MudTd>@Math.Round(context.TotalExport, 2)</MudTd>
                     <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
-                    <MudTd><Price Value="@(context.TotalExportProfit / 100M)"/></MudTd>
-                    <MudTd><Price Value="@(context.NetCost / 100M)" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    <MudTd><Price Value="@(context.TotalExportProfit)"/></MudTd>
+                    <MudTd><Price Value="@(context.NetCost)" Colours="Price.ColorType.PositiveRed"/></MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -96,7 +98,7 @@
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
-    private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) / 100M ?? 0M;
+    private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) ?? 0M;
     
    
     private async Task RecalcConsmption()

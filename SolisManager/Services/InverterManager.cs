@@ -1265,6 +1265,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
             var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
+            
             return GroupConsumptionData(consumption, groupBy);
         }
         
@@ -1285,22 +1286,25 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return consumption.GroupBy(groupSelector)
             .Select(x => new GroupedConsumption
             {
-                GroupingKey = x.Key,
-                Description = groupBy switch
+                GroupingKey = groupBy switch
                 {
-                    GroupByType.Week => $"{(((int year, int _))x.Key).year} Week {(((int _, int week))x.Key).week}",
-                    GroupByType.Month => $"{(((int year, int _))x.Key).year}-{(((int _, int month))x.Key).month}",
-                    _ => $"{((DateTime?)x.Key):dd-MMM-yyyy}"
+                    GroupByType.Month => x.Key,
+                    GroupByType.Week => x.Key,
+                    _ => x.Key
                 },
+                StartTime = x.Min(p => p.PeriodStart),
+                EndTime = x.Max(p => p.PeriodStart),
                 Tariffs = string.Join( ", ",x.Select( x => x.Tariff).Distinct()),
                 TotalImport = x.Sum(x => x.ImportConsumption),
                 TotalExport = x.Sum(x => x.ExportConsumption),
-                TotalImportCost = x.Sum(x => x.ImportCost),
-                TotalExportProfit = x.Sum(x => x.ExportProfit),
+                TotalImportCost = x.Sum(x => x.ImportCost)/ 100M,
+                TotalExportProfit = x.Sum(x => x.ExportProfit) / 100M,
                 AverageImportPrice = WeightedAverage(x, x => x.ImportConsumption, x => x.ImportCost),
                 AverageExportPrice = WeightedAverage(x, x => x.ExportConsumption, x => x.ExportProfit),
                 AverageStandingCharge = x.Average(x => x.DailyStandingCharge ?? 0),
-            }).ToList();
+            })
+            .OrderByDescending(x => x.StartTime)
+            .ToList();
     }
     
     private static decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 

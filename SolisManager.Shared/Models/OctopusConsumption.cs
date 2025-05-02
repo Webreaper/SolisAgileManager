@@ -23,10 +23,9 @@ public enum GroupByType
 
 public class GroupedConsumption
 {
+    public object? GroupingKey { get; set; }
     public DateTime? StartTime { get; set; }
     public DateTime? EndTime { get; set; }
-    public object? GroupingKey { get; set; }
-    public string Description { get; set; } = string.Empty;
     public string Tariffs { get; set; } = string.Empty;
     public decimal AverageStandingCharge { get; set; }
     public decimal TotalImport { get; set; }

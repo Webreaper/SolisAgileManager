@@ -15,7 +15,7 @@
                 <ApexPointSeries TItem="GroupedConsumption"
                                  Items="@ChartData"
                                  Name="Cost"
-                                 XValue="@(e => e.Description)"
+                                 XValue="@(e => e.StartTime?.Date)"
                                  YValue="@(e => e.NetCost)"
                                  SeriesType="SeriesType.Bar"
                                  Color="lightgrey"

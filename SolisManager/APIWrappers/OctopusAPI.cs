@@ -484,6 +484,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(string apiKey, string accountNumber, DateTime startDate, DateTime endDate)
     {
+        var cacheKey = $"consumption-{accountNumber.ToLower()}-{startDate:yyyyMMddHH}-{endDate:yyyyMMddHH}";
+
+        if (memoryCache.TryGetValue<IEnumerable<OctopusConsumption>>(cacheKey, out var result))
+            return result;
+        
         logger.LogInformation("Querying consumption data from {S} to {E}", startDate, endDate);
         
         // Do this first and cache it for the following requests
@@ -542,7 +547,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     else
                         logger.LogWarning("No consumption data found from export meter");
                     
-                    return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+                    result = lookup.Values.OrderBy(x => x.PeriodStart).ToList();
+                    memoryCache.Set(cacheKey, result, _ratesCacheOptions);
+                    return result;
                 }
 
                 logger.LogWarning("No consumption data found from import meter");
