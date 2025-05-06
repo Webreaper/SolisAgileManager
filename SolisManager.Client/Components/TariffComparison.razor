@@ -33,16 +33,20 @@
     private string? selectedTariff;
     private string? currentTariff;
     private bool loading = true;
+    private CancellationTokenSource tokenSource = new();
 
     private async Task RecalcNewComparison()
     {
         if (!string.IsNullOrEmpty(currentTariff) && !string.IsNullOrEmpty(selectedTariff))
         {
+            tokenSource.Cancel();
+            tokenSource = new();
+            
             var config = await inverterManagerService.GetConfig();
             config.LastComparisonTariff = selectedTariff;
             await inverterManagerService.SaveConfig(config);
 
-            var newComparison = await inverterManagerService.GetTariffComparisonData(currentTariff, selectedTariff);
+            var newComparison = await inverterManagerService.GetTariffComparisonData(currentTariff, selectedTariff, tokenSource.Token);
 
             if (newComparison.TariffAPrices.Any() && newComparison.TariffBPrices.Any())
             {

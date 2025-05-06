@@ -1,4 +1,5 @@
 @inject IInverterManagerService inverterManagerService
+@implements IDisposable
 
 <PageTitle>Solis Manager</PageTitle>
 
@@ -79,6 +80,7 @@
     private SolisManagerConfig? config;
     private IEnumerable<GroupedConsumption>? consumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
+    private CancellationTokenSource tokenSource = new();
     private int dayRange = 30;
     private string ProgressMessage => $"Loading {dayRange} days of consumption and tariff data..." + 
                                       (dayRange <= 30 ? string.Empty : " Please be patient, this may take some time.");
@@ -100,12 +102,19 @@
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) ?? 0M;
     
-   
+    public void Dispose()
+    {
+        tokenSource.Cancel();
+    }
+
     private async Task RecalcConsmption()
     {
         loading = true;
         StateHasChanged();
 
+        tokenSource.Cancel();
+        tokenSource = new();
+        
         // Consumption data is rarely available before 2pm so if it's before 
         // that skip 2 days. Otherwise go back one day. 
         // Even then, export data may not be available...
@@ -113,7 +122,7 @@
         
         var end = DateTime.UtcNow.AddDays(offset);
         var start = end.AddDays(-1 * dayRange);
-        consumptionData = await inverterManagerService.GetConsumption(start, end, selectedGrouping);
+        consumptionData = await inverterManagerService.GetConsumption(start, end, selectedGrouping, tokenSource.Token);
         
         loading = false;
         StateHasChanged();

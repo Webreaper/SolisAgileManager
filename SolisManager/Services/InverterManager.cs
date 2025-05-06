@@ -283,7 +283,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 logger.LogTrace("Refreshing data...");
 
                 var start = DateTime.Now.RoundToHalfHour();
-                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, start.AddDays(3));
+                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, 
+                    start.AddDays(3), CancellationToken.None);
 
                 slots = rates.Where(x => x.valid_from >= start )
                              .Select(x => new PricePlanSlot
@@ -1260,11 +1261,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
     {
         if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
-            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
+            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
             
             return GroupConsumptionData(consumption, groupBy);
         }
@@ -1373,15 +1374,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB)
+    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB, CancellationToken token)
     {
         logger.LogInformation("Running comparison for {A} vs {B}...", tariffA, tariffB);
 
         var start = DateTime.UtcNow;
         var end = DateTime.UtcNow.AddDays(3);
         
-        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end);
-        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end);
+        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end, token);
+        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end, token);
 
         await Task.WhenAll(ratesATask, ratesBTask);
         

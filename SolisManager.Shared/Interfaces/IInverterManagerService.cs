@@ -10,9 +10,9 @@ public interface IInverterManagerService
     public Task<SolisManagerConfig> GetConfig();
     public Task<ConfigSaveResponse> SaveConfig(SolisManagerConfig config);
 
-    Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB);
+    Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB, CancellationToken token);
 
-    Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy);
+    Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token);
 
     public Task OverrideSlotAction(ManualOverrideRequest change);
     public Task TestCharge();
