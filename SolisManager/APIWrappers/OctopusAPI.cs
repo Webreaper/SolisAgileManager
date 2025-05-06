@@ -77,12 +77,12 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         rates.AddRange(prices.results);
                 }
 
-                var first = rates.FirstOrDefault()?.valid_from;
-                var last = rates.LastOrDefault()?.valid_to;
+                var first = rates.OrderBy(x => x.valid_from).FirstOrDefault()?.valid_from;
+                var last = rates.OrderBy(x => x.valid_to).LastOrDefault()?.valid_to;
 
                 logger.LogInformation(
-                    "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {E:dd-MMM-yyyy HH:mm}) for product {Code}",
-                    rates.Count(), first, last, tariffCode);
+                    "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
+                    rates.Count(), first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
 
                 memoryCache.Set(cacheKey, rates, _ratesCacheOptions);
 
@@ -490,10 +490,10 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if (memoryCache.TryGetValue<IEnumerable<OctopusConsumption>>(cacheKey, out var result))
             return result;
         
-        logger.LogInformation("Querying consumption data from {S} to {E}", startDate, endDate);
-        
         // Do this first and cache it for the following requests
         var authToken = await GetAuthToken(apiKey);
+
+        logger.LogInformation("Querying consumption data from {S} to {E}", startDate, endDate);
         
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
@@ -504,8 +504,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (importMeter != null && exportMeter != null && !string.IsNullOrEmpty(authToken))
         {
-            var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, startDate, endDate, token);
-            var exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, startDate, endDate, token);
+            var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, startDate, endDate, false, token);
+            var exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, startDate, endDate, true, token);
 
             await Task.WhenAll(importMeterTask, exportMeterTask);
 
@@ -586,6 +586,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (tariffs.Any())
         {
+            logger.LogInformation("  Found {N} tariffs for meter. Querying rates (Tariffs: {T}", tariffs.Count, string.Join(", ", tariffs.Select(x => x.tariff_code)));
+
             // Create a set of tasks for each tariff that applied during the period
             var tasks = tariffs.Select(x => GetOctopusTariffRates(x.tariff_code, minDate, maxDate, token)).ToList();
             
@@ -646,7 +648,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     }
     
     public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meterPoints, 
-                            DateTime startDate, DateTime endDate, CancellationToken token)
+                            DateTime startDate, DateTime endDate, bool isExport, CancellationToken token)
     {
         var authToken = await GetAuthToken(apiKey);
         
@@ -663,6 +665,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         
         if (!string.IsNullOrEmpty(serial))
         {
+            logger.LogInformation("  Requesting consumption data for {T} meter S/N {M}", isExport ? "export" : "import", serial);
             try
             {
                 var url = "https://api.octopus.energy"
