@@ -1267,7 +1267,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
             
-            return GroupConsumptionData(consumption, groupBy);
+            if( consumption != null )
+                return GroupConsumptionData(consumption, groupBy);
         }
         
         logger.LogWarning("Attempted to get consumption, but no account number specified");
