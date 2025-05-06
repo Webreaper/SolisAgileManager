@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
@@ -282,7 +283,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 logger.LogTrace("Refreshing data...");
 
                 var start = DateTime.Now.RoundToHalfHour();
-                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, start.AddDays(3));
+                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, 
+                    start.AddDays(3), CancellationToken.None);
 
                 slots = rates.Where(x => x.valid_from >= start )
                              .Select(x => new PricePlanSlot
@@ -1259,18 +1261,69 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
     {
         if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
-            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end);
-            return consumption;
+            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
+            
+            if( consumption != null )
+                return GroupConsumptionData(consumption, groupBy);
         }
         
         logger.LogWarning("Attempted to get consumption, but no account number specified");
-        return null;
+        return [];
     }
     
+    
+    private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> consumption, GroupByType groupBy)
+    {
+        Func<OctopusConsumption, object> groupSelector = groupBy switch
+        {
+            GroupByType.Month => x => (x.PeriodStart.Year, x.PeriodStart.Month),
+            GroupByType.Week => x => (x.PeriodStart.Year, ISOWeek.GetWeekOfYear(x.PeriodStart)),
+            _ => x => x.PeriodStart.Date,
+        };
+
+        return consumption.GroupBy(groupSelector)
+            .Select(x => new GroupedConsumption
+            {
+                GroupingKey = groupBy switch
+                {
+                    GroupByType.Month => x.Key,
+                    GroupByType.Week => x.Key,
+                    _ => x.Key
+                },
+                StartTime = x.Min(p => p.PeriodStart),
+                EndTime = x.Max(p => p.PeriodStart),
+                Tariffs = string.Join( ", ",x.Select( x => x.Tariff).Distinct()),
+                TotalImport = x.Sum(x => x.ImportConsumption),
+                TotalExport = x.Sum(x => x.ExportConsumption),
+                TotalImportCost = x.Sum(x => x.ImportCost)/ 100M,
+                TotalExportProfit = x.Sum(x => x.ExportProfit) / 100M,
+                AverageImportPrice = WeightedAverage(x, x => x.ImportConsumption, x => x.ImportCost),
+                AverageExportPrice = WeightedAverage(x, x => x.ExportConsumption, x => x.ExportProfit),
+                AverageStandingCharge = x.Average(x => x.DailyStandingCharge ?? 0),
+            })
+            .OrderByDescending(x => x.StartTime)
+            .ToList();
+    }
+    
+    private static decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
+        Func<OctopusConsumption, decimal> consumptionSelector,
+        Func<OctopusConsumption, decimal> costSelector)
+    {
+        var consumptionSlots = rates.Where(x => consumptionSelector(x) > 0.05M).ToList();
+        if (consumptionSlots.Any())
+        {
+            var totalConsumption = consumptionSlots.Sum(consumptionSelector);
+            var totalCost = consumptionSlots.Sum(costSelector);
+            return totalCost / totalConsumption;
+        }
+
+        return 0;
+    }
+
     public async Task ResetSimulation()
     {
         if (config.Simulate)
@@ -1322,15 +1375,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB)
+    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB, CancellationToken token)
     {
         logger.LogInformation("Running comparison for {A} vs {B}...", tariffA, tariffB);
 
         var start = DateTime.UtcNow;
         var end = DateTime.UtcNow.AddDays(3);
         
-        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end);
-        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end);
+        var ratesATask = octopusAPI.GetOctopusRates(tariffA, start, end, token);
+        var ratesBTask = octopusAPI.GetOctopusRates(tariffB, start, end, token);
 
         await Task.WhenAll(ratesATask, ratesBTask);
         

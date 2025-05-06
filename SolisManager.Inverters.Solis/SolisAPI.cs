@@ -477,7 +477,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 timezone = 0
             });
 
-        if( result != null)
+        if (result != null)
             logger.LogInformation("Retrieved {C} inverter stats for {D:dd-MMM-yyyy}", result.data.Count(), dayToQuery);
 
         return result;

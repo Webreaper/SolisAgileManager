@@ -18,25 +18,25 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
             InverterState = state;
     }
 
-    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB)
+    public async Task<TariffComparison> GetTariffComparisonData(string tariffA, string tariffB, CancellationToken token)
     {
         var url = $"inverter/tariffcomparison/{tariffA}/{tariffB}";
-        var result = await httpClient.GetFromJsonAsync<TariffComparison>(url);
+        var result = await httpClient.GetFromJsonAsync<TariffComparison>(url, token);
         if (result != null)
             return result;
 
         return new TariffComparison();
     }
 
-    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(DateTime start, DateTime end)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
     {
         var url = $"inverter/consumption";
-        var req = new ConsumptionRequest { Start = start, End = end };
+        var req = new ConsumptionRequest { Start = start, End = end, GroupBy = groupBy};
         try
         {
-            var response = await httpClient.PostAsJsonAsync(url, req);
+            var response = await httpClient.PostAsJsonAsync(url, req, token);
             response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadFromJsonAsync<IEnumerable<OctopusConsumption>>();
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<GroupedConsumption>>(token);
 
             if (result != null)
                 return result;

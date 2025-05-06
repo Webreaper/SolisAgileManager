@@ -63,17 +63,19 @@ public static class EndpointMapper
 
         group.MapGet("tariffcomparison/{tariffA}/{tariffB}",
             async (string tariffA, string tariffB, 
-                [FromServices] IInverterManagerService service) =>
+                [FromServices] IInverterManagerService service,
+                CancellationToken token) =>
             {
-                var result = await service.GetTariffComparisonData(tariffA, tariffB);
+                var result = await service.GetTariffComparisonData(tariffA, tariffB, token);
                 return TypedResults.Ok(result);
             });
 
         group.MapPost("consumption",
             async (ConsumptionRequest req, 
-                [FromServices] IInverterManagerService service) =>
+                [FromServices] IInverterManagerService service,
+                CancellationToken token) =>
             {
-                var result = await service.GetConsumption(req.Start, req.End);
+                var result = await service.GetConsumption(req.Start, req.End, req.GroupBy, token);
                 return TypedResults.Ok(result);
             });
 
