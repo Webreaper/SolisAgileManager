@@ -1263,15 +1263,24 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
     {
-        if (!string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber))
+        if (string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
-            var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
-            
-            if( consumption != null )
-                return GroupConsumptionData(consumption, groupBy);
+            logger.LogWarning("Attempted to get consumption, but no account number specified");
+            return [];
+        }
+
+        if (string.IsNullOrEmpty(config.OctopusAPIKey))
+        {
+            logger.LogWarning("Attempted to get consumption, but no API key specified");
+            return [];
         }
         
-        logger.LogWarning("Attempted to get consumption, but no account number specified");
+        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
+
+        if (consumption == null)
+            return GroupConsumptionData(consumption, groupBy);
+
+        logger.LogWarning("Attempted to get consumption, but data was returned");
         return [];
     }
     
