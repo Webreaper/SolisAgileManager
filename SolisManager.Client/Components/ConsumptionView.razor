@@ -28,7 +28,12 @@
 
     @if(accountValid != null &&!accountValid.Value)
     {
-        <div>Please configure your Octopus API Key and Account number in the settings screen to see consumption data.</div>
+        <div class="no-account-warning">
+            <div>
+                Please configure your Octopus API Key and Account number<br/>
+                in the <a href="/config">settings screen</a> to see consumption data.
+            </div>
+        </div>
     }
     else if( loading || consumptionData == null)
     {
