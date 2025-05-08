@@ -144,6 +144,8 @@ public class Program
             config.OctopusProductCode = "E-1R-AGILE-24-10-01-J";
             config.SlotsForFullBatteryCharge = 6;
             config.AlwaysChargeBelowPrice = 10;
+
+            logger.LogInformation("Default config initialised");
         }
         else
         {
@@ -151,8 +153,18 @@ public class Program
             {
                 await UpgradeConfig(config, logger);
             }
-        }
 
+            logger.LogInformation("Config loaded");
+            if( ! string.IsNullOrEmpty(config.OctopusAccountNumber))
+                logger.LogInformation("  Octopus Account number: {Ac}", config.OctopusAccountNumber);
+            if( ! string.IsNullOrEmpty(config.OctopusProductCode))
+                logger.LogInformation("  Octopus Product Code: {C}", config.OctopusProductCode);
+            if( ! string.IsNullOrEmpty(config.OctopusAPIKey))
+                logger.LogInformation("  Octopus API Key was specified");
+            if( config.ScheduledActions != null )
+                logger.LogInformation("  Scheduled actions configured: {C}", config.ScheduledActions.Count);
+        }
+        
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
