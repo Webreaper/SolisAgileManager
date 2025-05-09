@@ -156,11 +156,11 @@ public class Program
 
             logger.LogInformation("Config loaded");
             if( ! string.IsNullOrEmpty(config.OctopusAccountNumber))
-                logger.LogInformation("  Octopus Account number: {Ac}", config.OctopusAccountNumber);
-            if( ! string.IsNullOrEmpty(config.OctopusProductCode))
-                logger.LogInformation("  Octopus Product Code: {C}", config.OctopusProductCode);
+                logger.LogInformation("  Octopus Account number was specified");
             if( ! string.IsNullOrEmpty(config.OctopusAPIKey))
                 logger.LogInformation("  Octopus API Key was specified");
+            if( ! string.IsNullOrEmpty(config.OctopusProductCode))
+                logger.LogInformation("  Octopus Product Code: {C}", config.OctopusProductCode);
             if( config.ScheduledActions != null )
                 logger.LogInformation("  Scheduled actions configured: {C}", config.ScheduledActions.Count);
         }

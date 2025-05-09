@@ -1280,7 +1280,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (consumption != null)
             return GroupConsumptionData(consumption, groupBy);
 
-        logger.LogWarning("Attempted to get consumption, but data was returned");
+        logger.LogWarning("Attempted to get consumption, but no data was returned");
         return [];
     }
     
