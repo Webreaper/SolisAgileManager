@@ -332,38 +332,50 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     private async Task<IEnumerable<OctopusMeterPoints>> GetMeters(string apiKey, string accountNumber)
     {
-        string cacheKey = "octopus-meter-" + accountNumber.ToLower();
+        string cacheKey = "octopus-meter-" + accountNumber.Replace(",", "-").ToLower();
         
-        if (memoryCache.TryGetValue<IEnumerable<OctopusMeterPoints>>(cacheKey, out var meters) && meters != null)
-            return meters;
+        if (memoryCache.TryGetValue<List<OctopusMeterPoints>>(cacheKey, out var allMeters) && allMeters != null)
+            return allMeters;
 
-        var accountDetails = await GetOctopusAccount(apiKey, accountNumber);
+        allMeters = new();
+        
+        var accountNumbers = accountNumber.Split(',', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
 
-        if (accountDetails != null)
+        foreach (var account in accountNumbers)
         {
-            var now = DateTime.UtcNow;
-            var currentProperty = accountDetails.properties.FirstOrDefault(x => x.moved_in_at < now && 
-                                    (x.moved_out_at == null || x.moved_out_at >= now));
+            var accountDetails = await GetOctopusAccount(apiKey, account);
 
-            if (currentProperty != null)
+            if (accountDetails != null)
             {
-                meters = currentProperty.electricity_meter_points; 
-                memoryCache.Set(cacheKey, meters, _accountCacheOptions);
-                return meters;
-            }
+                var now = DateTime.UtcNow;
+                var currentProperty = accountDetails.properties.FirstOrDefault(x => x.moved_in_at < now &&
+                    (x.moved_out_at == null || x.moved_out_at >= now));
 
-            logger.LogWarning("No current property found for meter!");
+                if (currentProperty != null)
+                {
+                    allMeters.AddRange(currentProperty.electricity_meter_points);
+                    continue;
+                }
+
+                logger.LogWarning("No current property found for meter in account {Acc}!", account);
+            }
+            else
+                logger.LogWarning("Account details not found for {Acc} while querying for meters!", account);
         }
-        else
-            logger.LogWarning("Account details not found while querying for meters!");
-        
+
+        if (allMeters.Any())
+        {
+            memoryCache.Set(cacheKey, allMeters, _accountCacheOptions);
+            return allMeters;
+        }
+
         return [];
     }
 
     private async Task<OctopusMeterPoints?> GetMeter(string apiKey, string accountNumber, MeterType type)
     {
         var meters = await GetMeters(apiKey, accountNumber);
-
+        
         if (meters.Any())
         {
             bool export = type == MeterType.Export;
@@ -441,14 +453,21 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (product != null)
         {
-            var region = product.single_register_electricity_tariffs
-                .FirstOrDefault(x => x.Value.direct_debit_monthly.code == tariffCode);
-            
-            if(region.Value != null)
+            var tariff = product.single_register_electricity_tariffs;
+            if (tariff != null)
             {
-                tariffStandingCharge = region.Value.direct_debit_monthly.standing_charge_inc_vat;
-                memoryCache.Set(cacheKey, tariffStandingCharge, _productCacheOptions);
-                return tariffStandingCharge;
+                var region = tariff.FirstOrDefault(x => 
+                    x.Value?.direct_debit_monthly?.code != null &&
+                    x.Value.direct_debit_monthly.code == tariffCode);
+
+                if (region.Value != null)
+                {
+                    tariffStandingCharge = region.Value.direct_debit_monthly.standing_charge_inc_vat;
+                    memoryCache.Set(cacheKey, tariffStandingCharge, _productCacheOptions);
+                    return tariffStandingCharge;
+                }
+
+                logger.LogWarning("No standing charge data found in tariffs");
             }
         }
 
@@ -619,8 +638,10 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // The DistinctBy here is needed because the time-difference when we cross the 
             // DST boundary can result in two tariff entries for the same time - which causes
             // the dictionary to blow up. So discard one, arbitrarily.
-            var prices = results.ToDictionary(x => x.tariff, 
-                                    x => x.rates.DistinctBy(x => x.valid_from)
+            var prices = results
+                                    .DistinctBy(x => x.tariff)
+                                    .ToDictionary(x => x.tariff, 
+                                            x => x.rates.DistinctBy(x => x.valid_from)
                                                            .ToDictionary(x => x.valid_from));
 
             // Now, loop through the consumption objects and resolve their rates
