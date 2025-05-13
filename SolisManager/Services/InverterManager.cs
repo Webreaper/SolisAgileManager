@@ -811,16 +811,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             if( overnightChargeSlots.Count > 0 )
             {
                 logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S:dd-MMM HH:mm} => {E:dd-MMM HH:mm}", 
-                    dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd ?? DateTime.MaxValue);
+                    dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, nightStart, nightEnd ?? DateTime.UtcNow.AddDays(1));
+
+                foreach (var slot in overnightChargeSlots)
+                {
+                    slot.PlanAction = SlotAction.DoNothing;
+                    slot.ActionReason = $"Skipping overnight charge due to forecast of {dampedForecast:F2}kWh tomorrow";
+                }
             }
             else
                 logger.LogInformation("Forecast = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found", dampedForecast, config.ForecastThreshold);
-    
-            foreach (var slot in overnightChargeSlots)
-            {
-                slot.PlanAction = SlotAction.DoNothing;
-                slot.ActionReason = $"Skipping overnight charge due to forecast of {dampedForecast:F2}kWh tomorrow";
-            }
         }
     }
 
