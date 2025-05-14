@@ -125,6 +125,10 @@ Once the API key and account are configured, the application will query every 4 
 has changed, and update accordingly. So if you change tariff (e.g., switch from Agile to Cosy) you should 
 start seeing the new tariff prices flow into the app within 4 hours.
 
+Note: If you have two account numbers - one for your import meter and one for your export meter, enter them
+into the 'account number' field, separated by commas (e.g., `A-123456,A-234567`). Solis Manager will use the two
+accounts to pull the import and export data for the Costs page (see below).
+
 #### Manual Tariff Settings 
 
 If you don't want to use your Octopus account to infer the current tariff, you can enter the product and tariff
