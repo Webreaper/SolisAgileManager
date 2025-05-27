@@ -800,8 +800,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
 
-            ArgumentNullException.ThrowIfNull(nightStart);
-            ArgumentNullException.ThrowIfNull(nightEnd);
+            if (nightStart == null)
+                return; // Nothing we can do here 
+
+            if (nightEnd == null)
+            {
+                // If we don't have a night end, just add 12 hours to the start. It might go too
+                // far but it doesn't matter, because the reason we don't have an end is because
+                // there's not many future slots. So this will serve our needs.
+                nightEnd = nightStart.Value.AddHours(12);
+            }
 
             decimal dampedForecast;
             string forecastName;
