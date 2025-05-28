@@ -659,7 +659,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             EvaluatePriceBasedRules(slots);
             EvaluateScheduleActionRules(slots);
-            EvaluateSolcastThresholdRule(slots);
+            EvaluateNOCRule(slots);
             EvaluateDumpAndRechargeIfFreeRule(slots);
         }
         catch (Exception ex)
@@ -807,7 +807,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return (nightStart.Value, nightEnd.Value);
     }
     
-    private void EvaluateSolcastThresholdRule(PricePlanSlot[] slots)
+    /// <summary>
+    /// Evaluate the 'no overnight charge' rule. This should clear
+    /// all charge slots if tomorrow's forecast is above a certain
+    /// threshold.
+    /// </summary>
+    /// <param name="slots"></param>
+    private void EvaluateNOCRule(PricePlanSlot[] slots)
     {
         if (!config.SkipOvernightCharge)
             return;
