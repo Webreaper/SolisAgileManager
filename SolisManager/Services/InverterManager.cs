@@ -44,7 +44,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             inverterAPI = inverterImplementation;
     }
 
-    private void UpdateWithLatestForecast()
+    private void CalculateForecasts()
     {
         var forecasts = solcastApi.GetSolcastForecasts();
 
@@ -812,6 +812,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (!config.SkipOvernightCharge)
             return;
 
+        // Force evaluate the forecast to ensure we have latest for today/tomorrow
+        // Otherwise we might have a race condition
+        CalculateForecasts();
+
         var nightTime = EvaluateNightPeriod(slots);
 
         if (nightTime == null)
@@ -912,7 +916,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             InverterState.LastUpdate = DateTime.UtcNow;
 
             // Get the latest forecast from Solcast
-            UpdateWithLatestForecast();
+            CalculateForecasts();
             
             // Get the battery charge state from the inverter
             if (await inverterAPI.UpdateInverterState(InverterState))

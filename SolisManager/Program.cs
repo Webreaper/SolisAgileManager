@@ -216,7 +216,7 @@ public class Program
             .Zoned(TimeZoneInfo.Local)
             .RunOnceAtStart());
 
-        // Update the intverter state every 2 minutes. The actual inverter
+        // Update the intverter state every minute. The actual inverter
         // data only gets updated in SolisCloud every 5 minutes, but requesting
         // it regularly means we won't end up with 10-minute stale data
         // Don't run at startup - this will be executed the very first plan
