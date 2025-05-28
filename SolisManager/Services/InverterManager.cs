@@ -752,18 +752,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private void EvaluatePriceBasedRules(PricePlanSlot[] slots)
     {
-        var extraReason = string.Empty;
-
-        if (config.SkipOvernightCharge && config.ForecastThreshold < InverterState.TomorrowForecastKWH * config.SolcastDampFactor)
-            extraReason = " (even though forcast is above the threshold for tomorrow)";
-            
         // If there are any slots below our "Blimey it's cheap" threshold, elect to charge them anyway.
         foreach (var slot in slots.Where(s => s.value_inc_vat < config.AlwaysChargeBelowPrice))
         {
             slot.PriceType = PriceType.BelowThreshold;
             slot.PlanAction = SlotAction.Charge;
             slot.ActionReason =
-                $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge{extraReason}";
+                $"Price is below the threshold of {config.AlwaysChargeBelowPrice}p/kWh, so always charge";
         }
 
         foreach (var slot in slots.Where(s => s.value_inc_vat < 0))
@@ -774,87 +769,104 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
+    private (DateTime start, DateTime end)? EvaluateNightPeriod(PricePlanSlot[] slots)
+    {
+        // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
+        // First we need to find when 'night' is. Iterate through the slots, looking for the first
+        // one where the forecast is zero. That's the start of night. Then the first one where the
+        // forecast is non-zero, is the end of night. 
+        // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
+        // do for now.
+        // Note that we assume the 30 mins before sunset is 'night', and the first hour of daylight
+        // is also 'night' since it's unlikely we'll generate anything then.
+        DateTime? nightStart = null, nightEnd = null;
+
+        foreach (var slot in slots)
+        {
+            if (nightStart == null && slot.pv_est_kwh == 0)
+                nightStart = slot.valid_from.AddMinutes(-30);
+
+            if (nightStart != null && slot.pv_est_kwh > 0)
+            {
+                nightEnd = slot.valid_to.AddHours(1);
+                break;
+            }
+        }
+
+        if (nightStart == null)
+            return null; // Nothing we can do here 
+
+        if (nightEnd == null)
+        {
+            // If we don't have a night end, just add 12 hours to the start. It might go too
+            // far but it doesn't matter, because the reason we don't have an end is because
+            // there's not many future slots. So this will serve our needs.
+            nightEnd = nightStart.Value.AddHours(12);
+        }
+        
+        return (nightStart.Value, nightEnd.Value);
+    }
+    
     private void EvaluateSolcastThresholdRule(PricePlanSlot[] slots)
     {
-        if (config.SkipOvernightCharge)
+        if (!config.SkipOvernightCharge)
+            return;
+
+        var nightTime = EvaluateNightPeriod(slots);
+
+        if (nightTime == null)
         {
-            // If the 'skip overnight charge if forecast is good' setting is enabled, we check that.
-            // First we need to find when 'night' is. Iterate through the slots, looking for the first
-            // one where the forecast is zero. That's the start of night. Then the first one where the
-            // forecast is non-zero, is the end of night. 
-            // We could possibly do this by the sunrise/sunset data from the inverter, but this will 
-            // do for now.
-            // Note that we assume the 30 mins before sunset is 'night', and the first hour of daylight
-            // is also 'night' since it's unlikely we'll generate anything then.
-            DateTime? nightStart = null, nightEnd = null;
+            logger.LogWarning("Unable to evaluate nighttime period");
+            return;
+        }
+        
+        decimal dampedForecast;
+        string forecastName;
 
-            foreach (var slot in slots)
+        if (nightTime?.start.Date == nightTime?.end.Date)
+        {
+            // The start and end of the night are both on the same day, so we're in the early
+            // morning. In that case, we use today's forecast, not tomorrow's forecast.
+            dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
+            forecastName = "Today's forecast";
+        }
+        else
+        {
+            // Start and end of the night are different days, so we're still pre-midnight. 
+            // So use tomorrow's forecast.
+            dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
+            forecastName = "Tomorrow's forecast";
+        }
+
+        // Now check the forecast
+        if (config.ForecastThreshold < dampedForecast)
+        {
+            var overnightChargeSlots = slots.Where(x =>
+                    x.valid_from >= nightTime?.start &&
+                    x.valid_to <= nightTime?.end &&
+                    x.PlanAction == SlotAction.Charge)
+                .ToList();
+
+            if (overnightChargeSlots.Count > 0)
             {
-                if (nightStart == null && slot.pv_est_kwh == 0)
-                    nightStart = slot.valid_from.AddMinutes(-30);
+                logger.LogInformation(
+                    "{FN} = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S:dd-MMM HH:mm} => {E:dd-MMM HH:mm}",
+                    forecastName, dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, nightTime?.start, nightTime?.end);
 
-                if (nightStart != null && slot.pv_est_kwh > 0)
+                foreach (var slot in overnightChargeSlots)
                 {
-                    nightEnd = slot.valid_to.AddHours(1);
-                    break;
+                    slot.PlanAction = SlotAction.DoNothing;
+                    slot.ActionReason = $"Skipping overnight charge due to {forecastName} of {dampedForecast:F2}kWh";
                 }
-            }
-
-            if (nightStart == null)
-                return; // Nothing we can do here 
-
-            if (nightEnd == null)
-            {
-                // If we don't have a night end, just add 12 hours to the start. It might go too
-                // far but it doesn't matter, because the reason we don't have an end is because
-                // there's not many future slots. So this will serve our needs.
-                nightEnd = nightStart.Value.AddHours(12);
-            }
-
-            decimal dampedForecast;
-            string forecastName;
-
-            if (nightStart.Value.Date == nightEnd.Value.Date)
-            {
-                // The start and end of the night are both on the same day, so we're in the early
-                // morning. In that case, we use today's forecast, not tomorrow's forecast.
-                dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
-                forecastName = "Today's forecast";
             }
             else
-            {
-                // Start and end of the night are different days, so we're still pre-midnight. 
-                // So use tomorrow's forecast.
-                dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
-                forecastName = "Tomorrow's forecast";
-            }
-
-            // Now check the forecast
-            if (config.ForecastThreshold < dampedForecast)
-            {
-                var overnightChargeSlots = slots.Where(x =>
-                        x.valid_from >= nightStart &&
-                        x.valid_to <= nightEnd &&
-                        x.PlanAction == SlotAction.Charge)
-                    .ToList();
-
-                if (overnightChargeSlots.Count > 0)
-                {
-                    logger.LogInformation(
-                        "{FN} = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S:dd-MMM HH:mm} => {E:dd-MMM HH:mm}",
-                        forecastName, dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, nightStart,
-                        nightEnd ?? DateTime.UtcNow.AddDays(1));
-
-                    foreach (var slot in overnightChargeSlots)
-                    {
-                        slot.PlanAction = SlotAction.DoNothing;
-                        slot.ActionReason = $"Skipping overnight charge due to {forecastName} of {dampedForecast:F2}kWh";
-                    }
-                }
-                else
-                    logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found",
-                        forecastName, dampedForecast, config.ForecastThreshold);
-            }
+                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found",
+                    forecastName, dampedForecast, config.ForecastThreshold);
+        }
+        else
+        {
+            logger.LogInformation("{FN} = {F:F2}kWh (so below {T}kWh). No action needed for NOC rule",
+                                forecastName, dampedForecast, config.ForecastThreshold);
         }
     }
 
