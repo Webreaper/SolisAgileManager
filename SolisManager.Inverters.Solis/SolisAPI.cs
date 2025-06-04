@@ -231,11 +231,19 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                                   dischargePower == currentChargeState.dischargeAmps;
 
         if (!chargeIsEquivalent)
+        {
+            logger.LogInformation("  Inverter charge did not match request: {NS}-{NE} ({NP}A) does not match current: {CS}-{CE} ({CP}A)",
+                    newchargeTime.start, newchargeTime.end, chargePower, currchargeTime.start, currchargeTime.end, currentChargeState.chargeAmps);
             return true;
+        }
 
         if (!dischargeIsEquivalent)
+        {
+            logger.LogInformation("  Inverter discharge did not match request: {NS}-{NE} ({NP}A) does not match current: {CS}-{CE} ({CP}A)",
+                newchargeTime.start, newchargeTime.end, chargePower, currchargeTime.start, currchargeTime.end, currentChargeState.chargeAmps);
             return true;
-        
+        }
+
         return false;
     }
     
