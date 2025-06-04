@@ -232,14 +232,14 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         if (!chargeIsEquivalent)
         {
-            logger.LogInformation("  Inverter charge did not match request: {NS}-{NE} ({NP}A) does not match current: {CS}-{CE} ({CP}A)",
+            logger.LogInformation("  Inverter charge did not match request: {NS:dd-MMM HH:mm}-{NE:dd-MMM HH:mm} ({NP}A) does not match current: {CS:dd-MMM HH:mm}-{CE:dd-MMM HH:mm} ({CP}A)",
                     newchargeTime.start, newchargeTime.end, chargePower, currchargeTime.start, currchargeTime.end, currentChargeState.chargeAmps);
             return true;
         }
 
         if (!dischargeIsEquivalent)
         {
-            logger.LogInformation("  Inverter discharge did not match request: {NS}-{NE} ({NP}A) does not match current: {CS}-{CE} ({CP}A)",
+            logger.LogInformation("  Inverter discharge did not match request: {NS:dd-MMM HH:mm}-{NE:dd-MMM HH:mm} ({NP}A) does not match current: {CS:dd-MMM HH:mm}-{CE:dd-MMM HH:mm} ({CP}A)",
                 newchargeTime.start, newchargeTime.end, chargePower, currchargeTime.start, currchargeTime.end, currentChargeState.chargeAmps);
             return true;
         }
