@@ -167,8 +167,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// <exception cref="ArgumentException"></exception>
     private (DateTime start, DateTime end) ConvertToRealDates(string chargeTimePair)
     {
-        var now = DateOnly.FromDateTime(DateTime.UtcNow);
-        var nowTime = TimeOnly.FromDateTime(DateTime.UtcNow);
+        var now = DateOnly.FromDateTime(DateTime.Now);
+        var nowTime = TimeOnly.FromDateTime(DateTime.Now);
         
         var parts = chargeTimePair.Split('-', 2, StringSplitOptions.TrimEntries);
 
