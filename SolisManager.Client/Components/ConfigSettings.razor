@@ -102,6 +102,14 @@
                 <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPlacement="Placement.End" class="wrapped-field"/>
                 <MudNumericField T="decimal" @bind-Value="@config.ForecastThreshold"  Label="If tomorrow's forecast exceeds (kWh)" Min="5" Max="100"
                                  Variant="UIConstants.MudVariant" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
+                @if (config.SkipOvernightCharge)
+                {
+                    <MudCheckBox Label="Override Night End" @bind-Value="@ManualNightEnd" @bind-Value:after="ManualNightEndChanged" LabelPlacement="Placement.End" class="wrapped-field"/>
+                    @if (ManualNightEnd)
+                    {
+                        <MudTimePicker @bind-Time="@config.NightEndTime" Label="Night ends at"/>
+                    }
+                }
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">
@@ -170,6 +178,7 @@
     private string? glassPaneText = null;
 
     private bool AutomaticAccount => config != null && !string.IsNullOrEmpty(config.OctopusAccountNumber) && !string.IsNullOrEmpty(config.OctopusAPIKey);
+    private bool ManualNightEnd = false;
     
     private int PeakPercentageProxy
     {
@@ -187,10 +196,22 @@
     {
         config = await inverterManagerService.GetConfig();
         originalConfigJson = JsonSerializer.Serialize(config);
+        ManualNightEnd = config.NightEndTime != null;
         
         await base.OnInitializedAsync();
     }
 
+    private void ManualNightEndChanged()
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        if (ManualNightEnd)
+            config.NightEndTime = new TimeSpan(7, 0, 0);
+        else
+            config.NightEndTime = null;
+
+        StateHasChanged();
+    }
+    
     private async Task CheckNavigateAway(LocationChangingContext context)
     {
         var newJson = JsonSerializer.Serialize(config);

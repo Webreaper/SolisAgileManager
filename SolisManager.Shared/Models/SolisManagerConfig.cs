@@ -27,6 +27,8 @@ public record SolisManagerConfig
     
     // Solcast Rules
     public bool SkipOvernightCharge { get; set; }
+    public TimeSpan? NightEndTime { get; set; }
+
     public decimal ForecastThreshold { get; set; } = 20.0M;
 
     public decimal PeakPeriodBatteryUse { get; set; } = 0.5M;

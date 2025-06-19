@@ -786,10 +786,24 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             if (nightStart == null && slot.pv_est_kwh == 0)
                 nightStart = slot.valid_from.AddMinutes(-30);
 
-            if (nightStart != null && slot.pv_est_kwh > 0)
+            if (nightStart != null)
             {
-                nightEnd = slot.valid_to.AddHours(1);
-                break;
+                if (config.NightEndTime == null)
+                {
+                    // Automatically evaluate the night end, by looking for the first slot where
+                    // the forecast is non-zero
+                    if (slot.pv_est_kwh > 0)
+                    {
+                        nightEnd = slot.valid_to.AddHours(1);
+                        break;
+                    }
+                }
+                else
+                {
+                    var datePart = DateOnly.FromDateTime(nightStart.Value.AddDays(1));
+                    var timePart = TimeOnly.FromTimeSpan(config.NightEndTime.Value);
+                    nightEnd = new DateTime(datePart, timePart);
+                }
             }
         }
 
