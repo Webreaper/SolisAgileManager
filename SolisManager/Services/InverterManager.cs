@@ -884,8 +884,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
             else
-                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found",
-                    forecastName, dampedForecast, config.ForecastThreshold);
+                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found between {S:dd-MMM HH:mm} => {E:dd-MMM HH:mm}",
+                    forecastName, dampedForecast, config.ForecastThreshold, nightTime?.start, nightTime?.end);
         }
         else
         {
