@@ -800,7 +800,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
                 else
                 {
-                    var datePart = DateOnly.FromDateTime(nightStart.Value.AddDays(1));
+                    var date = nightStart.Value.Date;
+                    
+                    if( DateTime.Now.TimeOfDay.Hours > 12 )
+                        date = date.AddDays(1);
+                    
+                    var datePart = DateOnly.FromDateTime(date);
                     var timePart = TimeOnly.FromTimeSpan(config.NightEndTime.Value);
                     nightEnd = new DateTime(datePart, timePart);
                 }
