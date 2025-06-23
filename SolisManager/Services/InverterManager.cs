@@ -780,11 +780,27 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // Note that we assume the 30 mins before sunset is 'night', and the first hour of daylight
         // is also 'night' since it's unlikely we'll generate anything then.
         DateTime? nightStart = null, nightEnd = null;
-
+        var currentHour = DateTime.Now.Hour;
+        
         foreach (var slot in slots)
         {
-            if (nightStart == null && slot.pv_est_kwh == 0)
-                nightStart = slot.valid_from.AddMinutes(-30);
+            if (nightStart == null)
+            {
+                // First calculate the start of the night. 
+                if (slot.pv_est_kwh == 0)
+                {
+                    // Forecast is zero. So it's easy, we're in the night.
+                    // Set the night start to be the current slot start time
+                    nightStart = slot.valid_from.AddMinutes(-30);
+                }
+                else
+                {
+                    // It's daylight - there's a forecast. Could be 5am and the night
+                    // config is set to 7am. So adjust
+                    if (DateTime.Now.TimeOfDay < config.NightEndTime)
+                        nightStart = DateTime.Now;
+                }
+            }
 
             if (nightStart != null)
             {
@@ -800,9 +816,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
                 else
                 {
+                    // Now evaluate the end of the night. 
                     var date = nightStart.Value.Date;
                     
-                    if( DateTime.Now.TimeOfDay.Hours > 12 )
+                    // If it's between midday and midnight 
+                    // current night ends tomorrow.
+                    if( currentHour > 12 )
                         date = date.AddDays(1);
                     
                     var datePart = DateOnly.FromDateTime(date);
