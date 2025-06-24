@@ -76,6 +76,10 @@ internal record InverterData(
     string timeStr,
     decimal inverterTemperature);
 
+internal record StationDetail(StationDetailData data);
+
+internal record StationDetailData(string ss, string sr);
+
 internal record Battery(int batteryCapacitySoc);
 internal record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,
     double dayEnergy1, double dayIncome, double gridPurchasedTodayEnergy, double gridPurchasedTotalEnergy,
