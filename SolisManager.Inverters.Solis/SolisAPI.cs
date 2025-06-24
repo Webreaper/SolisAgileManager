@@ -283,6 +283,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             else
                 inverterState.InverterDataTimestamp = DateTime.UtcNow;
 
+            // Clear these each time
+            inverterState.Sunrise = null;
+            inverterState.Sunset = null;
+            
             if (long.TryParse(inverterState.StationId, out var stationId))
             {
                 var stationData = await GetStationData(stationId);

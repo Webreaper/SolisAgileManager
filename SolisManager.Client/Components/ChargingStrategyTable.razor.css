@@ -38,12 +38,9 @@
     flex-direction: row;
     flex-wrap: nowrap;
     white-space: nowrap;
-    column-gap: 0px;
-    align-items: baseline;
+    column-gap: 7px;
+    align-items: center;
 }
-
-
-
 
 @media screen and (max-width: 900px) {
     .table-chart {

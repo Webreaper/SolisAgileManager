@@ -81,6 +81,7 @@
                 <RowTemplate>
                     <MudTd DataLabel="Period">
                         <div class="valid-from">
+                            <DayNightIndicator Day="@context.Daytime"/>
                             @context.valid_from.ToString("HH:mm")
                             <div class="valid-to">&nbsp;- @context.valid_to.ToString("HH:mm")</div>
                         </div>

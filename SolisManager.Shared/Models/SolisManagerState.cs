@@ -21,6 +21,6 @@ public class SolisManagerState
     public decimal InverterTemp { get; set; }
     public string StationId { get; set; } = string.Empty;
     
-    public TimeSpan Sunrise { get; set; }
-    public TimeSpan Sunset { get; set; }
+    public TimeSpan? Sunrise { get; set; }
+    public TimeSpan? Sunset { get; set; }
 }
