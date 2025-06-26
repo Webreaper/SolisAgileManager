@@ -34,5 +34,5 @@
     private string StaleStyle => "stale-data " + (DarkMode ? "stale-data-dark" : string.Empty);
     private string SolcastUpdate => InverterState?.SolcastTimeStamp?.ToLocalTime().DisplayDateTime() ?? "never";
     private string SunriseTime => InverterState?.Sunrise != null ? $"Sunrise: {InverterState?.Sunrise:hh\\:mm}," : string.Empty;
-    private string SunsetTime => InverterState?.Sunset != null ? $"Sunrise: {InverterState?.Sunset:hh\\:mm}" : string.Empty;
+    private string SunsetTime => InverterState?.Sunset != null ? $"Sunset: {InverterState?.Sunset:hh\\:mm}" : string.Empty;
 }
