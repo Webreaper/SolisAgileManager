@@ -814,18 +814,16 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         decimal dampedForecast;
         string forecastName;
-
-        var currentSlot = slots.First();
         
-        if (currentSlot.valid_from.Hour < 12)
+        if (DateTime.Now.Hour < 12)
         {
-            // The current slot is an morning slot, so we need to use today's forecast
+            // It's currently the morning, so we need to use today's forecast
             dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
             forecastName = "Today's forecast";
         }
         else
         {
-            // Current slot is in the afternoon, so the forecast we're interest in is
+            // It's the afternoon/evening, so the forecast we're interested in is
             // tomorrow's forecast.
             dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
             forecastName = "Tomorrow's forecast";
@@ -913,8 +911,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 var stateMsg = string.Format(
                     $"Refreshed state: SOC = {InverterState.BatterySOC}%, Current PV = {InverterState.CurrentPVkW:F2}kW, " +
-                    $"House Load = {InverterState.HouseLoadkW:F2}kW, Forecast today: {InverterState.TodayForecastKWH:F2}kWh, " +
-                    $"tomorrow: {InverterState.TomorrowForecastKWH:F2}kWh");
+                    $"House Load = {InverterState.HouseLoadkW:F2}kW, Damped Forecast today: {config.SolcastDampFactor * InverterState.TodayForecastKWH:F2}kWh, " +
+                    $"tomorrow: {config.SolcastDampFactor * InverterState.TomorrowForecastKWH:F2}kWh");
 
                 if (stateMsg != lastStateMessage)
                 {
