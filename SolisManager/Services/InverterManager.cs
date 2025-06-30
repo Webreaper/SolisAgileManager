@@ -815,7 +815,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         decimal dampedForecast;
         string forecastName;
         
-        if (DateTime.Now.Hour < 12)
+        // Forecast periods are calculated in UTC
+        if (DateTime.UtcNow.Hour < 12)
         {
             // It's currently the morning, so we need to use today's forecast
             dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
