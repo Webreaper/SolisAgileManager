@@ -842,8 +842,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             if (overnightChargeSlots.Count > 0)
             {
-                logger.LogInformation(
-                    "{FN} = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S:dd-MMM HH:mm} => {E:HH:mm}",
+                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S:HH:mm} => {E:HH:mm}",
                     forecastName, dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, InverterState.Sunset, sunrise);
 
                 foreach (var slot in overnightChargeSlots)
@@ -853,7 +852,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
             else
-                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found between {S:dd-MMM HH:mm} => {E:HH:mm}",
+                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found between {S:HH:mm} => {E:HH:mm}",
                     forecastName, dampedForecast, config.ForecastThreshold, InverterState.Sunset, sunrise);
         }
         else
