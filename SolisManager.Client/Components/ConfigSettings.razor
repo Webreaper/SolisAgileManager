@@ -111,6 +111,16 @@
                     }
                 }
             </ConfigSettingHelp>
+            @if (config.SkipOvernightCharge)
+            {
+                <ConfigSettingHelp HelpText="By default the 'night' period will be calculated from sunrise/sunset. If you want to avoid overnight charging until later in the morning, you can override the 'night-end' time here.">
+                    <MudCheckBox Label="Override Night End" @bind-Value="@ManualNightEnd" @bind-Value:after="ManualNightEndChanged" LabelPlacement="Placement.End" class="wrapped-field"/>
+                    @if (ManualNightEnd)
+                    {
+                        <MudTimePicker @bind-Time="@config.NightEndTime" Label="Night ends at"/>
+                    }
+                </ConfigSettingHelp>
+            }
         </div>
         <div class="config-fields">
             <h5>Scheduled Actions</h5>
