@@ -18,11 +18,16 @@ namespace SolisManager.Inverters.Solis;
 /// https://github.com/stevegal/solis-control
 public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 {
-    private readonly MemoryCacheEntryOptions _cacheOptions =
+    private readonly MemoryCacheEntryOptions _cacheOptionsWeek =
         new MemoryCacheEntryOptions()
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromDays(7));
-    
+
+    private readonly MemoryCacheEntryOptions _cacheOptionsDay =
+        new MemoryCacheEntryOptions()
+            .SetSize(1)
+            .SetAbsoluteExpiration(TimeSpan.FromDays(1));
+
     private readonly HttpClient client = new();
     private readonly ILogger logger;
     private readonly IUserAgentProvider userAgentProvider;
@@ -277,6 +282,24 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 inverterState.InverterDataTimestamp = timestamp;
             else
                 inverterState.InverterDataTimestamp = DateTime.UtcNow;
+
+            // Clear these each time
+            inverterState.Sunrise = null;
+            inverterState.Sunset = null;
+            
+            if (long.TryParse(inverterState.StationId, out var stationId))
+            {
+                var stationData = await GetStationData(stationId);
+
+                if (stationData != null)
+                {
+                    if( TimeSpan.TryParse(stationData.data.sr, out var sunrise))
+                        inverterState.Sunrise = sunrise;
+                    if( TimeSpan.TryParse(stationData.data.ss, out var sunset))
+                        inverterState.Sunset = sunset;
+                    logger.LogDebug("Evaluted inverter sunrise: {Sr}, sunset: {Ss}", sunrise, sunset);
+                }
+            }
             return true;
         }
 
@@ -462,11 +485,39 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
         
         if (result.Any())
-            memoryCache.Set(cacheKey, result, _cacheOptions);
+            memoryCache.Set(cacheKey, result, _cacheOptionsWeek);
 
         return result;
     }
     
+    /// <summary>
+    /// Get station metadata
+    /// </summary>
+    /// <returns></returns>
+    private async Task<StationDetail?> GetStationData(long stationId)
+    {
+        var cacheKey = $"station-{stationId}";
+        
+        if (memoryCache.TryGetValue(cacheKey, out StationDetail? stationData))
+            return stationData;
+
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+
+        var result = await Post<StationDetail>(1, "stationDetail",
+            new
+            {
+                id = stationId
+            });
+
+        if (result != null)
+        {
+            // Cache for 24 hours
+            memoryCache.Set(cacheKey, result, _cacheOptionsDay);
+            logger.LogInformation("Retrieved data for station {Id}", stationId);
+        } 
+        
+        return result;
+    }
 
     /// <summary>
     /// Get the historic graph data for the inverter
@@ -660,7 +711,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             });
 
         if (result != null)
-            memoryCache.Set(cacheKey, result, _cacheOptions);
+            memoryCache.Set(cacheKey, result, _cacheOptionsWeek);
 
         return result;
     }

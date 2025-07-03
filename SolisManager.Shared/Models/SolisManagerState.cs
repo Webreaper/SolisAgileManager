@@ -20,4 +20,7 @@ public class SolisManagerState
     public decimal TomorrowForecastKWH { get; set; }
     public decimal InverterTemp { get; set; }
     public string StationId { get; set; } = string.Empty;
+    
+    public TimeSpan? Sunrise { get; set; }
+    public TimeSpan? Sunset { get; set; }
 }

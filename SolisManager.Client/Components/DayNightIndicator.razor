@@ -1,0 +1,14 @@
+<MudIcon Icon="@DayNightIcon" Size="Size.Small" Style="@DayNightStyle" Title="@DayNightToolTip" />
+
+@code {
+    [Parameter]
+    public bool Day { get; set; }
+
+    [CascadingParameter] 
+    public bool DarkMode { get; set; }
+
+    private string DayNightIcon => Day ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode;
+    private string? DayNightStyle => DarkMode ? (Day ? "color: DarkKhaki" : "color: grey") : 
+                                                (Day ? "color: #f1c40f" : "color: #d7dbdd");
+    private string? DayNightToolTip => Day ? "Day" : "Night";
+}
