@@ -102,14 +102,6 @@
                 <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPlacement="Placement.End" class="wrapped-field"/>
                 <MudNumericField T="decimal" @bind-Value="@config.ForecastThreshold"  Label="If tomorrow's forecast exceeds (kWh)" Min="5" Max="100"
                                  Variant="UIConstants.MudVariant" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
-                @if (config.SkipOvernightCharge)
-                {
-                    <MudCheckBox Label="Override Night End" @bind-Value="@ManualNightEnd" @bind-Value:after="ManualNightEndChanged" LabelPlacement="Placement.End" class="wrapped-field"/>
-                    @if (ManualNightEnd)
-                    {
-                        <MudTimePicker @bind-Time="@config.NightEndTime" Label="Night ends at"/>
-                    }
-                }
             </ConfigSettingHelp>
             @if (config.SkipOvernightCharge)
             {
