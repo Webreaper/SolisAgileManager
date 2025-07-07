@@ -39,4 +39,9 @@
         flex-direction: row;
         justify-content: space-around;
     }
+    
+    ::deep .smaller-button {
+        padding: 3px 5px 3px;
+        font-size: 9pt;
+    }
 }

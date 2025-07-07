@@ -59,6 +59,10 @@
         display: none;
     }
 
+    .sunset-indicator {
+        display: none;
+    }
+
     .extra-info {
         column-gap: 5px;
     }
