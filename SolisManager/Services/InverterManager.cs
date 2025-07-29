@@ -1213,7 +1213,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     public async Task TestCharge()
     {
         logger.LogInformation("Starting test charge for 5 minutes");
-        var start = DateTime.UtcNow;
+        var start = DateTime.Now;
         var end = start.AddMinutes(5);
         
         // Explicitly pass false for 'simulate' - we always do this
