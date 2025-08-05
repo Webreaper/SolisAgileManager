@@ -153,6 +153,9 @@
                     <MudNumericField T="int" Label="Battery Boost Threshold (%)" @bind-Value="@config.LowBatteryPercentage" Min="1" Max="150" 
                                      Variant="UIConstants.MudVariant" class="wrapped-field"/>
                 </ConfigSettingHelp>
+                <ConfigSettingHelp HelpText="If prices are negative, SolisManager will discharge and charge your battery. If you do not want this, check this option">
+                    <MudCheckBox Label="Disable Auto-discharge" LabelPlacement="Placement.End" @bind-Value="@config.DisableAutoDischarge"/>
+                </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Simulation mode allows you to see the charging strategy without actually making changes to the inverter, including stepping forwards through time.">
                     <MudCheckBox Label="Simulation Mode" LabelPlacement="Placement.End" @bind-Value="@config.Simulate"/>
                 </ConfigSettingHelp>

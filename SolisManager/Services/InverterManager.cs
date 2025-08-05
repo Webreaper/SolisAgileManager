@@ -700,6 +700,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private void EvaluateDumpAndRechargeIfFreeRule(PricePlanSlot[] slots)
     {
+        if (config.DisableAutoDischarge)
+            return;
+        
         // Now it gets interesting. Find the groups of slots that have negative prices. So we
         // might end up with 3 negative prices, and another group of 7 negative prices. For any
         // groups that are long enough to charge the battery fully, discharge the battery for 
