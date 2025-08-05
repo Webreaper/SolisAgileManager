@@ -34,6 +34,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private readonly IMemoryCache memoryCache;
     private bool? newFirmwareVersion;
 
+    // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
     {
         CheckFirmware = 6798,
@@ -51,6 +52,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         DischargeSlot1_Time = 5964,
         DischargeSlot1_Amps = 5967,
         DischargeSlot1_SOC = 5965,
+        
+        ChargeTimeSlot1Switch = 5916,
+        DischargeTimeSlot1Switch = 5922,
     }
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
@@ -394,8 +398,14 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                     simulateOnly ? "mock inverter" : "Solis Inverter",
                     chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
 
+                
                 await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
                 await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
+
+                // For the new firmware, set the Charge Time Slot 1 switch to 'on' 
+                await SendControlRequest(CommandIDs.ChargeTimeSlot1Switch, "1", simulateOnly);
+                // For the new firmware, set the Discharge Time Slot 1 switch to 'on' 
+                await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
 
                 // Now, set the actual state.
                 await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
