@@ -615,8 +615,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                         return; // Success
                     }
 
-                    logger.LogWarning("Inverter control request did not stick: CID: {C}, Value: {V} (attempt: {A})",
-                        cmdId, value, attempt);
+                    logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
+                        cmdId, value, result, attempt);
                 }
             }
         }
