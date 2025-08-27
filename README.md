@@ -91,9 +91,15 @@ Here's a sample `docker-compose` entry:
         ports:
             - '5169:5169'
         restart: unless-stopped
+        environment:
+            - TZ=Europe/London
         volumes:
             - /volume1/dockerdata/solismanager:/appdata
 ```
+
+Note that the `TZ` environment variable is important - if you don't specify this you could end up with
+the SolisManager docker container running on GMT, and the inverter running on BST, which would give 
+bad results.
 
 #### Supported Docker Platforms
 

@@ -236,7 +236,7 @@
             glassPaneText = "Saving settings...";
             StateHasChanged();
 
-            if (config != null)
+            if (config != null && config.InverterConfig != null)
             {
                 var response = await inverterManagerService.SaveConfig(config);
 

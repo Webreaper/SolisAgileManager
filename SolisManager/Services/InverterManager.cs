@@ -1173,6 +1173,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 };
             }
         }
+        
         newConfig.CopyPropertiesTo(config);
         await config.SaveToFile(Program.ConfigFolder);
         
