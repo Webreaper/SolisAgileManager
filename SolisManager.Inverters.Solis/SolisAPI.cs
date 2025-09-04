@@ -338,6 +338,39 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         return null;
     }
 
+    private static bool firstCall = true;
+    private async Task EnableChargingSlots(bool simulateOnly)
+    {
+        await EnableSlot(CommandIDs.ChargeTimeSlot1Switch, simulateOnly);
+        await EnableSlot(CommandIDs.DischargeTimeSlot1Switch, simulateOnly);
+        firstCall = false;
+    }
+    
+    /// <summary>
+    /// See if the slot is enabled
+    /// </summary>
+    /// <param name="commandId"></param>
+    /// <param name="simulateOnly"></param>
+    private async Task EnableSlot(CommandIDs commandId, bool simulateOnly)
+    {
+        var flag = await ReadControlStateInt(commandId);
+        if (flag != null)
+        {
+            if (flag == 0)
+            {
+                logger.LogWarning("Slot {Cid} was not enabled - sending enable command...", commandId);
+                // For the new firmware, set the Charge Time Slot switch to 'on' 
+                await SendControlRequest(commandId, "1", simulateOnly);
+            }
+            else if (firstCall)
+            {
+                logger.LogInformation("Slot for {Cid} is enabled and ready to control", commandId);
+            }
+        }
+        else
+            logger.LogWarning("Unable to read {Cid} enable state", commandId.ToString());
+    }
+    
     private async Task<int?> ReadControlStateInt(CommandIDs cid)
     {
         var result = await ReadControlState(cid);
@@ -394,18 +427,22 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 var chargeSOC = dischargePower > 0 ? 15 : 100;
                 var dischargeSOC = 15;
 
-                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
-                    simulateOnly ? "mock inverter" : "Solis Inverter",
-                    chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
+                // Ensure the charge slots are enabled
+                await EnableChargingSlots(simulateOnly);
 
-                
                 await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
                 await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
 
-                // For the new firmware, set the Charge Time Slot 1 switch to 'on' 
-                await SendControlRequest(CommandIDs.ChargeTimeSlot1Switch, "1", simulateOnly);
                 // For the new firmware, set the Discharge Time Slot 1 switch to 'on' 
-                await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
+                var dischargeFlag = await ReadControlStateInt(CommandIDs.ChargeTimeSlot1Switch);
+                if (dischargeFlag == null || dischargeFlag == 0)
+                {
+                    await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
+                }
+
+                logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
+                    simulateOnly ? "mock inverter" : "Solis Inverter",
+                    chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
 
                 // Now, set the actual state.
                 await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
@@ -603,7 +640,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 {
                     // Give it a chance to persist.
                     await Task.Delay(backoffRetryDelays[attempt]);
-
+                    
                     // Now try and read it back
                     var result = await ReadControlState(cmdId);
 
