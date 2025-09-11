@@ -111,6 +111,18 @@ Multiplatform Docker Images are available for:
 
 These images should work for Linux, Mac, Windows and Raspberry Pi. 
 
+## Solis API Settings
+
+Usage of the API requires an active account on https://www.soliscloud.com and also requires an API key and secret, to be obtained via SolisCloud.
+
+* Submit a service ticket and wait till it is resolved.
+* Go to https://www.soliscloud.com/#/apiManage.
+* Activate API management and agree with the usage conditions.
+* After activation, click on view key tot get a pop-up window asking for the verification code.
+* First click on "Verification code" after which you get an image with 2 puzzle pieces, which you need to overlap each other using the slider below.
+* After that, you will receive an email with the verification code you need to enter (within 60 seconds).
+* Once confirmed, you get the API ID, secret and API URL
+
 ## Settings
 
 The first time you load the UI, you'll be prompted to input basic information, such as your Solis API key and 

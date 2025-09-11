@@ -191,12 +191,20 @@ public class Program
 
         app.ConfigureAPIEndpoints();
 
-        // Get the solcast data at just after midnight, on the 13th minute,
-        // because that reduces load (half of the world runs their solcast
-        // ingestion on the hour). Don't run at first startup.
+        // We query at 9am to check the coming day's forecast, and at
+        // just before 11pm so we've got the most up-to-date calculation for
+        // when the no-overnight-charge rule kicks in.
+        // Get the solcast data on the4 13th minute, because that reduces load
+        // (half of the world runs their solcast ingestion on the hour). Don't
+        // run at first startup.
         app.Services.UseScheduler(s => s
             .Schedule<SolcastScheduler>()
-            .Cron("13 19,9 * * *")
+            .Cron("13 9 * * *")
+            .Zoned(TimeZoneInfo.Local));
+
+        app.Services.UseScheduler(s => s
+            .Schedule<SolcastScheduler>()
+            .Cron("53 22 * * *")
             .Zoned(TimeZoneInfo.Local));
 
         // An additional scheduler for a midday solcast updated. This will
