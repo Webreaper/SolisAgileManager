@@ -85,6 +85,7 @@ public record SolisManagerConfig
     }
 
     public bool TariffIsIntelligentGo => OctopusProductCode.Contains("INTELLI-VAR") ||
+                                         OctopusProductCode.Contains("INTELLI-FIX") ||
                                          OctopusProductCode.Contains("INTELLI-BB-VAR");
     
     [Obsolete]
