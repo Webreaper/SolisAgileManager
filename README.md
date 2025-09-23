@@ -222,6 +222,8 @@ time periods involve a lot of data, so can take quite a few API calls and time t
 
 ### Intelligent Go Dispatch Management
 
+** See Note Below **
+
 Octopus Intelligent Go is an advanced tariff that manages your Electric Vehicle (EV) charging automatically. 
 One advantage it provides is that if you need to charge your EV at any time of day to prepare for a journey,
 you can call for an 'IOG Dispatch' which will charge the vehicle at the cheap rate (7p/kWh or so) at *any* 
@@ -238,6 +240,19 @@ available, and will cancel the house charge if it ends (because, for example, th
 or you unplug your EV from the charger).
 
 ![IOGSlots](https://github.com/user-attachments/assets/41a3b945-a6e5-4598-a420-a818a8bebf78)
+
+#### Important Note about IOG Dispatch Charging
+
+As of April 2025 It seems that Octopus are introducing changes to their Intelligent Octopus Go tariff T&Cs. 
+Now when you car is charging outside the cheap rate period, they only intend to apply the 7p tariff to the 
+power used to charge your car, not the whole house supply as it was previously.
+
+This means that the IOG dispatch feature may not give you cheap electricity to charge the house - please 
+check your T&Cs - I cannot be responsible for unexpected bills from charging during IOG dispatches.
+
+The feature may still be useful though: if you set the IOG Charge Amps to zero in the Solis Manager config,
+this should change the behaviour to apply a zero-amp charge whenever an IOG dispatch is in progress, which
+should force the EV to charge from the grid, and therefore avoid the EV being charged from the house battery.
 
 #### How does it work?
 
