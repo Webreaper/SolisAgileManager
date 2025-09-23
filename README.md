@@ -111,17 +111,17 @@ Multiplatform Docker Images are available for:
 
 These images should work for Linux, Mac, Windows and Raspberry Pi. 
 
-## Solis API Settings
+## Note for users with Inverters running newer Firmware
 
-Usage of the API requires an active account on https://www.soliscloud.com and also requires an API key and secret, to be obtained via SolisCloud.
+If you start running SolisManager and find that the inverter charging is not being applied correctly, it's 
+likely that you're on the newer firmware which has an enable/disable switch for each charge/discharge slot:
 
-* Submit a service ticket and wait till it is resolved.
-* Go to https://www.soliscloud.com/#/apiManage.
-* Activate API management and agree with the usage conditions.
-* After activation, click on view key tot get a pop-up window asking for the verification code.
-* First click on "Verification code" after which you get an image with 2 puzzle pieces, which you need to overlap each other using the slider below.
-* After that, you will receive an email with the verification code you need to enter (within 60 seconds).
-* Once confirmed, you get the API ID, secret and API URL
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/55de1fdd-0cd0-40b7-9767-c38664423f31" />
+
+SolisManager does not enable the charge slots automatically yet (I am planning to add that in a future release)
+so you will have to enable the `Charge Slot 1` and `Discharge Slot 1` controls. You only need to do this once.
+
+For more details, please see https://github.com/Webreaper/SolisAgileManager/issues/203
 
 ## Settings
 
