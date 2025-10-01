@@ -860,7 +860,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
         else
         {
-            logger.LogInformation("{FN} = {F:F2}kWh (so below {T}kWh). No action needed for NOC rule",
+            logger.LogInformation("{FN} = {F:F2}kWh (so below {T}kWh). NOC rule will not trigger, battery will be charged overnight",
                                 forecastName, dampedForecast, config.ForecastThreshold);
         }
     }
