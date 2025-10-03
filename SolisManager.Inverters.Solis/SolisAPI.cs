@@ -634,7 +634,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             var currentValue = await ReadControlState(cmdId);
             
             if( currentValue == newValue )
-                logger.LogInformation("No need to write - value {I} was already set to {V}", currentValue, newValue);
+                logger.LogInformation("EEPROM: No need to write - value {I} was already set to {V}", currentValue, newValue);
+            else 
+                logger.LogInformation("EEPROM: Need to write - value {I} did not match new value {V}", currentValue, newValue);
 
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
