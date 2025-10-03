@@ -33,6 +33,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
     private bool? newFirmwareVersion;
+    private int eepromWrites = 0;
+    private DateTime eepromCountDate = DateTime.UtcNow;
 
     // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
@@ -661,6 +663,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 // Actually write it. 
                 await Post<object>(2, "control", requestBody);
 
+                LogEepromWrites();
+                
                 if (validatePersistence)
                 {
                     // Give it a chance to persist.
@@ -681,6 +685,19 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                         cmdId, newValue, result, attempt);
                 }
             }
+        }
+    }
+
+    private void LogEepromWrites()
+    {
+        eepromWrites++;
+        var now = DateTime.UtcNow;
+
+        if (eepromCountDate.Date != now.Date)
+        {
+            logger.LogInformation("Total EEPROM writes yesterday: {W}", eepromWrites);
+            eepromWrites = 0;
+            eepromCountDate = now;
         }
     }
 
