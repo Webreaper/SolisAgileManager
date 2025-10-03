@@ -632,11 +632,14 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             int[] backoffRetryDelays = [50, 200, 500, 1000, 5000];
 
             var currentValue = await ReadControlState(cmdId);
-            
-            if( currentValue == newValue )
+
+            if (currentValue == newValue)
+            {
                 logger.LogInformation("EEPROM: No need to write - value {I} was already set to {V}", currentValue, newValue);
-            else 
-                logger.LogInformation("EEPROM: Need to write - value {I} did not match new value {V}", currentValue, newValue);
+                return;
+            }
+
+            logger.LogInformation("EEPROM: Need to write - value {I} did not match new value {V}", currentValue, newValue);
 
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
