@@ -652,11 +652,11 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             if (currentValue == newValue)
             {
-                logger.LogInformation("EEPROM: No need to write\nOld: {I}\nNew:{V}", currentValue, newValue);
+                logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V}", currentValue, newValue);
                 return;
             }
 
-            logger.LogInformation("EEPROM: Need to write\nOld {I}\nNew:{V}", currentValue, newValue);
+            logger.LogInformation("EEPROM: Need to write\n   Old: {I}\n   New: {V}", currentValue, newValue);
 
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
