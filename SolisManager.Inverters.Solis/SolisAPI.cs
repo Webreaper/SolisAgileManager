@@ -588,15 +588,30 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         return result;
     }
-    
+
     public async Task UpdateInverterTime(bool simulateOnly)
     {
-        var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-        logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
+        var timeNow = DateTime.Now;
+        var time = timeNow.ToString("yyyy-MM-dd HH:mm:ss");
         
-        // Don't validate the call here - the value we'll get will *always* be different to what we set
-        await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+        var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
+
+        if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
+        {
+            var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
+
+            if (timeDrift > 20)
+            {
+                logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
+
+                // Don't validate the call here - the value we'll get will *always* be different to what we set
+                await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+            }
+            else
+                logger.LogInformation("Inverter time drift ({T:N1}s) is within 20s so no action required", (int)timeDrift);
+        }
+        else 
+            logger.LogWarning("Inverter time was unavailable to check clock drift");
     }
 
     private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly, bool validatePersistence = true)
@@ -635,11 +650,11 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             if (currentValue == newValue)
             {
-                logger.LogInformation("EEPROM: No need to write - value {I} was already set to {V}", currentValue, newValue);
+                logger.LogInformation("EEPROM: No need to write\nOld: {I}\nNew:{V}", currentValue, newValue);
                 return;
             }
 
-            logger.LogInformation("EEPROM: Need to write - value {I} did not match new value {V}", currentValue, newValue);
+            logger.LogInformation("EEPROM: Need to write\nOld {I}\nNew:{V}", currentValue, newValue);
 
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
