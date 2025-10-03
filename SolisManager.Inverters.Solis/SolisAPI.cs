@@ -608,10 +608,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     /// Send the actual control request to the inverter. 
     /// </summary>
     /// <param name="cmdId"></param>
-    /// <param name="value"></param>
+    /// <param name="newValue"></param>
     /// <param name="simulateOnly"></param>
     /// <param name="validatePersistence">If true, will read the value after the update to check it persisted correctly</param>
-    private async Task SendControlRequest(CommandIDs cmdId, string value, bool simulateOnly, bool validatePersistence = true)
+    private async Task SendControlRequest(CommandIDs cmdId, string newValue, bool simulateOnly, bool validatePersistence = true)
     {
         ArgumentNullException.ThrowIfNull(inverterConfig);
 
@@ -619,7 +619,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             inverterSn = inverterConfig.SolisInverterSerial,
             cid = (int)cmdId,
-            value
+            value = newValue
         };
         
         if (simulateOnly)
@@ -630,7 +630,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             // Wait gradually longer and longer
             int[] backoffRetryDelays = [50, 200, 500, 1000, 5000];
+
+            var currentValue = await ReadControlState(cmdId);
             
+            if( currentValue == newValue )
+                logger.LogInformation("No need to write - value {I} was already set to {V}", currentValue, newValue);
+
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
                 // Actually write it. 
@@ -644,16 +649,16 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                     // Now try and read it back
                     var result = await ReadControlState(cmdId);
 
-                    if (result == value)
+                    if (result == newValue)
                     {
                         if (attempt > 0)
                             logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
-                                cmdId, value, attempt);
+                                cmdId, newValue, attempt);
                         return; // Success
                     }
 
                     logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
-                        cmdId, value, result, attempt);
+                        cmdId, newValue, result, attempt);
                 }
             }
         }
