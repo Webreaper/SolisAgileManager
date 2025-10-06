@@ -35,6 +35,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private bool? newFirmwareVersion;
     private int eepromWrites = 0;
     private DateTime eepromCountDate = DateTime.UtcNow;
+    private readonly bool slot1 = true;
+    private readonly bool stateTracking = false;
 
     // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
@@ -51,22 +53,79 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         ChargeSlot1_Amps = 5948,
         ChargeSlot1_SOC = 5928,
         
+        ChargeSlot4_Time = 5955,
+        ChargeSlot4_Amps = 5957,
+        ChargeSlot4_SOC = 5931,
+        
         DischargeSlot1_Time = 5964,
         DischargeSlot1_Amps = 5967,
         DischargeSlot1_SOC = 5965,
-        
+
+        DischargeSlot4_Time = 5976,
+        DischargeSlot4_Amps = 5979,
+        DischargeSlot4_SOC = 5977,
+
         ChargeTimeSlot1Switch = 5916,
         DischargeTimeSlot1Switch = 5922,
+    }
+
+    private Dictionary<CommandIDs, string> commandState = new();
+
+    private async Task<bool> CheckStateIsCorrect(CommandIDs cmdId, string newState)
+    {
+        if (commandState.TryGetValue(cmdId, out var existing) && existing == newState)
+        {
+            logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V} (via internal tracking)", existing, newState);
+            return true;
+        }
+
+        existing = await ReadControlState(cmdId);
+
+        if (existing == newState)
+        {
+            logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V} (via inverter API)", existing, newState);
+            return true;
+        }
+
+        logger.LogInformation("EEPROM: Need to write\n   Old: {I}\n   New: {V}", existing, newState);
+        return false;
+    }
+
+    private void TrackStateChange(CommandIDs commandID, string newState)
+    {
+        if (!stateTracking)
+            return;
+        
+        if (commandID == CommandIDs.SetInverterTime)
+            return;
+        
+        // Save the state
+        commandState[commandID] = newState;
     }
     
     public SolisAPI(SolisManagerConfig _config, IMemoryCache _cache, IUserAgentProvider _userAgentProvider, ILogger<SolisAPI> _logger)
     {
         SetInverterConfig(_config);
-
+        
         userAgentProvider = _userAgentProvider;
         logger = _logger;
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
+
+        var altSlotValue = Environment.GetEnvironmentVariable("ALTERNATE_SLOT");
+        var trackstate = Environment.GetEnvironmentVariable("TRACK_STATE");
+        
+        if (!string.IsNullOrEmpty(altSlotValue))
+        {
+            slot1 = false;
+            logger.LogInformation("Alternate slot enabled via env var ALTERNATE_SLOT: slot 4 will be used");
+        }
+
+        if (!string.IsNullOrEmpty(trackstate))
+        {
+            stateTracking = true;
+            logger.LogInformation("Inverter State Tracking enabled via env var TRACK_STATE");
+        }
     }
     
     private async Task<InverterDetails?> InverterState()
@@ -108,10 +167,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     {
         if (await IsNewFirmwareVersion())
         {
-            var chargeAmp = await ReadControlStateInt(CommandIDs.ChargeSlot1_Amps);
-            var chargeTime = await ReadControlState(CommandIDs.ChargeSlot1_Time);
-            var dischargeAmp = await ReadControlStateInt(CommandIDs.DischargeSlot1_Amps);
-            var dischargeTime = await ReadControlState(CommandIDs.DischargeSlot1_Time);
+            var chargeAmp = await ReadControlStateInt(slot1 ? CommandIDs.ChargeSlot1_Amps : CommandIDs.ChargeSlot4_Amps);
+            var chargeTime = await ReadControlState(slot1 ? CommandIDs.ChargeSlot1_Time : CommandIDs.ChargeSlot4_Time);
+            var dischargeAmp = await ReadControlStateInt(slot1 ? CommandIDs.DischargeSlot1_Amps : CommandIDs.DischargeSlot4_Amps);
+            var dischargeTime = await ReadControlState(slot1 ? CommandIDs.DischargeSlot1_Time  : CommandIDs.DischargeSlot4_Time);
 
             if (chargeAmp.HasValue && chargeTime != null && dischargeAmp.HasValue && dischargeTime != null)
             {
@@ -432,25 +491,26 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 // Ensure the charge slots are enabled
                 await EnableChargingSlots(simulateOnly);
 
-                await SendControlRequest(CommandIDs.ChargeSlot1_SOC, $"{chargeSOC}", simulateOnly);
-                await SendControlRequest(CommandIDs.DischargeSlot1_SOC, "15", simulateOnly);
-
+                await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_SOC : CommandIDs.ChargeSlot4_SOC, $"{chargeSOC}", simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.DischargeSlot1_SOC : CommandIDs.DischargeSlot4_SOC, "15", simulateOnly);
+                
+                // TODO: Figure out how to enable the slot automatically
                 // For the new firmware, set the Discharge Time Slot 1 switch to 'on' 
-                var dischargeFlag = await ReadControlStateInt(CommandIDs.ChargeTimeSlot1Switch);
-                if (dischargeFlag == null || dischargeFlag == 0)
-                {
-                    await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
-                }
+                //var dischargeFlag = await ReadControlStateInt(CommandIDs.ChargeTimeSlot1Switch);
+                //if (dischargeFlag == null || dischargeFlag == 0)
+                //{
+                //    await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
+                //}
 
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
                     simulateOnly ? "mock inverter" : "Solis Inverter",
                     chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
 
                 // Now, set the actual state.
-                await SendControlRequest(CommandIDs.ChargeSlot1_Amps, chargePower, simulateOnly);
-                await SendControlRequest(CommandIDs.ChargeSlot1_Time, chargeTimes, simulateOnly);
-                await SendControlRequest(CommandIDs.DischargeSlot1_Amps, dischargePower, simulateOnly);
-                await SendControlRequest(CommandIDs.DischargeSlot1_Time, dischargeTimes, simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_Amps : CommandIDs.ChargeSlot4_Amps, chargePower, simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_Time : CommandIDs.ChargeSlot4_Time, chargeTimes, simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.DischargeSlot1_Amps : CommandIDs.DischargeSlot4_Amps, dischargePower, simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.DischargeSlot1_Time : CommandIDs.DischargeSlot4_Time, dischargeTimes, simulateOnly);
             }
             else
             {
@@ -648,21 +708,15 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             // Wait gradually longer and longer
             int[] backoffRetryDelays = [50, 200, 500, 1000, 5000];
 
-            var currentValue = await ReadControlState(cmdId);
-
-            if (currentValue == newValue)
-            {
-                logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V}", currentValue, newValue);
+            if (await CheckStateIsCorrect(cmdId, newValue))
                 return;
-            }
-
-            logger.LogInformation("EEPROM: Need to write\n   Old: {I}\n   New: {V}", currentValue, newValue);
-
+            
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
             {
                 // Actually write it. 
                 await Post<object>(2, "control", requestBody);
 
+                TrackStateChange(cmdId, newValue);
                 LogEepromWrites();
                 
                 if (validatePersistence)
