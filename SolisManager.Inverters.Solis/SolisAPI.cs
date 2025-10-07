@@ -67,6 +67,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         ChargeTimeSlot1Switch = 5916,
         DischargeTimeSlot1Switch = 5922,
+        ChargeTimeSlot4Switch = 5919,
+        DischargeTimeSlot4Switch = 5925,
     }
 
     private Dictionary<CommandIDs, string> commandState = new();
@@ -75,7 +77,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     {
         if (commandState.TryGetValue(cmdId, out var existing) && existing == newState)
         {
-            logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V} (via internal tracking)", existing, newState);
+            logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V} (via internal tracking)", cmdId.ToString(), existing, newState);
             return true;
         }
 
@@ -83,11 +85,11 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         if (existing == newState)
         {
-            logger.LogInformation("EEPROM: No need to write\n   Old: {I}\n   New: {V} (via inverter API)", existing, newState);
+            logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V} (via inverter API)", cmdId.ToString(), existing, newState);
             return true;
         }
 
-        logger.LogInformation("EEPROM: Need to write\n   Old: {I}\n   New: {V}", existing, newState);
+        logger.LogInformation("EEPROM: Need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
         return false;
     }
 
@@ -181,6 +183,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                     dischargeTime
                 );
             }
+
+            logger.LogWarning("Error reading inverter charge slot state");
         }
         else
         {
@@ -402,8 +406,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private static bool firstCall = true;
     private async Task EnableChargingSlots(bool simulateOnly)
     {
-        await EnableSlot(CommandIDs.ChargeTimeSlot1Switch, simulateOnly);
-        await EnableSlot(CommandIDs.DischargeTimeSlot1Switch, simulateOnly);
+        await EnableSlot(slot1 ?CommandIDs.ChargeTimeSlot1Switch  : CommandIDs.ChargeTimeSlot4Switch, simulateOnly);
+        await EnableSlot(slot1 ? CommandIDs.DischargeTimeSlot1Switch : CommandIDs.DischargeTimeSlot4Switch, simulateOnly);
         firstCall = false;
     }
     
@@ -479,33 +483,22 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         // we can do for longevity, the better.
         if (await InverterNeedsUpdating(chargePower, dischargePower, chargeTimes, dischargeTimes))
         {
-            // This is only used for the old FW
-            var chargeValues = $"{chargePower},{dischargePower},{chargeTimes},{dischargeTimes},0,0,00:00-00:00,00:00-00:00,0,0,00:00-00:00,00:00-00:00";
-        
             if(newFirmWare)
             {
                 // To discharge, it seems you have to make the Charge SOC lower than the current SOC
                 var chargeSOC = dischargePower > 0 ? 15 : 100;
                 var dischargeSOC = 15;
 
-                // Ensure the charge slots are enabled
-                await EnableChargingSlots(simulateOnly);
-
-                await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_SOC : CommandIDs.ChargeSlot4_SOC, $"{chargeSOC}", simulateOnly);
-                await SendControlRequest(slot1 ? CommandIDs.DischargeSlot1_SOC : CommandIDs.DischargeSlot4_SOC, "15", simulateOnly);
-                
-                // TODO: Figure out how to enable the slot automatically
-                // For the new firmware, set the Discharge Time Slot 1 switch to 'on' 
-                //var dischargeFlag = await ReadControlStateInt(CommandIDs.ChargeTimeSlot1Switch);
-                //if (dischargeFlag == null || dischargeFlag == 0)
-                //{
-                //    await SendControlRequest(CommandIDs.DischargeTimeSlot1Switch, "1", simulateOnly);
-                //}
-
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
                     simulateOnly ? "mock inverter" : "Solis Inverter",
                     chargePower, dischargePower, chargeTimes, dischargeTimes, chargeSOC, dischargeSOC);
 
+                // Ensure the charge slots are enabled
+                await EnableChargingSlots(simulateOnly);
+
+                await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_SOC : CommandIDs.ChargeSlot4_SOC, $"{chargeSOC}", simulateOnly);
+                await SendControlRequest(slot1 ? CommandIDs.DischargeSlot1_SOC : CommandIDs.DischargeSlot4_SOC, $"{dischargeSOC}", simulateOnly);
+                
                 // Now, set the actual state.
                 await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_Amps : CommandIDs.ChargeSlot4_Amps, chargePower, simulateOnly);
                 await SendControlRequest(slot1 ? CommandIDs.ChargeSlot1_Time : CommandIDs.ChargeSlot4_Time, chargeTimes, simulateOnly);
@@ -514,6 +507,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             }
             else
             {
+                // This is only used for the old FW
+                var chargeValues = $"{chargePower},{dischargePower},{chargeTimes},{dischargeTimes},0,0,00:00-00:00,00:00-00:00,0,0,00:00-00:00,00:00-00:00";
+        
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}",
                     simulateOnly ? "mock inverter" : "Solis Inverter",
                     chargePower, dischargePower, chargeTimes, dischargeTimes);
