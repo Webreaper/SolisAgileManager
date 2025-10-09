@@ -741,16 +741,19 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private void LogEepromWrites()
     {
         var now = DateTime.UtcNow;
+        var day = "today";
 
         if (eepromCountDate.Date != now.Date)
         {
-            // Reset the counter when we have the first write of the day
-            logger.LogInformation("Total EEPROM writes yesterday: {W}", eepromWrites);
             eepromWrites = 0;
             eepromCountDate = now;
+            day = "yesterday";
         }
 
         eepromWrites++;
+        
+        // Reset the counter when we have the first write of the day
+        logger.LogInformation("Total EEPROM writes {D}: {W}", day, eepromWrites);
     }
 
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)
