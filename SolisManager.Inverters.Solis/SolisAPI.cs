@@ -655,6 +655,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     public async Task UpdateInverterTime(bool simulateOnly)
     {
+        var allowedDriftSecs = 30;
         var timeNow = DateTime.Now;
         var time = timeNow.ToString("yyyy-MM-dd HH:mm:ss");
         
@@ -664,7 +665,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
 
-            if (timeDrift > 30)
+            if (timeDrift > allowedDriftSecs)
             {
                 logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
 
@@ -672,7 +673,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
                 await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
             }
             else
-                logger.LogInformation("Inverter time drift ({T:N1}s) is within 20s so no action required", (int)timeDrift);
+                logger.LogInformation("Inverter time drift ({T:N1}s) is within {A}s so no action required", (int)timeDrift, allowedDriftSecs);
         }
         else 
             logger.LogWarning("Inverter time was unavailable to check clock drift");
