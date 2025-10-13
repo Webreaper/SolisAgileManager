@@ -74,7 +74,8 @@ internal record InverterData(
     decimal psum, // Current grid output Kw
     string version,
     string timeStr,
-    decimal inverterTemperature);
+    decimal inverterTemperature,
+    int dailyEepromWrites);
 
 internal record StationDetail(StationDetailData data);
 

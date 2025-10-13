@@ -23,4 +23,5 @@ public class SolisManagerState
     
     public TimeSpan? Sunrise { get; set; }
     public TimeSpan? Sunset { get; set; }
+    public int DailyEepromWrites { get; set; }
 }

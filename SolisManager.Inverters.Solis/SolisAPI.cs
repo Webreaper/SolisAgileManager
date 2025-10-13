@@ -115,6 +115,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         logger = _logger;
         memoryCache = _cache;
         client.BaseAddress = new Uri("https://www.soliscloud.com:13333");
+        stateTracking = true;
 
         var altSlotValue = Environment.GetEnvironmentVariable("ALTERNATE_SLOT");
         var trackstate = Environment.GetEnvironmentVariable("TRACK_STATE");
@@ -125,10 +126,10 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             logger.LogInformation("Alternate slot enabled via env var ALTERNATE_SLOT: slot 4 will be used");
         }
 
-        if (!string.IsNullOrEmpty(trackstate))
+        if (!string.IsNullOrEmpty(trackstate) && trackstate.Equals("false", StringComparison.OrdinalIgnoreCase))
         {
-            stateTracking = true;
-            logger.LogInformation("Inverter State Tracking enabled via env var TRACK_STATE");
+            stateTracking = false;
+            logger.LogInformation("Inverter State Tracking disabled via env var TRACK_STATE");
         }
     }
     
@@ -357,6 +358,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             // Clear these each time
             inverterState.Sunrise = null;
             inverterState.Sunset = null;
+            
+            // Pass through the number of EEPROM writes
+            inverterState.DailyEepromWrites = solisState.data.dailyEepromWrites;
             
             if (long.TryParse(inverterState.StationId, out var stationId))
             {
