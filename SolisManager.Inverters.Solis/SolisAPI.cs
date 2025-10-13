@@ -664,7 +664,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
 
-            if (timeDrift > 20)
+            if (timeDrift > 30)
             {
                 logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
 
