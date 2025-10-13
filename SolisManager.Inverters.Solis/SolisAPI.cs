@@ -33,10 +33,11 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
     private bool? newFirmwareVersion;
-    private int eepromWrites = 0;
+    
+    private int eepromWrites;
     private DateTime eepromCountDate = DateTime.UtcNow;
     private readonly bool slot1 = true;
-    private readonly bool stateTracking = false;
+    private readonly bool stateTracking;
 
     // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
@@ -71,26 +72,27 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         DischargeTimeSlot4Switch = 5925,
     }
 
-    private Dictionary<CommandIDs, string> commandState = new();
+    private readonly Dictionary<CommandIDs, string> commandState = new();
 
     private async Task<bool> CheckStateIsCorrect(CommandIDs cmdId, string newState)
     {
-        if (commandState.TryGetValue(cmdId, out var existing) && existing == newState)
-        {
-            logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V} (via internal tracking)", cmdId.ToString(), existing, newState);
-            return true;
-        }
+        // First try and read from the inverter
+        var existing = await ReadControlState(cmdId);
 
-        existing = await ReadControlState(cmdId);
+        if (existing == null && !commandState.TryGetValue(cmdId, out existing))
+        {
+            logger.LogWarning("EEPROM: Unable to read existing value of {C} from inverter or state-tracker", cmdId.ToString());
+            return false;
+        }
 
         if (existing == newState)
         {
-            logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V} (via inverter API)", cmdId.ToString(), existing, newState);
-            return true;
+            logger.LogInformation("EEPROM: Need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
+            return false;
         }
 
-        logger.LogInformation("EEPROM: Need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
-        return false;
+        logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
+        return true;
     }
 
     private void TrackStateChange(CommandIDs commandID, string newState)
