@@ -74,25 +74,26 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     private readonly Dictionary<CommandIDs, string> commandState = new();
 
-    private async Task<bool> CheckStateIsCorrect(CommandIDs cmdId, string newState)
+    private async Task<bool> CommandStateIsCorrect(CommandIDs cmdId, string newState)
     {
         // First try and read from the inverter
         var existing = await ReadControlState(cmdId);
 
+        // If there was no existing value, try and get it from the commandState
         if (existing == null && !commandState.TryGetValue(cmdId, out existing))
         {
             logger.LogWarning("EEPROM: Unable to read existing value of {C} from inverter or state-tracker", cmdId.ToString());
             return false;
         }
-
+        
         if (existing == newState)
         {
-            logger.LogInformation("EEPROM: Need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
-            return false;
+            logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
+            return true;
         }
 
-        logger.LogInformation("EEPROM: No need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
-        return true;
+        logger.LogInformation("EEPROM: Need to write {Cmd}\n   Old: {I}\n   New: {V}", cmdId.ToString(), existing, newState);
+        return false;
     }
 
     private void TrackStateChange(CommandIDs commandID, string newState)
@@ -127,10 +128,9 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
 
         if (!string.IsNullOrEmpty(trackstate) && trackstate.Equals("false", StringComparison.OrdinalIgnoreCase))
-        {
             stateTracking = false;
-            logger.LogInformation("Inverter State Tracking disabled via env var TRACK_STATE");
-        }
+
+        logger.LogInformation("Inverter State Tracking {S}", stateTracking ? "enabled" : "disabled");
     }
     
     private async Task<InverterDetails?> InverterState()
@@ -711,7 +711,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             // Wait gradually longer and longer
             int[] backoffRetryDelays = [50, 200, 500, 1000, 5000];
 
-            if (await CheckStateIsCorrect(cmdId, newValue))
+            if (await CommandStateIsCorrect(cmdId, newValue))
                 return;
             
             for (var attempt = 0; attempt < backoffRetryDelays.Length; attempt++)
