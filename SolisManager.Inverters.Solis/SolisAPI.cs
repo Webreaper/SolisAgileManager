@@ -742,7 +742,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     private void LogEepromWrites()
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var day = "today";
 
         if (eepromCountDate.Date != now.Date)
