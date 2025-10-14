@@ -38,7 +38,11 @@
         {
             var color = DarkMode ? "orange" : "darkred";
             EEPROMWriteColour = $"color: {color}; font-weight: bold";
-            snackbar.Add($"Warning - Daily EEPROM Writes ({InverterState.DailyEepromWrites} is high. Please check the logs", Severity.Warning);
+            snackbar.Add($"Warning - Daily EEPROM Writes ({InverterState.DailyEepromWrites} is high. Please check the logs", Severity.Warning, 
+                x =>
+                {
+                    x.HideTransitionDuration = 120 * 1000;
+                });
         }
         else
             EEPROMWriteColour = string.Empty;
