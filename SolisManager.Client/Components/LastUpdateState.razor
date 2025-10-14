@@ -1,3 +1,4 @@
+@inject ISnackbar snackbar
 
 @if (InverterState != null && InverterState.InverterDataTimestamp != DateTime.MinValue)
 {
@@ -27,6 +28,22 @@
     
     [CascadingParameter] public bool DarkMode { get; set; }
 
+    private string EEPROMWriteColour = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (InverterState != null && InverterState.DailyEepromWrites > 50)
+        {
+            var color = DarkMode ? "orange" : "darkred";
+            EEPROMWriteColour = $"color: {color}; font-weight: bold";
+            snackbar.Add("Warning - Daily EEPROM Writes is > 50!", Severity.Warning);
+        }
+        else
+            EEPROMWriteColour = string.Empty;
+
+        base.OnParametersSet();
+    }
+
     // We update every from the inverter every minute, solis updates every 5.
     // So worst case we should always have data within 7 minutes. If it's
     // later than that, consider it stale.
@@ -39,5 +56,4 @@
     private string SunriseTime => InverterState?.Sunrise != null ? $"Sunrise: {InverterState?.Sunrise:hh\\:mm}," : string.Empty;
     private string SunsetTime => InverterState?.Sunset != null ? $"Sunset: {InverterState?.Sunset:hh\\:mm}" : string.Empty;
     private string InverterWrites => InverterState?.DailyEepromWrites != null ? $"Writes: {InverterState?.DailyEepromWrites}" : "none";
-    private string EEPROMWriteColour => InverterState?.DailyEepromWrites != null && InverterState?.DailyEepromWrites > 50 ? "color:red; font-weight:bold;" : string.Empty;
 }

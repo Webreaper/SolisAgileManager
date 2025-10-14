@@ -33,7 +33,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private readonly IUserAgentProvider userAgentProvider;
     private readonly IMemoryCache memoryCache;
     private bool? newFirmwareVersion;
-    
+
     private int eepromWrites;
     private DateTime eepromCountDate = DateTime.UtcNow;
     private readonly bool slot1 = true;
@@ -359,8 +359,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             inverterState.Sunrise = null;
             inverterState.Sunset = null;
             
-            // Pass through the number of EEPROM writes
-            inverterState.DailyEepromWrites = solisState.data.dailyEepromWrites;
+            // Pass through the number of EEPROM writes so we can display in the UI
+            inverterState.DailyEepromWrites = eepromWrites;
             
             if (long.TryParse(inverterState.StationId, out var stationId))
             {
