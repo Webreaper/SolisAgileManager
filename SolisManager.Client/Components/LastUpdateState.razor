@@ -32,11 +32,13 @@
 
     protected override void OnParametersSet()
     {
-        if (InverterState != null && InverterState.DailyEepromWrites > 50)
+        const int warningThreshold = 30;
+        
+        if (InverterState != null && InverterState.DailyEepromWrites > warningThreshold)
         {
             var color = DarkMode ? "orange" : "darkred";
             EEPROMWriteColour = $"color: {color}; font-weight: bold";
-            snackbar.Add("Warning - Daily EEPROM Writes is > 50!", Severity.Warning);
+            snackbar.Add($"Warning - Daily EEPROM Writes ({InverterState.DailyEepromWrites} is high. Please check the logs", Severity.Warning);
         }
         else
             EEPROMWriteColour = string.Empty;
