@@ -95,18 +95,31 @@
     {
         public int Length => (int)(end - start).TotalDays;
     }
-    
+
+    private static DateTime MidnightToday
+    {
+        get { 
+            // Consumption data is rarely available before 2pm so if it's before take midnight
+            // as 00:00 today (i.e., data up until the end of yesteerday. Otherwise take midnight
+            // as 00:00 tomorrow (so up until the end of today. Even then, export data may not
+            // be available...
+            int offset = DateTime.UtcNow.Hour < 14 ? -1 : 0;
+            var midnight = new DateTime(DateOnly.FromDateTime(DateTime.Now).AddDays(offset), new TimeOnly(0, 0));
+            return midnight;
+        }
+    }
+
     private static readonly DateRange[] DateRanges =
     [
-        new ("1 week", DateTime.UtcNow.AddDays(-7), DateTime.UtcNow),
-        new ("2 weeks", DateTime.UtcNow.AddDays(-14), DateTime.UtcNow),
-        new ("30 days", DateTime.UtcNow.AddDays(-30), DateTime.UtcNow),
-        new ("60 days", DateTime.UtcNow.AddDays(-60), DateTime.UtcNow),
-        new ("3 months", DateTime.UtcNow.AddDays(-90), DateTime.UtcNow),
-        new ("6 months", DateTime.UtcNow.AddMonths(-6), DateTime.UtcNow),
-        new ("1 year", DateTime.UtcNow.AddYears(-1), DateTime.UtcNow),
-        new ("This year", new DateTime(DateTime.UtcNow.Year, 1, 1), DateTime.UtcNow),
-        new ("Last year", new DateTime(DateTime.UtcNow.Year - 1, 1, 1), new DateTime(DateTime.UtcNow.Year -1, 12, 31, 23, 59, 59)),
+        new ("1 week", MidnightToday.AddDays(-7), MidnightToday),
+        new ("2 weeks", MidnightToday.AddDays(-14), MidnightToday),
+        new ("30 days", MidnightToday.AddDays(-30), MidnightToday),
+        new ("60 days", MidnightToday.AddDays(-60), MidnightToday),
+        new ("3 months", MidnightToday.AddDays(-90), MidnightToday),
+        new ("6 months", MidnightToday.AddMonths(-6), MidnightToday),
+        new ("1 year", MidnightToday.AddYears(-1), MidnightToday),
+        new ("This year", new DateTime(DateTime.Now.Year, 1, 1), DateTime.Now),
+        new ("Last year", new DateTime(DateTime.Now.Year - 1, 1, 1), new DateTime(DateTime.Now.Year -1, 12, 31, 23, 59, 59)),
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
@@ -125,15 +138,7 @@
         tokenSource.Cancel();
         tokenSource = new();
         
-        // Consumption data is rarely available before 2pm so if it's before 
-        // that skip 2 days. Otherwise go back one day. 
-        // that skip 2 days. Otherwise go back one day. 
-        // Even then, export data may not be available...
-        int offset = DateTime.UtcNow.Hour < 14 ? -2 : -1;
-        
-        var end = selectedDateRange.end.AddDays(offset);
-        var start = selectedDateRange.start.AddDays(offset);
-        consumptionData = await inverterManagerService.GetConsumption(start, end, selectedGrouping, tokenSource.Token);
+        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end, selectedGrouping, tokenSource.Token);
         
         loading = false;
         StateHasChanged();
