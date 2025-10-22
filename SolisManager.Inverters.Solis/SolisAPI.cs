@@ -491,8 +491,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             if(newFirmWare)
             {
-                // To discharge, it seems you have to make the Charge SOC lower than the current SOC
-                var chargeSOC = dischargePower > 0 ? 15 : 100;
+                // Set the charge and discharge SOC. Should trigger the first time and then be a no-op
+                var chargeSOC = 100;
                 var dischargeSOC = 15;
 
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
