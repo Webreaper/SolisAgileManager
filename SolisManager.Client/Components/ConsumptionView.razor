@@ -118,7 +118,7 @@
         new ("3 months", MidnightToday.AddDays(-90), MidnightToday),
         new ("6 months", MidnightToday.AddMonths(-6), MidnightToday),
         new ("1 year", MidnightToday.AddYears(-1), MidnightToday),
-        new ("This year", new DateTime(DateTime.Now.Year, 1, 1), DateTime.Now),
+        new ("This year", new DateTime(DateTime.Now.Year, 1, 1), MidnightToday.AddSeconds(-1)),
         new ("Last year", new DateTime(DateTime.Now.Year - 1, 1, 1), new DateTime(DateTime.Now.Year -1, 12, 31, 23, 59, 59)),
     ];
 
@@ -138,8 +138,8 @@
         tokenSource.Cancel();
         tokenSource = new();
         
-        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end, selectedGrouping, tokenSource.Token);
-        
+        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), selectedGrouping, tokenSource.Token);
+
         loading = false;
         StateHasChanged();
     }

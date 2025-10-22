@@ -1325,7 +1325,26 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
 
         if (consumption != null)
-            return GroupConsumptionData(consumption, groupBy);
+        {
+            var grouped = GroupConsumptionData(consumption, groupBy);
+
+            var first = grouped.OrderBy(x => x.StartTime).FirstOrDefault();
+
+            if (first != null && first.StartTime != null)
+            {
+                if (groupBy == GroupByType.Month)
+                {
+                    first.StartTime = new DateTime(first.StartTime.Value.Year,
+                        first.StartTime.Value.Month, 1, 0, 0, 0);
+                }
+                else if (groupBy == GroupByType.Week)
+                {
+                    first.StartTime = first.StartTime.Value.StartOfWeek(DayOfWeek.Monday);
+                }
+            }
+
+            return grouped;
+        }
 
         logger.LogWarning("Attempted to get consumption, but no data was returned");
         return [];
