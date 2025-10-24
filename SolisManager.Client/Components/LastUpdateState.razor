@@ -61,5 +61,5 @@
     private string SolcastUpdate => InverterState?.SolcastTimeStamp?.ToLocalTime().DisplayDateTime() ?? "never";
     private string SunriseTime => InverterState?.Sunrise != null ? $"Sunrise: {InverterState?.Sunrise:hh\\:mm}," : string.Empty;
     private string SunsetTime => InverterState?.Sunset != null ? $"Sunset: {InverterState?.Sunset:hh\\:mm}" : string.Empty;
-    private string InverterWrites => InverterState?.DailyEepromWrites != null ? $"Writes: {InverterState?.DailyEepromWrites}" : "none";
+    private string InverterWrites => InverterState?.DailyEepromWrites != null ? $"EEPROM enWrites: {InverterState?.DailyEepromWrites}" : "none";
 }

@@ -68,7 +68,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (solcast == null || !solcast.Any() || slots == null || ! slots.Any())
             return;
 
-        var lookup = solcast.ToDictionary(x => x.PeriodStartUtc.ToLocalTime());
+        var lookup = solcast
+                                    .DistinctBy(x => x.PeriodStartUtc.ToLocalTime())
+                                    .ToDictionary(x => x.PeriodStartUtc.ToLocalTime());
 
         var matchedData = false;
         foreach (var slot in slots)
