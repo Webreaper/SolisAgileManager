@@ -435,7 +435,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private void ApplyPreviouManualOverrides(IEnumerable<PricePlanSlot> slots, IEnumerable<ManualOverrideRequest> overrides)
     {
-        var lookup = overrides.ToDictionary(x => x.SlotStart);
+        var lookup = overrides
+                        .DistinctBy(x => x.SlotStart)
+                        .ToDictionary(x => x.SlotStart);
+
         foreach (var slot in slots)
         {
             if (lookup.TryGetValue(slot.valid_from, out var overRide))
@@ -1259,7 +1262,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private async Task SetManualOverrides(List<ManualOverrideRequest> overrides)
     {
-        var lookup = InverterState.Prices.ToDictionary(x => x.valid_from);
+        var lookup = InverterState.Prices
+                            .DistinctBy(x => x.valid_from)
+                            .ToDictionary(x => x.valid_from);
 
         foreach (var overRide in overrides)
         {
