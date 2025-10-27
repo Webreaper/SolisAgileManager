@@ -661,6 +661,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         
         var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
 
+        logger.LogInformation("Current inverter time is {T}", currentTimeStr);
+        
         if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
         {
             var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
