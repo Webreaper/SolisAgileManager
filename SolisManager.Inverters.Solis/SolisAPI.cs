@@ -491,7 +491,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             {
                 // Set the charge and discharge SOC. Should trigger the first time and then be a no-op
                 var chargeSOC = 100;
-                var dischargeSOC = 15;
+                var dischargeSOC = inverterConfig.MinDischargeSOC;
 
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
                     simulateOnly ? "mock inverter" : "Solis Inverter",

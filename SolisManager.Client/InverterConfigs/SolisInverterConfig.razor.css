@@ -1,0 +1,10 @@
+
+.config-field-row {
+    display: flex;
+    flex-direction: row;
+    column-gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 5px;
+    margin-bottom: 5px;
+}
