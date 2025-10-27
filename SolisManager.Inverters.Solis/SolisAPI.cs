@@ -38,7 +38,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private DateTime eepromCountDate = DateTime.UtcNow;
     private readonly bool slot1 = true;
     private readonly bool stateTracking;
-    private static CommandIDs[] excludedFromStateTracking = [CommandIDs.CheckFirmware, CommandIDs.SetInverterTime];
+    private static readonly CommandIDs[] excludedFromStateTracking = [CommandIDs.CheckFirmware, CommandIDs.SetInverterTime];
 
     // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
