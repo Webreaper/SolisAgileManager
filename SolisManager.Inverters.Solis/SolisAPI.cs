@@ -389,6 +389,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             if (result.data.msg != "ERROR")
             {
+                // Store the successfully-read value into the state tracker
+                TrackStateChange(cid, result.data.msg);
                 return result.data.msg;
             }
 
