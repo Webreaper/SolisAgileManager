@@ -77,15 +77,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     private async Task<bool> CommandStateIsCorrect(CommandIDs cmdId, string newState)
     {
-        // First try and read from the inverter
+        // First try and read from the inverter 
         var existing = await ReadControlState(cmdId);
-
-        // If there was no existing value, try and get it from the commandState
-        if (existing == null && !commandState.TryGetValue(cmdId, out existing))
-        {
-            logger.LogWarning("EEPROM: Unable to read existing value of {C} from inverter or state-tracker", cmdId.ToString());
-            return false;
-        }
         
         if (existing == newState)
         {
@@ -402,7 +395,16 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             logger.LogWarning("ERROR reading control state (CID = {C})", cid);
         }
         else
+        {
             logger.LogWarning("No data returned reading control state (CID = {C})", cid);
+        }
+
+        // If there was no existing value, try and get it from the commandState
+        if (commandState.TryGetValue(cid, out var trackedValue))
+        {
+            logger.LogWarning("Using value ({C}) from state-tracker", trackedValue);
+            return trackedValue;
+        }
 
         return null;
     }
