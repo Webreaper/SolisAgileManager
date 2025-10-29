@@ -660,27 +660,36 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         var allowedDriftSecs = 30;
         var timeNow = DateTime.Now;
         var time = timeNow.ToString("yyyy-MM-dd HH:mm:ss");
-        
-        var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
+        var clockDriftRetries = 0;
 
-        logger.LogInformation("Current inverter time is {T}", currentTimeStr);
-        
-        if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
+        while (clockDriftRetries++ < 4)
         {
-            var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
+            var attempt = clockDriftRetries == 1 ? string.Empty : $" (attempt {clockDriftRetries})";
+            var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
 
-            if (timeDrift > allowedDriftSecs)
+            logger.LogInformation("Current inverter time is {T}", currentTimeStr);
+
+            if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
             {
-                logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
+                var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
 
-                // Don't validate the call here - the value we'll get will *always* be different to what we set
-                await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+                if (timeDrift > allowedDriftSecs)
+                {
+                    logger.LogInformation("Updating inverter time to {T} avoid drift{A}...", time, attempt);
+
+                    // Don't validate the call here - the value we'll get will *always* be different to what we set
+                    await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+                }
+                else
+                {    
+                    logger.LogInformation("Inverter time drift ({T:N1}s) is within {A}s so no action required",
+                        (int)timeDrift, allowedDriftSecs);
+                    return;
+                }
             }
             else
-                logger.LogInformation("Inverter time drift ({T:N1}s) is within {A}s so no action required", (int)timeDrift, allowedDriftSecs);
+                logger.LogWarning("Inverter time was unavailable to check clock drift{A}", attempt);
         }
-        else 
-            logger.LogWarning("Inverter time was unavailable to check clock drift");
     }
 
     private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly, bool validatePersistence = true)
@@ -725,26 +734,26 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
                 TrackStateChange(cmdId, newValue);
                 LogEepromWrites();
+
+                if (!validatePersistence)
+                    break;
                 
-                if (validatePersistence)
+                // If we're validating the persistence worked, give it a chance to persist.
+                await Task.Delay(backoffRetryDelays[attempt]);
+                
+                // Now try and read it back
+                var result = await ReadControlState(cmdId);
+
+                if (result == newValue)
                 {
-                    // Give it a chance to persist.
-                    await Task.Delay(backoffRetryDelays[attempt]);
-                    
-                    // Now try and read it back
-                    var result = await ReadControlState(cmdId);
-
-                    if (result == newValue)
-                    {
-                        if (attempt > 0)
-                            logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
-                                cmdId, newValue, attempt);
-                        return; // Success
-                    }
-
-                    logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
-                        cmdId, newValue, result, attempt);
+                    if (attempt > 0)
+                        logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
+                            cmdId, newValue, attempt);
+                    return; // Success
                 }
+
+                logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
+                    cmdId, newValue, result, attempt);
             }
         }
     }
