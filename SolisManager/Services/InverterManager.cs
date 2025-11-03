@@ -1022,6 +1022,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             }
         }
 
+        // Scheduled actions should always take precedence even over IOG dispatches
+        EvaluateScheduleActionRules(InverterState.Prices.ToArray());
+        
         // And execute
         await ExecuteSlotChanges(InverterState.Prices);
     }
