@@ -1021,9 +1021,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 };
             }
         }
-
-        // Scheduled actions should always take precedence even over IOG dispatches
-        EvaluateScheduleActionRules(InverterState.Prices.ToArray());
         
         // And execute
         await ExecuteSlotChanges(InverterState.Prices);
@@ -1045,6 +1042,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 if (dispatches != null && dispatches.Any())
                 {
                     var iogChargeSlots = new Dictionary<DateTime, PricePlanSlot>();
+                    // Get the lowest rate in the upcoming tariff slots
+                    var lowestRate = slots.Min(x => x.value_inc_vat);
 
                     foreach (var dispatch in dispatches)
                     {
@@ -1057,6 +1056,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                         foreach (var slot in slots)
                         {
+                            if (slot.value_inc_vat > lowestRate)
+                            {
+                                logger.LogInformation("Ignoring IOG dispatch during cheapest price slot ({T}, {P:C}", slot.valid_from, slot.value_inc_vat);
+                                continue;
+                            }
+                            
                             if (slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
                                 iogChargeSlots.TryAdd(slot.valid_from, slot);
                         }
