@@ -1044,7 +1044,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     var iogChargeSlots = new Dictionary<DateTime, PricePlanSlot>();
                     // Get the lowest rate in the upcoming tariff slots
                     var lowestRate = slots.Min(x => x.value_inc_vat);
-
+                    
                     foreach (var dispatch in dispatches)
                     {
                         if (dispatch.end <= DateTime.UtcNow)
@@ -1056,17 +1056,19 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                         foreach (var slot in slots)
                         {
-                            if (slot.value_inc_vat > lowestRate)
-                            {
-                                logger.LogInformation("Ignoring IOG dispatch during cheapest price slot ({T}, {P:C}", slot.valid_from, slot.value_inc_vat);
-                                continue;
-                            }
-                            
                             if (slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
+                            {
+                                if (slot.value_inc_vat == lowestRate)
+                                {
+                                    logger.LogInformation("Ignored IOG dispatch during cheapest price slot ({T}, {P}p)", slot.valid_from, slot.value_inc_vat);
+                                    continue;
+                                }
+
                                 iogChargeSlots.TryAdd(slot.valid_from, slot);
+                            }
                         }
                     }
-
+                    
                     if (iogChargeSlots.Any())
                     {
                         // The smart charge price should be the same as the lowest price in the tariff data.
