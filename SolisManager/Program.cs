@@ -233,11 +233,14 @@ public class Program
             .Schedule<InverterStateScheduler>()
             .Cron("*/1 * * * *"));
 
-        // Check if the Octopus tariff has changed every 4 hours
-        app.Services.UseScheduler(s => s
-            .Schedule<TariffScheduler>()
-            .Cron("3 */4 * * *")
-            .RunOnceAtStart());
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_TARIFF_REFRESH")))
+        {
+            // Check if the Octopus tariff has changed every 4 hours
+            app.Services.UseScheduler(s => s
+                .Schedule<TariffScheduler>()
+                .Cron("3 */4 * * *")
+                .RunOnceAtStart());
+        }
 
         // Check for a new version periodically - every 3 hours
         app.Services.UseScheduler(s => s
