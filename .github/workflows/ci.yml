@@ -39,7 +39,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4.2.0
       with:
-        dotnet-version: 10.0.100-preview.5.25277.114
+        dotnet-version: 10.0.100
 
     - name: Install WASM-Tools
       run: dotnet workload install wasm-tools
@@ -84,7 +84,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4.2.0
         with:
-          dotnet-version: 10.0.100-preview.5.25277.114
+          dotnet-version: 10.0.100
 
       - name: Install WASM-Tools
         run: dotnet workload install wasm-tools
