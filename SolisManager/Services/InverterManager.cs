@@ -1021,7 +1021,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 };
             }
         }
-
+        
         // And execute
         await ExecuteSlotChanges(InverterState.Prices);
     }
@@ -1042,28 +1042,40 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 if (dispatches != null && dispatches.Any())
                 {
                     var iogChargeSlots = new Dictionary<DateTime, PricePlanSlot>();
+                    // Get the lowest rate in the upcoming tariff slots
+                    var lowestRate = slots.Min(x => x.value_inc_vat);
                     
                     foreach (var dispatch in dispatches)
                     {
                         if (dispatch.end <= DateTime.UtcNow)
                         {
-                            logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start, dispatch.end);
+                            logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start,
+                                dispatch.end);
                             continue;
                         }
-                        
+
                         foreach (var slot in slots)
                         {
-                            if( slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
+                            if (slot.valid_from < dispatch.end && slot.valid_to > dispatch.start)
+                            {
+                                if (slot.value_inc_vat == lowestRate)
+                                {
+                                    logger.LogInformation("Ignored IOG dispatch during cheapest price slot ({T}, {P}p)", slot.valid_from, slot.value_inc_vat);
+                                    continue;
+                                }
+
                                 iogChargeSlots.TryAdd(slot.valid_from, slot);
+                            }
                         }
                     }
-
+                    
                     if (iogChargeSlots.Any())
                     {
                         // The smart charge price should be the same as the lowest price in the tariff data.
                         var iogPrice = slots.Min(x => x.value_inc_vat);
-                        
-                        logger.LogInformation("Applying charge action to {N} slots for IOG Smart-Charge", iogChargeSlots.Count);
+
+                        logger.LogInformation("Applying charge action to {N} slots for IOG Smart-Charge",
+                            iogChargeSlots.Count);
 
                         foreach (var slot in iogChargeSlots.Values)
                         {
@@ -1076,12 +1088,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                 OverridePrice = iogPrice
                             };
                         }
-                    }
-                    else
-                    {
-                        logger.LogInformation("No smart-charge slots returned from Octopus");
+
+                        // We're done
+                        return;
                     }
                 }
+                
+                logger.LogInformation("No smart-charge slots returned from Octopus");
             }
             catch (Exception ex)
             {

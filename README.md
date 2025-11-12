@@ -487,12 +487,37 @@ If you have other ideas or suggestions, let me know!
 
 ### Reducing Inverter EEPROM Writes
 
-A couple of people have raised concerns about the number of writes a half-hourly process will make to the
-SolisCloud API, and consequently the Inverter EEPROM. Excessive writes could result in a reduced longevity
-of the EEPROM (which generally have a limit on the total number of writes they can manage).
+Solis inverters store the current configuration (such as charge / discharge times, charge rate Amps,
+etc) in a writeable storage chip called an [EEPROM](https://en.wikipedia.org/wiki/EEPROM). Unfortunately,
+EEPROMs usually have a limited lifespan based on the number of writes that can be made - once that 
+limit is reached the EEPROM can become unreliable, with writes not 'sticking' and even some reads failing.
 
-To avoid this, the app applies Charging, Discharging and 'no charge' instructions in batches. So for
-example, if the charging plan is as follows:
+Newer Solis inverters use an EEPROM chip with a life-span of about 100,000 writes, which is enough to last
+for a long time, as long as not too many writes are made. Some older inverters may have chips that have a 
+lifespan of about 10,000 writes. Once the EEPROM chip reaches its end-of-life, the reliability might drop 
+off significantly - and the only fix is to re-solder a new EEPROM chip onto the main inverter PCB. This 
+may or may not be able to be done under warranty.
+
+Depending on the operation, it may take multiple writes to achieve a particular outcome. For example, on 
+older firmware, setting a charge slot (start and end time, and charge Amps) might only be a single write 
+operation. With the newer six-slot Solis firmware, these parameters are set individually - which can mean
+setting a charge or discharge might require 4-6 write operations. 
+
+This limited lifespan can cause problems with applications that manage the inverter, particularly if they 
+make a lot of updates. So, for example, if your inverter management software updates the charge time every
+30 minutes, on an inverter with newer firmware it would be very easy to rack up 200+ writes per day - which
+would total more than 70,000 writes per year. This could drastically reduce the lifespan of the inverter.
+
+The problem is EEPROM write lifespan affects any application that updates the inverter slots using the 
+inverter control API. This includes SolisManager, Home Assistant (PredBat, PV_Opt etc), Agility and even
+the SolisCloud app and its EMS algorithm. The same limitations apply however the inverter is updated - so 
+it's not just limited to writes sent via the Solis API; the same problem will happen if you make a lot of
+updates via ModBus.
+
+#### How does SolisManager avoid damaging your inverter with too many writes?
+
+To minimise inverter writes, the app applies Charging, Discharging and 'no charge' instructions in 
+batches. So for example, if the charging plan is as follows:
 
 * 06:00-06:30 Do Nothing
 * 06:30-07:00 Do Nothing
@@ -511,6 +536,23 @@ Then the actual calls are conflated to the following:
 
 This optimisation means that the absolute minimum number of `control` API calls are made (from about 17,000 per
 year down to around 2,000), and hence the minimum number of Inverter EEPROM writes are carried out.
+
+#### Inverter State-Tracking
+
+Another strategy that SolisManager uses to minimise writes is to track the state of the inverter charge/discharge
+slots itself. Whenever any write operation is about to be carried out:
+
+1. The current state of that command is read from the inverter
+2. If the read succeeds, the state of that command is cached in an internal tracker
+3. If for any reason the read fails (due to an inverter API failure or EEPROM read failure) the app 
+   uses the cached state
+4. Only if the existing value for the command doesn't match what's requested, is an actual write 
+   command executed
+5. If the write command is executed successfully, that value is stored in the internal tracker
+
+By carefully tracking the state, and only updating the inverter settings when absolutely necessary, it's been 
+shown that for most users, the maximum number of EEPROM writes will be less than 10 a day - which means for
+a new inverter, the EEPROM should last for around 20-25 years. 
 
 ### Adding Support for Other Inverters
 

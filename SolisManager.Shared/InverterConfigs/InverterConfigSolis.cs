@@ -10,6 +10,7 @@ public class InverterConfigSolis : InverterConfigBase
     public string SolisAPISecret { get; set; } = string.Empty;
     public string SolisInverterSerial { get; set; } = string.Empty;
     public int MaxChargeRateAmps { get; set; } = 50;
+    public int MinDischargeSOC { get; set; } = 15;
     
     [JsonIgnore]
     public override bool IsValid => !string.IsNullOrEmpty(SolisAPIKey) &&

@@ -38,6 +38,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private DateTime eepromCountDate = DateTime.UtcNow;
     private readonly bool slot1 = true;
     private readonly bool stateTracking;
+    private static readonly CommandIDs[] excludedFromStateTracking = [CommandIDs.CheckFirmware, CommandIDs.SetInverterTime];
 
     // Command IDs (CIDs) from: https://oss.soliscloud.com/doc/SolisCloud_control_api_command_list.xls
     private enum CommandIDs
@@ -76,15 +77,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     private async Task<bool> CommandStateIsCorrect(CommandIDs cmdId, string newState)
     {
-        // First try and read from the inverter
+        // First try and read from the inverter 
         var existing = await ReadControlState(cmdId);
-
-        // If there was no existing value, try and get it from the commandState
-        if (existing == null && !commandState.TryGetValue(cmdId, out existing))
-        {
-            logger.LogWarning("EEPROM: Unable to read existing value of {C} from inverter or state-tracker", cmdId.ToString());
-            return false;
-        }
         
         if (existing == newState)
         {
@@ -98,10 +92,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
     private void TrackStateChange(CommandIDs commandID, string newState)
     {
-        if (!stateTracking)
-            return;
-        
-        if (commandID == CommandIDs.SetInverterTime)
+        if (!stateTracking || excludedFromStateTracking.Contains(commandID))
             return;
         
         // Save the state
@@ -398,13 +389,24 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         {
             if (result.data.msg != "ERROR")
             {
+                // Store the successfully-read value into the state tracker
+                TrackStateChange(cid, result.data.msg);
                 return result.data.msg;
             }
 
             logger.LogWarning("ERROR reading control state (CID = {C})", cid);
         }
         else
+        {
             logger.LogWarning("No data returned reading control state (CID = {C})", cid);
+        }
+
+        // If there was no existing value, try and get it from the commandState
+        if (commandState.TryGetValue(cid, out var trackedValue))
+        {
+            logger.LogWarning("Using value ({C}) from state-tracker", trackedValue);
+            return trackedValue;
+        }
 
         return null;
     }
@@ -493,7 +495,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             {
                 // Set the charge and discharge SOC. Should trigger the first time and then be a no-op
                 var chargeSOC = 100;
-                var dischargeSOC = 15;
+                var dischargeSOC = inverterConfig.MinDischargeSOC;
 
                 logger.LogInformation("Sending new charge instruction to {Inv}: {CA}, {DA}, {CT}, {DT}, SOC: {SoC}%, D-SOC: {DSoC}%", 
                     simulateOnly ? "mock inverter" : "Solis Inverter",
@@ -658,25 +660,36 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         var allowedDriftSecs = 30;
         var timeNow = DateTime.Now;
         var time = timeNow.ToString("yyyy-MM-dd HH:mm:ss");
-        
-        var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
+        var clockDriftRetries = 0;
 
-        if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
+        while (clockDriftRetries++ < 4)
         {
-            var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
+            var attempt = clockDriftRetries == 1 ? string.Empty : $" (attempt {clockDriftRetries})";
+            var currentTimeStr = await ReadControlState(CommandIDs.SetInverterTime);
 
-            if (timeDrift > allowedDriftSecs)
+            logger.LogInformation("Current inverter time is {T}", currentTimeStr);
+
+            if (currentTimeStr != null && ParseTimeStr(currentTimeStr, out var inverterTime))
             {
-                logger.LogInformation("Updating inverter time to {T} avoid drift...", time);
+                var timeDrift = Math.Abs((inverterTime - timeNow).TotalSeconds);
 
-                // Don't validate the call here - the value we'll get will *always* be different to what we set
-                await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+                if (timeDrift > allowedDriftSecs)
+                {
+                    logger.LogInformation("Updating inverter time to {T} avoid drift{A}...", time, attempt);
+
+                    // Don't validate the call here - the value we'll get will *always* be different to what we set
+                    await SendControlRequest(CommandIDs.SetInverterTime, time, simulateOnly, false);
+                }
+                else
+                {    
+                    logger.LogInformation("Inverter time drift ({T:N1}s) is within {A}s so no action required",
+                        (int)timeDrift, allowedDriftSecs);
+                    return;
+                }
             }
             else
-                logger.LogInformation("Inverter time drift ({T:N1}s) is within {A}s so no action required", (int)timeDrift, allowedDriftSecs);
+                logger.LogWarning("Inverter time was unavailable to check clock drift{A}", attempt);
         }
-        else 
-            logger.LogWarning("Inverter time was unavailable to check clock drift");
     }
 
     private async Task SendControlRequest(CommandIDs cmdId, int value, bool simulateOnly, bool validatePersistence = true)
@@ -721,26 +734,26 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
                 TrackStateChange(cmdId, newValue);
                 LogEepromWrites();
+
+                if (!validatePersistence)
+                    break;
                 
-                if (validatePersistence)
+                // If we're validating the persistence worked, give it a chance to persist.
+                await Task.Delay(backoffRetryDelays[attempt]);
+                
+                // Now try and read it back
+                var result = await ReadControlState(cmdId);
+
+                if (result == newValue)
                 {
-                    // Give it a chance to persist.
-                    await Task.Delay(backoffRetryDelays[attempt]);
-                    
-                    // Now try and read it back
-                    var result = await ReadControlState(cmdId);
-
-                    if (result == newValue)
-                    {
-                        if (attempt > 0)
-                            logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
-                                cmdId, newValue, attempt);
-                        return; // Success
-                    }
-
-                    logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
-                        cmdId, newValue, result, attempt);
+                    if (attempt > 0)
+                        logger.LogInformation("Control request (CID: {C}, Value: {V}) succeeded on retry {A}",
+                            cmdId, newValue, attempt);
+                    return; // Success
                 }
+
+                logger.LogWarning("Inverter control request did not stick: CID: {C}, Expected: {V}, Actual: {A} (attempt: {Try})",
+                    cmdId, newValue, result, attempt);
             }
         }
     }
@@ -748,19 +761,17 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private void LogEepromWrites()
     {
         var now = DateTime.Now;
-        var day = "today";
 
         if (eepromCountDate.Date != now.Date)
         {
+            // Reset the counter when we have the first write of the day
             eepromWrites = 0;
             eepromCountDate = now;
-            day = "yesterday";
         }
 
         eepromWrites++;
         
-        // Reset the counter when we have the first write of the day
-        logger.LogInformation("Total EEPROM writes {D}: {W}", day, eepromWrites);
+        logger.LogInformation("Total EEPROM writes today: {W}", eepromWrites);
     }
 
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)
