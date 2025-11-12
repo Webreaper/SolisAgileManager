@@ -32,15 +32,57 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
-    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime from, DateTime to, CancellationToken token)
+    private IEnumerable<DateTime> GetIndividualMonths(DateTime startDate, DateTime endDate)
     {
-        var cacheKey = $"prices-{tariffCode.ToLower()}-{from:yyyyMMddHHmm}-{to:yyyyMMddHHmm}";
+        var result = new List<DateTime>();
+        var date = new DateTime(startDate.Year, startDate.Month, 1);
+
+        while (date <= endDate)
+        {
+            result.Add(date);
+            date = date.AddMonths(1);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Load the prices in month chunks. When we get called for wider ranges,
+    /// load more months. This'll make the caching much more effective.
+    /// </summary>
+    /// <param name="tariffCode"></param>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime from, DateTime to,
+        CancellationToken token)
+    {
+        var months = GetIndividualMonths(from, to);
+        var allPrices = new List<OctopusRate>();
+
+        foreach (var month in months)
+        {
+            var monthRates = await GetOctopusTariffPricesForMonth(tariffCode, month, token);
+
+            if (monthRates != null)
+                allPrices.AddRange(monthRates);
+        }
+
+        return allPrices;
+    }
+    
+    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
+    {
+        var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
 
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
             return rates;
 
         var product = tariffCode.GetProductFromTariffCode();
-        var pageSize = ((to - from).TotalDays / 30) * 200;
+        var pageSize = 200;
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var end = start.AddMonths(1).AddSeconds(-1);
 
         // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/
 
@@ -55,8 +97,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .AppendPathSegment("standard-unit-rates")
                 .SetQueryParams(new
                 {
-                    period_from = from,
-                    period_to = to,
+                    period_from = start,
+                    period_to = end,
                     page_size = pageSize
                 });
 
@@ -504,15 +546,21 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
 
+    /// <summary>
+    /// Calculate the consumption and net costs. Note that we don't do any caching here, as
+    /// the slow bit is getting the consumption and tariff data, and those getters have their
+    /// own smart caching.
+    /// </summary>
+    /// <param name="apiKey"></param>
+    /// <param name="accountNumber"></param>
+    /// <param name="startDate"></param>
+    /// <param name="endDate"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
     public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(string apiKey, string accountNumber,
         DateTime startDate,
         DateTime endDate, CancellationToken token)
     {
-        var cacheKey = $"consumption-{accountNumber.ToLower()}-{startDate:yyyyMMddHH}-{endDate:yyyyMMddHH}";
-
-        if (memoryCache.TryGetValue<IEnumerable<OctopusConsumption>>(cacheKey, out var result))
-            return result;
-
         // Do this first and cache it for the following requests
         var authToken = await GetAuthToken(apiKey);
         if (string.IsNullOrEmpty(authToken))
@@ -591,9 +639,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             else
                 logger.LogWarning("No consumption data found from export meter");
 
-            result = lookup.Values.OrderBy(x => x.PeriodStart).ToList();
-            memoryCache.Set(cacheKey, result, _ratesCacheOptions);
-            return result;
+            return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
         }
 
         logger.LogWarning("No consumption data found from import meter");
@@ -688,10 +734,36 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         
         return (tariffCode, rates);
     }
-    
-    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey, OctopusMeterPoints meterPoints, 
-                            DateTime startDate, DateTime endDate, bool isExport, CancellationToken token)
+
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey,
+        OctopusMeterPoints meterPoints, DateTime startDate, DateTime endDate, bool isExport, CancellationToken token)
     {
+        var months = GetIndividualMonths(startDate, endDate);
+        var allConsumption = new List<ConsumptionRecord>();
+
+        foreach (var month in months)
+        {
+            var monthConsumption = await GetConsumptionForMeterForMonth(apiKey, meterPoints, month, isExport, token);
+
+            if (monthConsumption != null)
+                allConsumption.AddRange(monthConsumption);
+        }
+
+        return allConsumption;
+    }   
+    
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeterForMonth(string apiKey, OctopusMeterPoints meterPoints, 
+                            DateTime monthStart, bool isExport, CancellationToken token)
+    {
+        // Which meter to use? Use the last one.
+        var meter = meterPoints.meters.LastOrDefault();
+        var serial = meter?.serial_number;
+
+        var cacheKey = $"consumption-{meterPoints.mpan}-{serial}-{monthStart:yyyyMM}";
+
+        if (memoryCache.TryGetValue(cacheKey, out List<ConsumptionRecord>? results))
+            return results;
+        
         var authToken = await GetAuthToken(apiKey);
         
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
@@ -699,11 +771,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         ArgumentNullException.ThrowIfNull(meterPoints);
 
-        // Which meter to use? Use the last one.
-        var meter = meterPoints.meters.LastOrDefault();
-        var serial = meter?.serial_number;
-
-        var pageSize = ((endDate - startDate).TotalDays / 30) * 200;
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var end = start.AddMonths(1).AddSeconds(-1);
+        var pageSize = 200;
         
         if (!string.IsNullOrEmpty(serial))
         {
@@ -720,8 +790,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     .AppendPathSegment("consumption/")
                     .SetQueryParams(new
                     {
-                        period_from = startDate,
-                        period_to = endDate,
+                        period_from = start,
+                        period_to = end,
                         page_size = pageSize,
                         order_by = "period"
                     });
@@ -730,7 +800,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 
                 if (result != null)
                 {
-                    var results = new List<ConsumptionRecord>(result.results);
+                    results = new List<ConsumptionRecord>(result.results);
 
                     // Paginate
                     while (!string.IsNullOrEmpty(result?.next))
@@ -744,6 +814,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             results.AddRange(result.results);
                     }
                     
+                    memoryCache.Set(cacheKey, results, _ratesCacheOptions);
+
                     return results;
                 }
             }
