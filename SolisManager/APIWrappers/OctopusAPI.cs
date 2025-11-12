@@ -32,15 +32,57 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
-    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime from, DateTime to, CancellationToken token)
+    private IEnumerable<DateTime> GetIndividualMonths(DateTime startDate, DateTime endDate)
     {
-        var cacheKey = $"prices-{tariffCode.ToLower()}-{from:yyyyMMddHHmm}-{to:yyyyMMddHHmm}";
+        var result = new List<DateTime>();
+        var date = new DateTime(startDate.Year, startDate.Month, 1);
+
+        while (date <= endDate)
+        {
+            result.Add(date);
+            date = date.AddMonths(1);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Load the prices in month chunks. When we get called for wider ranges,
+    /// load more months. This'll make the caching much more effective.
+    /// </summary>
+    /// <param name="tariffCode"></param>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPrices(string tariffCode, DateTime from, DateTime to,
+        CancellationToken token)
+    {
+        var months = GetIndividualMonths(from, to);
+        var allPrices = new List<OctopusRate>();
+
+        foreach (var month in months)
+        {
+            var monthRates = await GetOctopusTariffPricesForMonth(tariffCode, month, token);
+
+            if (monthRates != null)
+                allPrices.AddRange(monthRates);
+        }
+
+        return allPrices;
+    }
+    
+    private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
+    {
+        var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
 
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
             return rates;
 
         var product = tariffCode.GetProductFromTariffCode();
-        var pageSize = ((to - from).TotalDays / 30) * 200;
+        var pageSize = 200;
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var end = start.AddMonths(1).AddSeconds(-1);
 
         // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/
 
@@ -55,8 +97,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .AppendPathSegment("standard-unit-rates")
                 .SetQueryParams(new
                 {
-                    period_from = from,
-                    period_to = to,
+                    period_from = start,
+                    period_to = end,
                     page_size = pageSize
                 });
 
