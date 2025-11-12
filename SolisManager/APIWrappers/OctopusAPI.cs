@@ -639,8 +639,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             else
                 logger.LogWarning("No consumption data found from export meter");
 
-            result = lookup.Values.OrderBy(x => x.PeriodStart).ToList();
-            return result;
+            return lookup.Values.OrderBy(x => x.PeriodStart).ToList();
         }
 
         logger.LogWarning("No consumption data found from import meter");
