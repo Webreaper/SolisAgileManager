@@ -4,17 +4,9 @@
 {
     <div class="@Style">
         Last Update: @InverterState.LastUpdate.ToLocalTime().DisplayDateTime(),
-        <text>
-            Inverter Data date: @InverterState.InverterDataTimestamp.DisplayDateTime()
-            @if (DataAgeMins > staleThresholdMins)
-            {
-                <span class="@StaleStyle" title="@($"Data is {(int)DataAgeMins} minutes old")">
-                    (stale)
-                </span>
-            }
-        </text>,
+        @StaleDataIndicator("Inverter data date", InverterState.InverterDataTimestamp, 7),
         last Octopus Rates update: @InverterState.PricesUpdate.ToLocalTime().DisplayDateTime(),
-        last Solcast update: @SolcastUpdate,
+        @StaleDataIndicator("last Solcast update", InverterState?.SolcastTimeStamp, 1080),
         @SunriseTime
         @SunsetTime
         <span style="@EEPROMWriteColour">
@@ -28,6 +20,32 @@
     
     [CascadingParameter] public bool DarkMode { get; set; }
 
+    private RenderFragment? StaleDataIndicator(string label, DateTime? timestampUtc, int staleAgeMins)
+    {
+        if (timestampUtc == null)
+            return null;
+
+        var dateTimeUtc = timestampUtc.Value;
+        var dateAgeMinutes = (DateTime.UtcNow - dateTimeUtc).TotalMinutes;
+        string? staleMsg = null;
+        if (dateAgeMinutes > staleAgeMins)
+        {
+            if (dateAgeMinutes < 120)
+                staleMsg = $"Data is {(int)dateAgeMinutes} minutes old)";
+            else
+                staleMsg = $"Data is {(int)dateAgeMinutes / 120} hours old)";
+        }
+
+        return @<text> @label: @dateTimeUtc.DisplayDateTime()
+        @if(! string.IsNullOrEmpty(staleMsg))
+        {
+            <span class="@StaleStyle" title="@staleMsg">
+                (stale)
+            </span>
+        }
+        </text>;
+    }
+    
     private string EEPROMWriteColour = string.Empty;
 
     protected override void OnParametersSet()
@@ -55,7 +73,6 @@
     // later than that, consider it stale.
     const int staleThresholdMins = 7;
 
-    private double DataAgeMins => (DateTime.UtcNow - InverterState!.InverterDataTimestamp).TotalMinutes; 
     private string Style => "update-text " + (DarkMode ? "update-text-dark" : string.Empty);
     private string StaleStyle => "stale-data " + (DarkMode ? "stale-data-dark" : string.Empty);
     private string SolcastUpdate => InverterState?.SolcastTimeStamp?.ToLocalTime().DisplayDateTime() ?? "never";
