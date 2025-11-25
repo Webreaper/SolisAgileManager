@@ -179,7 +179,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 thirtyMinSlot.valid_to = thirtyMinSlot.valid_to!.Value.ToLocalTime();
             }
 
-            return thirtyMinSlots;
+            // Filter out any outside the requested range (since GetOctopusTariffPrices returns
+            // everything for each month spanned.
+            return thirtyMinSlots?.Where(x => x.valid_from >= from && x.valid_to <= to).ToList() ?? [];
         }
 
         return [];
