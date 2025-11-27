@@ -25,6 +25,7 @@ public record SolisManagerConfig
 
     public bool IntelligentGoCharging { get; set; } = false;
     public int? IntelligentGoAmps { get; set; } = null;
+    public bool IntelligentGoUseFullSlots { get; set; } = true;
     
     // Solcast Rules
     public bool SkipOvernightCharge { get; set; }
