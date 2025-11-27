@@ -32,6 +32,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
+    private static readonly string EVFlexDeviceType = "ELECTRIC_VEHICLES";
+
     private IEnumerable<DateTime> GetIndividualMonths(DateTime startDate, DateTime endDate)
     {
         var result = new List<DateTime>();
@@ -258,10 +260,31 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return token;
     }
 
-    public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
+    private async Task<TOutput?> CallGraphQL<TOutput>(string apiKey, string krakenQuery, object variables)
     {
         var token = await GetAuthToken(apiKey);
-        
+        var payload = new { query = krakenQuery, variables = variables };
+
+        var responseStr = await "https://api.octopus.energy"
+            .WithHeader("User-Agent", userAgentProvider.UserAgent)
+            .WithOctopusAuth(token)
+            .AppendPathSegment("/v1/graphql/")
+            .PostJsonAsync(payload)
+            .ReceiveString();
+
+        if (!string.IsNullOrEmpty(responseStr))
+        {
+            var response = JsonSerializer.Deserialize<TOutput>(responseStr);
+            
+            return response;
+        }
+
+        return default;
+    }
+    
+
+    public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
+    {
         var krakenQuery = """
                           query getData($input: String!) {
                               plannedDispatches(accountNumber: $input) {
@@ -284,56 +307,133 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                               }
                           }
                           """;
-        var variables = new { input = accountNumber };
-        var payload = new { query = krakenQuery, variables = variables };
 
-        var responseStr = await "https://api.octopus.energy"
-            .WithHeader("User-Agent", userAgentProvider.UserAgent)
-            .WithOctopusAuth(token)
-            .AppendPathSegment("/v1/graphql/")
-            .PostJsonAsync(payload)
-            .ReceiveString();
+        var response = await CallGraphQL<KrakenDispatchResponse>(apiKey, krakenQuery, new { accountNumber = accountNumber});
 
-        if (!string.IsNullOrEmpty(responseStr))
+        if (response?.data?.plannedDispatches != null && response.data.plannedDispatches.Length != 0)
         {
-            var response = JsonSerializer.Deserialize<KrakenDispatchResponse>(responseStr);
+            // Pick out the ones with smart-charge, they're the ones we care about
+            var smartChargeDispatches = response.data.plannedDispatches
+                .Where(x => !string.IsNullOrEmpty(x.meta?.source ) && 
+                            x.meta.source.Equals("smart-charge", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
 
-            if (response?.data?.plannedDispatches != null && response.data.plannedDispatches.Length != 0)
+            logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned and {C} completed dispatches)", 
+                smartChargeDispatches.Length, response.data.plannedDispatches.Length, response.data.completedDispatches.Length);
+
+            if (smartChargeDispatches.Any())
             {
-                // Pick out the ones with smart-charge, they're the ones we care about
-                var smartChargeDispatches = response.data.plannedDispatches
-                    .Where(x => !string.IsNullOrEmpty(x.meta?.source ) && 
-                                        x.meta.source.Equals("smart-charge", StringComparison.OrdinalIgnoreCase))
+                var logLines = smartChargeDispatches
+                    .Select( x => $"  Time: {x.start:HH:mm} - {x.end:HH:mm}, Type: {x.meta?.source}, Delta: {x.delta}")
                     .ToArray();
-
-                logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned and {C} completed dispatches)", 
-                                    smartChargeDispatches.Length, response.data.plannedDispatches.Length, response.data.completedDispatches.Length);
-
-                if (smartChargeDispatches.Any())
-                {
-                    var logLines = smartChargeDispatches
-                                .Select( x => $"  Time: {x.start:HH:mm} - {x.end:HH:mm}, Type: {x.meta?.source}, Delta: {x.delta}")
-                                .ToArray();
-                    logger.LogInformation("SmartCharge Dispatches:\n{L}", string.Join("\n", logLines) );
-                }
-                
-                return smartChargeDispatches;
+                logger.LogInformation("SmartCharge Dispatches:\n{L}", string.Join("\n", logLines) );
             }
+                
+            return smartChargeDispatches;
         }
 
         return [];
     }
 
+    private async Task<DeviceData?> GetAccountDeviceDetails(string apiKey, string accountNumber)
+    { 
+        var token = await GetAuthToken(apiKey);
+        
+        var krakenQuery = """
+                    query ComprehensiveDataQuery($accountNumber: String!) {
+                      devices(accountNumber: $accountNumber) {
+                        name
+                        integrationDeviceId
+                        id
+                        deviceType
+                        alerts {
+                          message
+                          publishedAt
+                        }
+                        ... on SmartFlexVehicle {
+                          id
+                          name
+                          status {
+                            current
+                            currentState
+                            isSuspended
+                          }
+                          vehicleVariant {
+                            model
+                            batterySize
+                          }
+                        }
+                      }
+                    }
+                    """;
+
+        var response = await CallGraphQL<KrakenAccountDeviceResponse>(apiKey, krakenQuery, new { accountNumber = accountNumber });
+        
+        if (!string.IsNullOrEmpty(response?.data.name) && ! string.IsNullOrEmpty(response.data.id))
+            return response.data;
+
+        return null;
+    }
+    
+    public async Task<KrakenFlexDispatch[]?> GetIOGSmartChargeTimesNew(string apiKey, string accountNumber)
+    {
+        var token = await GetAuthToken(apiKey);
+        
+        var krakenQuery = """
+                          query FlexPlannedDispatches($deviceId: String!) {
+                            flexPlannedDispatches(deviceId: $deviceId) {
+                              end
+                              energyAddedKwh
+                              start
+                              type
+                            }
+                          }
+                          """;
+        var response = await CallGraphQL<KrakenFlexDispatchResponse>(apiKey, krakenQuery, new { input = accountNumber });
+
+        if (response?.data?.flexPlannedDispatches != null && response.data.flexPlannedDispatches.Length != 0)
+        {
+            // Pick out the ones with smart-charge, they're the ones we care about
+            var smartChargeDispatches = response.data.flexPlannedDispatches
+                .Where(x => !string.IsNullOrEmpty(x.type ) && 
+                            x.type.Equals("smart-charge", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned dispatches)", 
+                smartChargeDispatches.Length, response.data.flexPlannedDispatches.Length);
+
+            if (smartChargeDispatches.Any())
+            {
+                var logLines = smartChargeDispatches
+                    .Select( x => $"  Time: {x.start:HH:mm} - {x.end:HH:mm}, Type: {x.type}, Energy Added: {x.energyAddedKwh}")
+                    .ToArray();
+                logger.LogInformation("SmartCharge Dispatches:\n{L}", string.Join("\n", logLines) );
+            }
+                
+            return smartChargeDispatches;
+        }
+
+        return [];
+    }
+    
     public record KrakenDispatchMeta(string? location, string? source);
     public record KrakenPlannedDispatch(DateTime? start, DateTime? end, string delta, KrakenDispatchMeta? meta);
     public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches, KrakenPlannedDispatch[] completedDispatches);
     public record KrakenDispatchResponse(KrakenDispatchData data);
+
+    public record DeviceData(string name, string id);
+    public record KrakenAccountDeviceResponse (DeviceData data);
+    
     
     private record KrakenToken(string token);
     private record KrakenResponse(KrakenToken obtainKrakenToken);
 
     private record KrakenTokenResponse(KrakenResponse data);
-    
+
+    public record KrakenFlexDispatch(DateTime start, DateTime end, string type, string energyAddedKwh);
+
+    public record KrakenFlexDispatchData(KrakenFlexDispatch[] flexPlannedDispatches);
+    public record KrakenFlexDispatchResponse(KrakenFlexDispatchData data);
     
     private async Task<OctopusAccountDetails?> GetOctopusAccount(string apiKey, string accountNumber)
     {
