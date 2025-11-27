@@ -1047,7 +1047,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     
                     foreach (var dispatch in dispatches)
                     {
-                        if (!config.IntelligentGoUseFullSlots && dispatch.end <= DateTime.UtcNow)
+                        if (dispatch.end <= DateTime.UtcNow)
                         {
                             logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start,
                                 dispatch.end);
