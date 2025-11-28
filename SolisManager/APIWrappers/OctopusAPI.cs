@@ -32,6 +32,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
+    private readonly MemoryCacheEntryOptions _deviceCacheOptions =
+        new MemoryCacheEntryOptions()
+            .SetSize(1)
+            .SetAbsoluteExpiration(TimeSpan.FromHours(12));
+
     private static readonly string EVFlexDeviceType = "ELECTRIC_VEHICLES";
 
     private IEnumerable<DateTime> GetIndividualMonths(DateTime startDate, DateTime endDate)
@@ -231,7 +236,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
     private async Task<string?> GetAuthToken(string apiKey)
     {
-        const string cacheKey = "octAuthToken";
+        string cacheKey = $"octAuthToken-{apiKey.ToLower()}";
         
         if (memoryCache.TryGetValue<string?>(cacheKey, out var token))
             return token;
@@ -283,7 +288,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     }
     
 
-    public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
+    public async Task<KrakenPlannedDispatch[]?> GetIOGSmartChargeTimesDeprecated(string apiKey, string accountNumber)
     {
         var krakenQuery = """
                           query getData($input: String!) {
@@ -335,49 +340,64 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return [];
     }
 
-    private async Task<DeviceData?> GetAccountDeviceDetails(string apiKey, string accountNumber)
+    private async Task<KrakenDevice?> GetAccountDeviceDetails(string apiKey, string accountNumber)
     { 
-        var token = await GetAuthToken(apiKey);
+        string cacheKey = $"accdevices-{accountNumber}";
         
-        var krakenQuery = """
-                    query ComprehensiveDataQuery($accountNumber: String!) {
-                      devices(accountNumber: $accountNumber) {
-                        name
-                        integrationDeviceId
-                        id
-                        deviceType
-                        alerts {
-                          message
-                          publishedAt
-                        }
-                        ... on SmartFlexVehicle {
-                          id
-                          name
-                          status {
-                            current
-                            currentState
-                            isSuspended
-                          }
-                          vehicleVariant {
-                            model
-                            batterySize
-                          }
-                        }
-                      }
-                    }
-                    """;
+        if (memoryCache.TryGetValue<KrakenDevice?>(cacheKey, out var device))
+            return device;
 
-        var response = await CallGraphQL<KrakenAccountDeviceResponse>(apiKey, krakenQuery, new { accountNumber = accountNumber });
-        
-        if (!string.IsNullOrEmpty(response?.data.name) && ! string.IsNullOrEmpty(response.data.id))
-            return response.data;
+        var krakenQuery = """
+                          query ComprehensiveDataQuery($accountNumber: String!) {
+                            devices(accountNumber: $accountNumber) {
+                              name
+                              integrationDeviceId
+                              id
+                              deviceType
+                              alerts {
+                                message
+                                publishedAt
+                              }
+                              ... on SmartFlexVehicle {
+                                id
+                                name
+                                status {
+                                  current
+                                  currentState
+                                  isSuspended
+                                }
+                                vehicleVariant {
+                                  model
+                                  batterySize
+                                }
+                              }
+                            }
+                          }
+                          """;
+
+        var deviceData = await CallGraphQL<KrakenAccountDeviceResponse>(apiKey, krakenQuery, new { accountNumber = accountNumber });
+
+        if (deviceData?.data?.devices != null)
+        {
+            var evDevice = deviceData.data.devices.FirstOrDefault(x => x.deviceType == "ELECTRIC_VEHICLES");
+
+            if (evDevice != null)
+            {
+                logger.LogInformation("Found EV device ({Name}, Id: {Id})", evDevice.name, evDevice.id);
+                memoryCache.Set(cacheKey, evDevice, _deviceCacheOptions);
+            }
+
+        }
 
         return null;
     }
     
-    public async Task<KrakenFlexDispatch[]?> GetIOGSmartChargeTimesNew(string apiKey, string accountNumber)
+    public async Task<KrakenFlexDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
     {
-        var token = await GetAuthToken(apiKey);
+        var device = await GetAccountDeviceDetails(apiKey, accountNumber);
+
+        if (device == null)
+            return null;
         
         var krakenQuery = """
                           query FlexPlannedDispatches($deviceId: String!) {
@@ -389,7 +409,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             }
                           }
                           """;
-        var response = await CallGraphQL<KrakenFlexDispatchResponse>(apiKey, krakenQuery, new { input = accountNumber });
+        var response = await CallGraphQL<KrakenFlexDispatchResponse>(apiKey, krakenQuery, new { deviceId = device.id });
 
         if (response?.data?.flexPlannedDispatches != null && response.data.flexPlannedDispatches.Length != 0)
         {
@@ -421,8 +441,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     public record KrakenDispatchData(KrakenPlannedDispatch[] plannedDispatches, KrakenPlannedDispatch[] completedDispatches);
     public record KrakenDispatchResponse(KrakenDispatchData data);
 
-    public record DeviceData(string name, string id);
-    public record KrakenAccountDeviceResponse (DeviceData data);
+    public record KrakenDevice(string id, string name, string deviceType);
+    public record KrakenDeviceData(KrakenDevice[] devices);
+    public record KrakenAccountDeviceResponse (KrakenDeviceData data);
     
     
     private record KrakenToken(string token);
@@ -431,7 +452,6 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private record KrakenTokenResponse(KrakenResponse data);
 
     public record KrakenFlexDispatch(DateTime start, DateTime end, string type, string energyAddedKwh);
-
     public record KrakenFlexDispatchData(KrakenFlexDispatch[] flexPlannedDispatches);
     public record KrakenFlexDispatchResponse(KrakenFlexDispatchData data);
     
