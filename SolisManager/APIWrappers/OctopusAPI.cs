@@ -401,7 +401,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         return null;
     }
-    
+
     public async Task<KrakenFlexDispatch[]?> GetIOGSmartChargeTimes(string apiKey, string accountNumber)
     {
         var device = await GetAccountDeviceDetails(apiKey, accountNumber);
@@ -426,7 +426,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // Pick out the ones with smart-charge, they're the ones we care about
             var smartChargeDispatches = response.data.flexPlannedDispatches
                 .Where(x => !string.IsNullOrEmpty(x.type ) && 
-                            x.type.Equals("smart-charge", StringComparison.OrdinalIgnoreCase))
+                            x.type.Equals("SMART", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
             logger.LogInformation("Found {S} IOG Smart-Charge slots (out of a total of {N} planned dispatches)", 
