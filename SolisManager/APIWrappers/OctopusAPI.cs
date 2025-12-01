@@ -270,21 +270,28 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         var token = await GetAuthToken(apiKey);
         var payload = new { query = krakenQuery, variables = variables };
 
-        var responseStr = await "https://api.octopus.energy"
-            .WithHeader("User-Agent", userAgentProvider.UserAgent)
-            .WithOctopusAuth(token)
-            .AppendPathSegment("/v1/graphql/")
-            .PostJsonAsync(payload)
-            .ReceiveString();
-
-        if (!string.IsNullOrEmpty(responseStr))
+        try
         {
-            if( logResponse)
-                logger.LogInformation("GraphQL Response: {Response}", responseStr);
-            
-            var response = JsonSerializer.Deserialize<TOutput>(responseStr);
-            
-            return response;
+            var responseStr = await "https://api.octopus.energy"
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                .WithOctopusAuth(token)
+                .AppendPathSegment("/v1/graphql/")
+                .PostJsonAsync(payload)
+                .ReceiveString();
+
+            if (!string.IsNullOrEmpty(responseStr))
+            {
+                if (logResponse)
+                    logger.LogInformation("GraphQL Response: {Response}", responseStr);
+
+                var response = JsonSerializer.Deserialize<TOutput>(responseStr);
+
+                return response;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Exception calling GraphQL for {Query}", krakenQuery);
         }
 
         return default;
