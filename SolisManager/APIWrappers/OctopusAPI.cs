@@ -265,7 +265,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return token;
     }
 
-    private async Task<TOutput?> CallGraphQL<TOutput>(string apiKey, string krakenQuery, object variables)
+    private async Task<TOutput?> CallGraphQL<TOutput>(string apiKey, string krakenQuery, object variables, bool logResponse = false)
     {
         var token = await GetAuthToken(apiKey);
         var payload = new { query = krakenQuery, variables = variables };
@@ -279,6 +279,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (!string.IsNullOrEmpty(responseStr))
         {
+            if( logResponse)
+                logger.LogInformation("GraphQL Response: {Response}", responseStr);
+            
             var response = JsonSerializer.Deserialize<TOutput>(responseStr);
             
             return response;
@@ -409,7 +412,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             }
                           }
                           """;
-        var response = await CallGraphQL<KrakenFlexDispatchResponse>(apiKey, krakenQuery, new { deviceId = device.id });
+        var response = await CallGraphQL<KrakenFlexDispatchResponse>(apiKey, krakenQuery, new { deviceId = device.id }, true);
 
         if (response?.data?.flexPlannedDispatches != null && response.data.flexPlannedDispatches.Length != 0)
         {
