@@ -1047,7 +1047,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     
                     foreach (var dispatch in dispatches)
                     {
-                        if (dispatch.end <= DateTime.UtcNow)
+                        if (!config.IntelligentGoUseFullSlots && dispatch.end <= DateTime.UtcNow)
                         {
                             logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start,
                                 dispatch.end);
@@ -1090,7 +1090,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         }
                     }
                 }
-                else
+                else 
                     logger.LogInformation("No IOG charge slots returned from Octopus");
             }
             catch (Exception ex)
