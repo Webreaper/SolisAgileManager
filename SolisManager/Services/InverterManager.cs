@@ -1088,13 +1088,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                                 OverridePrice = iogPrice
                             };
                         }
-
-                        // We're done
-                        return;
                     }
                 }
-                
-                logger.LogInformation("No smart-charge slots returned from Octopus");
+                else 
+                    logger.LogInformation("No IOG charge slots returned from Octopus");
             }
             catch (Exception ex)
             {
