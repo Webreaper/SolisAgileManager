@@ -254,6 +254,9 @@ The feature may still be useful though: if you set the IOG Charge Amps to zero i
 this should change the behaviour to apply a zero-amp charge whenever an IOG dispatch is in progress, which
 should force the EV to charge from the grid, and therefore avoid the EV being charged from the house battery.
 
+As of Dec 2025 I added an option so you can choose whether to use the full 30-minute slot for charging the 
+house or whether the action will end directly when the IOG smart charge period ends. 
+
 #### How does it work?
 
 First, check the 'Intelligent Go Charging' checkbox in the Settings screen, and save the settings.
