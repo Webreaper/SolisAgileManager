@@ -25,6 +25,7 @@ public record SolisManagerConfig
 
     public bool IntelligentGoCharging { get; set; } = false;
     public int? IntelligentGoAmps { get; set; } = null;
+    // Decide whether the full 30-min slot will be used or not
     public bool IntelligentGoUseFullSlots { get; set; } = true;
     
     // Solcast Rules
