@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy: 
       matrix: 
-        target: [mac, linux, raspi]
+        target: [mac, linux, windows, raspi]
         include: 
           - target: linux
             os: ubuntu-latest
