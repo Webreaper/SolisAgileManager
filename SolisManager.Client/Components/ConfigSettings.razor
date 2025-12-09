@@ -156,6 +156,11 @@
                 <ConfigSettingHelp HelpText="If prices are negative, SolisManager will discharge and charge your battery. If you do not want this, check this option">
                     <MudCheckBox Label="Disable Auto-discharge" LabelPlacement="Placement.End" @bind-Value="@config.DisableAutoDischarge"/>
                 </ConfigSettingHelp>
+                <ConfigSettingHelp HelpText="If this option is enabled, then any slot within 1p of the cheapest slot in the next 6 hours will be set to charge. This prioritises cheap charging where possible, but is really only useful for Agile tariffs.">
+                    <MudCheckBox Label="Cheapest Rate Charging" LabelPlacement="Placement.End" @bind-Value="@config.UseCheapestSlotCharging"/>
+                </ConfigSettingHelp>
+            </div>
+            <div class="config-field-row">
                 <ConfigSettingHelp HelpText="Simulation mode allows you to see the charging strategy without actually making changes to the inverter, including stepping forwards through time.">
                     <MudCheckBox Label="Simulation Mode" LabelPlacement="Placement.End" @bind-Value="@config.Simulate"/>
                 </ConfigSettingHelp>
