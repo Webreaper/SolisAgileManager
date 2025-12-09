@@ -17,6 +17,7 @@ public record SolisManagerConfig
     public int AlwaysChargeBelowPrice { get; set; } = 10;
     public int? AlwaysChargeBelowSOC { get; set; } = null;
     public bool UseCheapestSlotCharging { get; set; }
+    public bool NoActionMeansHold { get; set; }
     public int LowBatteryPercentage { get; set; } = 25;
     public string SolcastAPIKey { get; set; } = string.Empty;  
     public string SolcastSiteIdentifier { get; set; } = string.Empty;
