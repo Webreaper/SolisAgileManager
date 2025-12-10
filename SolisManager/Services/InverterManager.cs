@@ -710,6 +710,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     {
         if (!config.UseCheapestSlotCharging)
             return;
+
+        // If the battery is already at the percentage needed for the peak period, skip this
+        if (InverterState.BatterySOC > config.PeakPeriodBatteryUse * 100)
+            return;
         
         var nextSizHourSlots = slots.Where(x => x.valid_from < DateTime.UtcNow.AddHours(6)).ToList();
         
