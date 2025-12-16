@@ -140,20 +140,26 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         if( newFirmwareVersion.HasValue )
             return newFirmwareVersion.Value;
 
+        var sixSlotFirmwareVer =int.Parse("AA55", NumberStyles.HexNumber);
+
         var result = await ReadControlState(CommandIDs.CheckFirmware);
         
         if (int.TryParse(result, out var firmwareVersion))
         {
-            var hex = firmwareVersion.ToString("X");
-            if (hex == "AA55")
+            if(firmwareVersion >= sixSlotFirmwareVer )
             {
-                // It's the new firmware version
+                // It's the new 6-slot firmware version
                 newFirmwareVersion = true;
-                logger.LogInformation("Detected new firmware version: {V} ({H})", firmwareVersion, hex);
+
+                var hex = firmwareVersion.ToString("X");
+                logger.LogInformation("Detected 6-slot firmware version: {V} ({H})", firmwareVersion, hex);
+                
                 return newFirmwareVersion.Value;
             }
         }
         
+        logger.LogInformation("Firmware version: {V} ({H})", firmwareVersion, result);
+
         // Assume it's the old one.
         newFirmwareVersion = false;
         return newFirmwareVersion.Value;
