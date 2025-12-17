@@ -166,9 +166,6 @@
                 </ConfigSettingHelp>
             </div>
             <div class="config-field-row">
-                <ConfigSettingHelp HelpText="For 'no action' slots, if this setting is enabled, the battery will be set to hold, not just to do nothing. This will override self-use behaviour.">
-                    <MudCheckBox Label="No Action => Hold" LabelPlacement="Placement.End" @bind-Value="@config.NoActionMeansHold"/>
-                </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Simulation mode allows you to see the charging strategy without actually making changes to the inverter, including stepping forwards through time.">
                     <MudCheckBox Label="Simulation Mode" LabelPlacement="Placement.End" @bind-Value="@config.Simulate"/>
                 </ConfigSettingHelp>

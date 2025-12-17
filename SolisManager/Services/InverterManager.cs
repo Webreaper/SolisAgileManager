@@ -412,12 +412,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 InverterState.BatterySOC = firstSlot.PlanAction switch
                 {
-                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge,
-                        100),
-                    SlotAction.DoNothing => config.NoActionMeansHold ? InverterState.BatterySOC : 
-                                                                       Math.Max(InverterState.BatterySOC -= rnd.Next(4, 7), 20),
-                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge,
-                        20),
+                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge, 100),
+                    SlotAction.DoNothing => Math.Max(InverterState.BatterySOC -= rnd.Next(4, 7), 20),
+                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge, 20),
                     _ => InverterState.BatterySOC
                 };
             }
@@ -510,7 +507,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             // First, reset all the slot states
             foreach (var slot in slots)
             {
-                slot.PlanAction = config.NoActionMeansHold ? SlotAction.Hold : SlotAction.DoNothing;
+                slot.PlanAction = SlotAction.DoNothing;
                 slot.ActionReason = "Average price - no charge or discharge required";
             }
             
@@ -659,7 +656,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     if (beforeCheapest && slot.PriceType == PriceType.BelowAverage)
                     {
                         slot.PriceType = PriceType.Dropping;
-                        slot.PlanAction = config.NoActionMeansHold ? SlotAction.Hold : SlotAction.DoNothing;
+                        slot.PlanAction = SlotAction.DoNothing;
                         slot.ActionReason = "Price is falling in the run-up to the cheapest period, so don't charge";
                         dipSlots--;
                         if (dipSlots == 0)
@@ -890,7 +887,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                 foreach (var slot in overnightChargeSlots)
                 {
-                    slot.PlanAction = config.NoActionMeansHold ? SlotAction.Hold : SlotAction.DoNothing;
+                    slot.PlanAction = SlotAction.DoNothing;
                     slot.ActionReason = $"Skipping overnight charge due to {forecastName} of {dampedForecast:F2}kWh";
                 }
             }
