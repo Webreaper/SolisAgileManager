@@ -285,6 +285,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 logger.LogTrace("Refreshing data...");
 
                 var start = DateTime.Now.RoundToHalfHour();
+    
                 var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, 
                     start.AddDays(3), CancellationToken.None);
 
@@ -411,11 +412,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 InverterState.BatterySOC = firstSlot.PlanAction switch
                 {
-                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge,
-                        100),
+                    SlotAction.Charge => Math.Min(InverterState.BatterySOC += 100 / config.SlotsForFullBatteryCharge, 100),
                     SlotAction.DoNothing => Math.Max(InverterState.BatterySOC -= rnd.Next(4, 7), 20),
-                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge,
-                        20),
+                    SlotAction.Discharge => Math.Max(InverterState.BatterySOC -= 100 / config.SlotsForFullBatteryCharge, 20),
                     _ => InverterState.BatterySOC
                 };
             }
@@ -539,7 +538,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     if (cheapestSlots == null || chargePeriodTotal < cheapestSlots.Sum(x => x.value_inc_vat))
                         cheapestSlots = chargePeriod;
                 }
-
+                
                 if (cheapestSlots != null && cheapestSlots.First().valid_from == slots[0].valid_from)
                 {
                     // If the cheapest period starts *right now* then reduce the number of slots
@@ -691,6 +690,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             }
 
             EvaluatePriceBasedRules(slots);
+            EvaluateCheapChargeSlots(slots);
             EvaluateScheduleActionRules(slots);
             EvaluateNOCRule(slots);
             EvaluateDumpAndRechargeIfFreeRule(slots);
@@ -703,6 +703,38 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return slots.ToList();
     }
 
+    private void EvaluateCheapChargeSlots(PricePlanSlot[] slots)
+    {
+        if (!config.UseCheapestSlotCharging)
+            return;
+
+        // If the battery is already at the percentage needed for the peak period, skip this
+        if (InverterState.BatterySOC > config.PeakPeriodBatteryUse * 100)
+            return;
+        
+        var nextSizHourSlots = slots.Where(x => x.valid_from < DateTime.UtcNow.AddHours(6)).ToList();
+        
+        // First, find the cheapest slots to consider.
+        var cheapestSlot = nextSizHourSlots.MinBy(x => x.value_inc_vat);
+
+        if (cheapestSlot != null)
+        {
+            var priceTarget = cheapestSlot.value_inc_vat;
+            var slotsCloseToCheapPrice = nextSizHourSlots.Where(x => Math.Abs(x.value_inc_vat - priceTarget) < 1)
+                .ToList();
+
+            foreach (var slot in slotsCloseToCheapPrice)
+            {
+                // Don't adjust the reason for slots which weren't set to charge anyway
+                if (slot.PlanAction == SlotAction.Charge)
+                    continue;
+                
+                slot.PlanAction = SlotAction.Charge;
+                slot.ActionReason = "Price is within 1p of the cheapest slot in the next 6 hours";
+            }
+        }
+    }
+    
     private void EvaluateDumpAndRechargeIfFreeRule(PricePlanSlot[] slots)
     {
         if (config.DisableAutoDischarge)
