@@ -939,10 +939,15 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (!config.IsValid())
             return;
 
+        if (inverterAPI == null)
+        {
+            // Should never happen, but meh.
+            logger.LogWarning("InverterAPI object is null - config initialisation issue?");
+            return;
+        }
+        
         try
         {
-            ArgumentNullException.ThrowIfNull(InverterState);
-            
             InverterState.LastUpdate = DateTime.UtcNow;
 
             // Get the latest forecast from Solcast
