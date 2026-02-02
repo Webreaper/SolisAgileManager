@@ -941,6 +941,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         try
         {
+            ArgumentNullException.ThrowIfNull(InverterState);
+            
             InverterState.LastUpdate = DateTime.UtcNow;
 
             // Get the latest forecast from Solcast

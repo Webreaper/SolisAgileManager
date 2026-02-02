@@ -323,61 +323,69 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     
     public async Task<bool> UpdateInverterState(SolisManagerState inverterState)
     {
-        // Get the battery charge state from the inverter
-        var solisState = await InverterState();
-
-        if (solisState?.data != null)
+        try
         {
-            var latestBatterySOC = solisState.data.batteryList
-                .Select(x => x.batteryCapacitySoc)
-                .FirstOrDefault();
+            // Get the battery charge state from the inverter
+            var solisState = await InverterState();
 
-            if (latestBatterySOC != 0)
-                inverterState.BatterySOC = latestBatterySOC;
-            else
-                logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
-            
-            inverterState.StationId = solisState.data.stationId;
-            inverterState.CurrentPVkW = solisState.data.pac;
-            inverterState.TodayPVkWh = solisState.data.eToday;
-            inverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
-            inverterState.TodayExportkWh = solisState.data.gridSellEnergy;
-            inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
-            inverterState.ImportPowerKW = solisState.data.psum > 0 ? 0 : Math.Abs(solisState.data.psum);
-            inverterState.ExportPowerKW = Math.Max(0, solisState.data.psum);
-            inverterState.InverterTemp = solisState.data.inverterTemperature;
-            inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
-            if( ParseTimeStr(solisState.data.timeStr, out var timestamp))
-                inverterState.InverterDataTimestamp = timestamp;
-            else
-                inverterState.InverterDataTimestamp = DateTime.UtcNow;
-
-            // Clear these each time
-            inverterState.Sunrise = null;
-            inverterState.Sunset = null;
-            
-            // Pass through the number of EEPROM writes so we can display in the UI
-            inverterState.DailyEepromWrites = eepromWrites;
-            
-            if (long.TryParse(inverterState.StationId, out var stationId))
+            if (solisState?.data != null)
             {
-                var stationData = await GetStationData(stationId);
+                var latestBatterySOC = solisState.data.batteryList
+                    .Select(x => x.batteryCapacitySoc)
+                    .FirstOrDefault();
 
-                if (stationData != null)
+                if (latestBatterySOC != 0)
+                    inverterState.BatterySOC = latestBatterySOC;
+                else
+                    logger.LogInformation("Battery SOC returned as zero. Invalid inverter state data");
+
+                inverterState.StationId = solisState.data.stationId;
+                inverterState.CurrentPVkW = solisState.data.pac;
+                inverterState.TodayPVkWh = solisState.data.eToday;
+                inverterState.CurrentBatteryPowerKW = solisState.data.batteryPower;
+                inverterState.TodayExportkWh = solisState.data.gridSellEnergy;
+                inverterState.TodayImportkWh = solisState.data.gridPurchasedEnergy;
+                inverterState.ImportPowerKW = solisState.data.psum > 0 ? 0 : Math.Abs(solisState.data.psum);
+                inverterState.ExportPowerKW = Math.Max(0, solisState.data.psum);
+                inverterState.InverterTemp = solisState.data.inverterTemperature;
+                inverterState.HouseLoadkW = solisState.data.pac - solisState.data.psum - solisState.data.batteryPower;
+                if (ParseTimeStr(solisState.data.timeStr, out var timestamp))
+                    inverterState.InverterDataTimestamp = timestamp;
+                else
+                    inverterState.InverterDataTimestamp = DateTime.UtcNow;
+
+                // Clear these each time
+                inverterState.Sunrise = null;
+                inverterState.Sunset = null;
+
+                // Pass through the number of EEPROM writes so we can display in the UI
+                inverterState.DailyEepromWrites = eepromWrites;
+
+                if (long.TryParse(inverterState.StationId, out var stationId))
                 {
-                    if( TimeSpan.TryParse(stationData.data.sr, out var sunrise))
-                        inverterState.Sunrise = sunrise;
-                    if( TimeSpan.TryParse(stationData.data.ss, out var sunset))
-                        inverterState.Sunset = sunset;
-                    logger.LogDebug("Evaluted inverter sunrise: {Sr}, sunset: {Ss}", sunrise, sunset);
+                    var stationData = await GetStationData(stationId);
+
+                    if (stationData != null)
+                    {
+                        if (TimeSpan.TryParse(stationData.data.sr, out var sunrise))
+                            inverterState.Sunrise = sunrise;
+                        if (TimeSpan.TryParse(stationData.data.ss, out var sunset))
+                            inverterState.Sunset = sunset;
+                        logger.LogDebug("Evaluted inverter sunrise: {Sr}, sunset: {Ss}", sunrise, sunset);
+                    }
                 }
+
+                return true;
             }
-            return true;
+
+            logger.LogError("No state returned from the inverter");
+            return false;
         }
-
-        logger.LogError("No state returned from the inverter");
-
-        return false;
+        catch (Exception e)
+        {
+            logger.LogError(e, "Exception retrieving state from Solis Inverter");
+            return false;
+        }
     }
     
     /// <summary>
