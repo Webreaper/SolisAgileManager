@@ -4,7 +4,7 @@
 {
     <div class="@Style">
         Last Update: @InverterState.LastUpdate.ToLocalTime().DisplayDateTime(),
-        @StaleDataIndicator("Inverter data date", InverterState.InverterDataTimestamp, 7),
+        @StaleDataIndicator("Inverter data date", InverterState.InverterDataTimestamp, 35),
         last Octopus Rates update: @InverterState.PricesUpdate.ToLocalTime().DisplayDateTime(),
         @StaleDataIndicator("last Solcast update", InverterState?.SolcastTimeStamp, 1080),
         @SunriseTime
