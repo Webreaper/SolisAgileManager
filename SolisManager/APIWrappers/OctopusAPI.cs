@@ -1,5 +1,6 @@
 
 using System.Net;
+using System.Security.Authentication;
 using System.Text.Json;
 using Flurl.Http;
 using Microsoft.Extensions.Caching.Memory;
@@ -241,27 +242,39 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if (memoryCache.TryGetValue<string?>(cacheKey, out var token))
             return token;
 
-        var krakenQuery = """
-                          mutation krakenTokenAuthentication($api: String!) {
-                          obtainKrakenToken(input: {APIKey: $api}) {
-                              token
-                          }
-                          }
-                          """;
-        var variables = new { api = apiKey };
-        var payload = new { query = krakenQuery, variables = variables };
+        try
+        {
+            var krakenQuery = """
+                              mutation krakenTokenAuthentication($api: String!) {
+                              obtainKrakenToken(input: {APIKey: $api}) {
+                                  token
+                              }
+                              }
+                              """;
+            var variables = new { api = apiKey };
+            var payload = new { query = krakenQuery, variables = variables };
 
-        var response = await "https://api.octopus.energy"
-            .WithHeader("User-Agent", userAgentProvider.UserAgent)
-            .AppendPathSegment("/v1/graphql/")
-            .PostJsonAsync(payload)
-            .ReceiveJson<KrakenTokenResponse>();
+            var response = await "https://api.octopus.energy"
+                .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                .AppendPathSegment("/v1/graphql/")
+                .PostJsonAsync(payload)
+                .ReceiveJson<KrakenTokenResponse>();
+
+            token = response?.data?.obtainKrakenToken?.token;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ObtainKrakenToken failed - unable to get auth token from Octopus");
+            throw;
+        }
+
+        if (string.IsNullOrEmpty(token))
+        {
+            logger.LogError("ObtainKrakenToken failed - no valid token was returned");
+            throw new AuthenticationException("ObtainKrakenToken failed - no valid token was returned");
+        }
         
-        token = response?.data?.obtainKrakenToken?.token;
-
-        if( ! string.IsNullOrEmpty(token))
-            memoryCache.Set(cacheKey, token, _authTokenCacheOptions);
-
+        memoryCache.Set(cacheKey, token, _authTokenCacheOptions);
         return token;
     }
 
