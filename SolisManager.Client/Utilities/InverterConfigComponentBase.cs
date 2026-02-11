@@ -29,7 +29,7 @@ public class InverterConfigComponentBase<T> : ComponentBase where T : InverterCo
         base.OnInitialized();
     }
 
-    protected async Task ConfigChanged()
+    protected virtual async Task ConfigChanged()
     {
         await InverterConfigChanged.InvokeAsync(InverterConfig);
     }

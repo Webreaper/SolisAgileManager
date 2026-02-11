@@ -1,0 +1,16 @@
+@if (ChildContent != null)
+{
+   <div class="@WarningClass">
+        @ChildContent
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] 
+    protected bool DarkMode { get; set; }
+
+    private string WarningClass => DarkMode ? "warning-dark" : "warning";
+}

@@ -8,3 +8,8 @@
     row-gap: 5px;
     margin-bottom: 5px;
 }
+
+.config-warning {
+    color: darkorange;
+}
+

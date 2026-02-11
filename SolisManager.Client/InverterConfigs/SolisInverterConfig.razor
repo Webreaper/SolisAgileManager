@@ -12,16 +12,23 @@
                   Immediate="true" Variant="UIConstants.MudVariant"/>
     <div class="config-field-row">
         <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
-            <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps"  @bind-Value:after="ConfigChanged"
-                             Min="5" Max="95" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+            <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" @bind-Value:after="ConfigChanged"
+                             Min="5" Max="750" Variant="UIConstants.MudVariant" class="wrapped-field"/>
         </ConfigSettingHelp>
         <ConfigSettingHelp HelpText="Specifies the minimum discharge SOC percentage that will be applied. This setting only affects inverters with newer firmware">
             <MudNumericField T="int" Label="Min Discharge SOC (%)" @bind-Value="@config.MinDischargeSOC"  @bind-Value:after="ConfigChanged"
                              Min="15" Max="70" Variant="UIConstants.MudVariant" class="wrapped-field"/>
         </ConfigSettingHelp>
+        @if (config?.MaxChargeRateAmps > 100)
+        {
+            <ConfigWarning>
+                Warning: only set the Max Charge to high values if you have a particularly
+                large inverter installation, and you understand the implications. Otherwise
+                this could lead to write failures if the inverter rejects the high value.
+            </ConfigWarning>
+        }
     </div>
 }
 
 @code {
-
 }
