@@ -8,7 +8,7 @@
             @if (!loading)
             {
                 <OctopusProductSelector @bind-TariffCode="@selectedTariff" @bind-TariffCode:after="@RecalcNewComparison"
-                                        RegionCode="@currentTariff?.Last()" RegionClearable="false"/>
+                                        Placeholder="Select product for comparison" RegionCode="@currentTariff?.Last()" RegionClearable="false"/>
             }
             else
             {

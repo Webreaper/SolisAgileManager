@@ -17,20 +17,23 @@
             }
             else if (selectedRegion != null)
             {
-                <div class="region" title="@selectedRegion.fullName">
-                    <img src="/united-kingdom.svg" width="auto" height="32px" alt="UK map icon"/>
-                    @selectedRegion.shortName
-                    @if (RegionClearable)
-                    {
-                        <div class="clear-region">
-                            <MudIcon Icon="@Icons.Material.Filled.Clear" @onclick="ClearRegion" Size="Size.Small"/>
-                        </div>
-                    }
-                </div>
+                @if (!HideRegion)
+                {
+                    <div class="region" title="@selectedRegion.fullName">
+                        <img src="/united-kingdom.svg" width="auto" height="32px" alt="UK map icon"/>
+                        @selectedRegion.shortName
+                        @if (RegionClearable)
+                        {
+                            <div class="clear-region">
+                                <MudIcon Icon="@Icons.Material.Filled.Clear" @onclick="ClearRegion" Size="Size.Small"/>
+                            </div>
+                        }
+                    </div>
+                }
 
                 <MudSelect T="OctopusProduct" @bind-Value="selectedProduct" @bind-Value:after="SelectedProductChanged"
-                           Label="Product" Variant="UIConstants.MudVariant" Dense="true" Margin="Margin.Dense" Disabled="@Disabled"
-                           Placeholder="Select product for comparison" Clearable="true">
+                           Label="@Label" Variant="UIConstants.MudVariant" Dense="true" Margin="Margin.Dense" Disabled="@Disabled"
+                           Placeholder="@Placeholder" Clearable="true" OnClearButtonClick="SelectedProductChanged">
                     @foreach (var product in products)
                     {
                         <MudSelectItem T="OctopusProduct" Value="@product">@product.full_name</MudSelectItem>
@@ -46,9 +49,17 @@
 </ErrorBoundary>
 
 @code {
-    [Parameter] public char? RegionCode { get; set; }
+    [Parameter] public string Label { get; set; } = "Product";
 
+    [Parameter] public string Placeholder { get; set; } = "Select product";
+    
+    [Parameter] public char? RegionCode { get; set; }
+    
     [Parameter] public string? TariffCode { get; set; }
+
+    [Parameter] public bool ImportTariffs { get; set; } = true;
+
+    [Parameter] public bool HideRegion { get; set; } = false;
 
     [Parameter] public EventCallback<string?> TariffCodeChanged { get; set; }
 
@@ -134,8 +145,9 @@
 
         var octProducts = await managerService.GetOctopusProducts();
 
+        var direction = ImportTariffs ? "IMPORT" : "EXPORT";        
         if (octProducts != null)
-            products = octProducts.results.Where(x => x is { brand: "OCTOPUS_ENERGY", direction: "IMPORT" }).ToList();
+            products = octProducts.results.Where(x => x.brand == "OCTOPUS_ENERGY" && x.direction == direction ).ToList();
 
         await base.OnInitializedAsync();
     }

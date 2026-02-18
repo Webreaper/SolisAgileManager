@@ -822,7 +822,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // If we have overrides, replace the consumption tuples with the overriden tariff code
             if (meter.is_export)
             {
-                if (!string.IsNullOrEmpty(overrideImportTariffCode))
+                if (!string.IsNullOrEmpty(overrideExportTariffCode))
                     tariffs = tariffs.Select(x => (x.valid_from, overrideExportTariffCode)).ToList();
             }
             else

@@ -21,7 +21,34 @@
                         <MudSelectItem T="GroupByType" Value="@group">@group.Humanize()</MudSelectItem>
                     }
                 </MudSelect>
-                <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
+                <div>
+                    <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
+                    @if (TotalNetComparisonCost != null)
+                    {
+                        <div class="total-cost">Comparison Total: <Price Value="@TotalNetComparisonCost.Value" Colours="Price.ColorType.PositiveRed" /></div>
+                    }
+                </div>
+                <ConfigSettingHelp>
+                    <HelpContent>
+                        The comparison feature allows to you see what your historic consumption/usage would have cost with other tariffs.
+                        Select an alternate import or export tariff to see what those tariffs would have cost. If you leave one of
+                        the tariff selectors empty, it will default to using your current tariff.
+                    </HelpContent>
+                    <ChildContent>
+                        <MudCheckBox @bind-Value="comparePrices" Label="Compare" title="Enable historic tariff cost comparison"/>
+                    </ChildContent>
+                </ConfigSettingHelp>
+                @if (comparePrices)
+                {
+                    <div class="comparison-selection">
+                    <OctopusProductSelector @bind-TariffCode="@overrideImportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
+                                            RegionCode="@currentTariff?.Last()" RegionClearable="false" HideRegion
+                                            Label="Import Tariff" Placeholder="Import tariff for comparison"/>
+                    <OctopusProductSelector @bind-TariffCode="@overrideExportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
+                                            RegionCode="@currentTariff?.Last()" RegionClearable="false" ImportTariffs="false" HideRegion
+                                            Label="Export Tariff" Placeholder="Export tariff for comparison"/>
+                    </div>
+                }
             </div>
         </ChildContent>
     </TopStatusBar>
@@ -43,7 +70,7 @@
     {
         @if (selectedView == ViewSelector.ViewType.Chart)
         {
-            <ConsumptionChart ChartData="consumptionData"/>
+            <ConsumptionChart ChartData="consumptionData" ChartComparisonData="comparisonConsumptionData"/>
         }
         else
         {
@@ -59,6 +86,10 @@
                     <MudTh>Export Price Earned (p/kWh)</MudTh>
                     <MudTh>Export Profit (£)</MudTh>
                     <MudTh>Net Cost (£)</MudTh>
+                    @if (comparePrices)
+                    {
+                        <MudTh>Comparison Cost (£)</MudTh>
+                    }
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd><DateDisplay Date="@context.StartTime"/></MudTd>
@@ -71,6 +102,10 @@
                     <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
                     <MudTd><Price Value="@(context.TotalExportProfit)"/></MudTd>
                     <MudTd><Price Value="@(context.NetCost)" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    @if (comparePrices)
+                    {
+                        <MudTd><Price Value="@GetComparisonCost(context.StartTime!.Value)" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    }
                 </RowTemplate>
             </MudTable>
         }
@@ -84,7 +119,10 @@
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<GroupedConsumption>? consumptionData = null;
+    
     private IEnumerable<GroupedConsumption>? comparisonConsumptionData = null;
+    private Dictionary<DateTime, GroupedConsumption>? comparisonLookup = [];
+    
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private CancellationTokenSource tokenSource = new();
     private string ProgressMessage => $"Loading {selectedDateRange.Length} days of consumption and tariff data..." + 
@@ -92,6 +130,18 @@
     private GroupByType selectedGrouping = GroupByType.Day;
     private DateRange selectedDateRange = DateRanges.First(x => x.desc == "30 days");
 
+    private decimal GetComparisonCost(DateTime? date)
+    {
+        if (date != null && comparisonLookup.TryGetValue(date.Value, out var cost))
+            return cost.NetCost;
+        return 0;
+    }
+    
+    private bool comparePrices = false;
+    private string? currentTariff;
+    private string? overrideExportTariffCode;
+    private string? overrideImportTariffCode;
+    
     private record DateRange(string desc, DateTime start, DateTime end)
     {
         public int Length => (int)(end - start).TotalDays;
@@ -125,7 +175,7 @@
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) ?? 0M;
-    private decimal TotalNetComparisonCost => comparisonConsumptionData?.Sum(x => x.NetCost) ?? 0M;
+    private decimal? TotalNetComparisonCost => comparisonConsumptionData?.Sum(x => x.NetCost);
     
     public void Dispose()
     {
@@ -143,9 +193,13 @@
         consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
                 selectedGrouping, null, null, tokenSource.Token);
 
-        comparisonConsumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
-            selectedGrouping, null, null, tokenSource.Token);
-        
+        if (!string.IsNullOrEmpty(overrideExportTariffCode) || !string.IsNullOrEmpty(overrideImportTariffCode))
+        {
+            comparisonConsumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1),
+                selectedGrouping, overrideImportTariffCode, overrideExportTariffCode, tokenSource.Token);
+            comparisonLookup = comparisonConsumptionData?.ToDictionary(x => x.StartTime!.Value, x => x) ?? [];
+        }
+
         loading = false;
         StateHasChanged();
     }
@@ -153,6 +207,7 @@
     protected override async Task OnInitializedAsync()
     {
         config = await inverterManagerService.GetConfig();
+        currentTariff = config.OctopusProductCode;
         accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
         
         await RecalcConsmption();

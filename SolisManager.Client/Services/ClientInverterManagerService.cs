@@ -32,10 +32,17 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
             string? overrideImportTariffCode, string? overrideExportTariffCode, CancellationToken token)
     {
         var url = $"inverter/consumption";
+
+        if (string.IsNullOrEmpty(overrideImportTariffCode))
+            overrideImportTariffCode = null;
+        if (string.IsNullOrEmpty(overrideExportTariffCode))
+            overrideExportTariffCode = null;
+        
         var req = new ConsumptionRequest { 
                     Start = start, End = end, GroupBy = groupBy, 
-                    OverrideExportTariffCode = overrideExportTariffCode, 
-                    OverrideImportTariffCode = overrideImportTariffCode};
+                    OverrideImportTariffCode = overrideImportTariffCode,
+                    OverrideExportTariffCode = overrideExportTariffCode
+                    };
         try
         {
             var response = await httpClient.PostAsJsonAsync(url, req, token);
