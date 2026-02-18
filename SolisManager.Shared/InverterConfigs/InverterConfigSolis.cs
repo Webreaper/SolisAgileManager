@@ -12,6 +12,8 @@ public class InverterConfigSolis : InverterConfigBase
     public int MaxChargeRateAmps { get; set; } = 50;
     public int MinDischargeSOC { get; set; } = 15;
     
+    public int? FirmwareVersion { get; set; }
+    
     [JsonIgnore]
     public override bool IsValid => !string.IsNullOrEmpty(SolisAPIKey) &&
                                                !string.IsNullOrEmpty(SolisAPISecret) &&

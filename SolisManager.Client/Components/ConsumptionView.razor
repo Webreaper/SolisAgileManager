@@ -84,6 +84,7 @@
     private bool loading = true;
     private SolisManagerConfig? config;
     private IEnumerable<GroupedConsumption>? consumptionData = null;
+    private IEnumerable<GroupedConsumption>? comparisonConsumptionData = null;
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
     private CancellationTokenSource tokenSource = new();
     private string ProgressMessage => $"Loading {selectedDateRange.Length} days of consumption and tariff data..." + 
@@ -124,6 +125,7 @@
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
     private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) ?? 0M;
+    private decimal TotalNetComparisonCost => comparisonConsumptionData?.Sum(x => x.NetCost) ?? 0M;
     
     public void Dispose()
     {
@@ -138,8 +140,12 @@
         tokenSource.Cancel();
         tokenSource = new();
         
-        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), selectedGrouping, tokenSource.Token);
+        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
+                selectedGrouping, null, null, tokenSource.Token);
 
+        comparisonConsumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
+            selectedGrouping, null, null, tokenSource.Token);
+        
         loading = false;
         StateHasChanged();
     }

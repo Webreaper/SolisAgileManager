@@ -28,10 +28,14 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         return new TariffComparison();
     }
 
-    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, 
+            string? overrideImportTariffCode, string? overrideExportTariffCode, CancellationToken token)
     {
         var url = $"inverter/consumption";
-        var req = new ConsumptionRequest { Start = start, End = end, GroupBy = groupBy};
+        var req = new ConsumptionRequest { 
+                    Start = start, End = end, GroupBy = groupBy, 
+                    OverrideExportTariffCode = overrideExportTariffCode, 
+                    OverrideImportTariffCode = overrideImportTariffCode};
         try
         {
             var response = await httpClient.PostAsJsonAsync(url, req, token);

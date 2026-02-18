@@ -6,4 +6,7 @@ public class ConsumptionRequest
     public DateTime End { get; set; }
 
     public GroupByType GroupBy { get; set; } = GroupByType.Day;
+    
+    public string? OverrideImportTariffCode { get; set; }
+    public string? OverrideExportTariffCode { get; set; }
 }

@@ -75,7 +75,8 @@ public static class EndpointMapper
                 [FromServices] IInverterManagerService service,
                 CancellationToken token) =>
             {
-                var result = await service.GetConsumption(req.Start, req.End, req.GroupBy, token);
+                var result = await service.GetConsumption(req.Start, req.End, req.GroupBy, 
+                                    req.OverrideImportTariffCode, req.OverrideExportTariffCode, token);
                 return TypedResults.Ok(result);
             });
 

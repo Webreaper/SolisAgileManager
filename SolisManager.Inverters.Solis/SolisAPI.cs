@@ -134,6 +134,31 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         
         return result;
     }
+
+    private async Task<int> GetFirmwareVersion()
+    {
+        ArgumentNullException.ThrowIfNull(inverterConfig);
+        
+        var result = await ReadControlState(CommandIDs.CheckFirmware);
+        
+        if (int.TryParse(result, out var firmwareVersion))
+        {
+            // Store this so we remember for next time
+            inverterConfig.FirmwareVersion = firmwareVersion;
+            logger.LogInformation("Firmware version: {V} ({H})", firmwareVersion, result);
+        }
+        else
+        {
+            if (inverterConfig?.FirmwareVersion != null)
+            {
+                firmwareVersion = inverterConfig.FirmwareVersion.Value;
+                logger.LogWarning("Restored firmware version from config: {V} ({H})", firmwareVersion, firmwareVersion.ToString("X"));
+            }
+        }
+
+        return firmwareVersion;
+    }
+    
     
     private async Task<bool> IsNewFirmwareVersion()
     {
@@ -142,23 +167,15 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
         var sixSlotFirmwareVer =int.Parse("AA55", NumberStyles.HexNumber);
 
-        var result = await ReadControlState(CommandIDs.CheckFirmware);
+        var firmwareVersion = await GetFirmwareVersion();
         
-        if (int.TryParse(result, out var firmwareVersion))
+        if(firmwareVersion >= sixSlotFirmwareVer )
         {
-            if(firmwareVersion >= sixSlotFirmwareVer )
-            {
-                // It's the new 6-slot firmware version
-                newFirmwareVersion = true;
+            // It's the new 6-slot firmware version
+            newFirmwareVersion = true;
 
-                var hex = firmwareVersion.ToString("X");
-                logger.LogInformation("Detected 6-slot firmware version: {V} ({H})", firmwareVersion, hex);
-                
-                return newFirmwareVersion.Value;
-            }
+            logger.LogInformation("Detected 6-slot firmware version: {V} ({H})", firmwareVersion, firmwareVersion.ToString("X"));
         }
-        
-        logger.LogInformation("Firmware version: {V} ({H})", firmwareVersion, result);
 
         // Assume it's the old one.
         newFirmwareVersion = false;

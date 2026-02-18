@@ -311,6 +311,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             // Do this last, as it uses a lot of API calls
             await EnrichHistoryWithInverterData();
+
+            // Save the config - in case there's firmeware versions etc to persist
+            await config.SaveToFile(Program.ConfigFolder);
         }
         catch (Exception ex)
         {
@@ -1364,7 +1367,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, CancellationToken token)
+    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, 
+            string? overrideImportTariffCode, string? overrideExportTariffCode, CancellationToken token)
     {
         if (string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
@@ -1378,7 +1382,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             return [];
         }
         
-        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, start, end, token);
+        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, 
+                start, end, overrideImportTariffCode, overrideExportTariffCode, token);
 
         if (consumption != null)
         {
