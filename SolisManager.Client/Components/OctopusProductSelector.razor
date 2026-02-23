@@ -109,10 +109,13 @@
                 if (newTariffCode != TariffCode)
                 {
                     TariffCode = newTariffCode;
-                    await TariffCodeChanged.InvokeAsync(TariffCode);
                 }
             }
         }
+        else
+            TariffCode = null;
+
+        await TariffCodeChanged.InvokeAsync(TariffCode);
     }
 
     protected override async Task OnParametersSetAsync()

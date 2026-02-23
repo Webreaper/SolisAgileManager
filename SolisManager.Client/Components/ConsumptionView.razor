@@ -35,7 +35,7 @@
                         the tariff selectors empty, it will default to using your current tariff.
                     </HelpContent>
                     <ChildContent>
-                        <MudCheckBox @bind-Value="comparePrices" Label="Compare" title="Enable historic tariff cost comparison"/>
+                        <MudCheckBox @bind-Value="comparePrices" @bind-Value:after="@RecalcConsmption" Label="Compare" title="Enable historic tariff cost comparison"/>
                     </ChildContent>
                 </ConfigSettingHelp>
                 @if (comparePrices)
@@ -187,17 +187,22 @@
         loading = true;
         StateHasChanged();
 
-        tokenSource.Cancel();
+        await tokenSource.CancelAsync();
         tokenSource = new();
         
         consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
                 selectedGrouping, null, null, tokenSource.Token);
 
-        if (!string.IsNullOrEmpty(overrideExportTariffCode) || !string.IsNullOrEmpty(overrideImportTariffCode))
+        if (comparePrices && (!string.IsNullOrEmpty(overrideExportTariffCode) || !string.IsNullOrEmpty(overrideImportTariffCode)))
         {
             comparisonConsumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1),
                 selectedGrouping, overrideImportTariffCode, overrideExportTariffCode, tokenSource.Token);
             comparisonLookup = comparisonConsumptionData?.ToDictionary(x => x.StartTime!.Value, x => x) ?? [];
+        }
+        else
+        {
+            comparisonConsumptionData = null;
+            comparisonLookup = [];
         }
 
         loading = false;
