@@ -23,7 +23,7 @@
                 </MudSelect>
                 <div>
                     <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
-                    @if (TotalNetComparisonCost != null)
+                    @if (comparePrices && TotalNetComparisonCost != null)
                     {
                         <div class="total-cost">Comparison Total: <Price Value="@TotalNetComparisonCost.Value" Colours="Price.ColorType.PositiveRed" /></div>
                     }
