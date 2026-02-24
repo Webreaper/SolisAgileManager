@@ -1409,12 +1409,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         var grouped = data.GroupBy(groupSelector)
             .Select(x => new GroupedConsumption
             {
-                GroupingKey = groupBy switch
-                {
-                    GroupByType.Month => x.Key,
-                    GroupByType.Week => x.Key,
-                    _ => x.Key
-                },
+                GroupingKey = x.Key,
                 StartTime = x.Min(p => p.PeriodStart),
                 EndTime = x.Max(p => p.PeriodStart),
                 Tariffs = string.Join( ", ",x.Select( x => x.ImportTariff).Distinct()),

@@ -756,8 +756,39 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (importConsumption != null && importConsumption.Any())
         {
-            await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true, 
-                req.OverrideImportTariffCode, null, token);
+            var data = await GetEnrichedConsumptionData(importConsumption, exportConsumption, importMeter, exportMeter, null, null, token);
+            
+            response.RawConsumptionData = data
+                                    .Where(x => x.PeriodStart > req.Start)
+                                    .OrderBy(x => x.PeriodStart).ToList();
+
+            if (!string.IsNullOrEmpty(req.OverrideImportTariffCode) ||
+                !string.IsNullOrEmpty(req.OverrideExportTariffCode))
+            {
+                var comparisonData = await GetEnrichedConsumptionData(importConsumption,
+                    exportConsumption, importMeter, exportMeter,
+                    req.OverrideImportTariffCode, req.OverrideExportTariffCode, token);
+
+                response.RawComparisonConsumptionData = comparisonData
+                    .Where(x => x.PeriodStart > req.Start)
+                    .OrderBy(x => x.PeriodStart).ToList();
+            }
+
+            return response;
+        }
+
+        logger.LogWarning("No consumption data found from import meter");
+        return null;
+    }
+
+    private async Task<IEnumerable<OctopusConsumption>> GetEnrichedConsumptionData(IEnumerable<ConsumptionRecord> importConsumption,
+        IEnumerable<ConsumptionRecord> exportConsumption, OctopusMeterPoints importMeter, OctopusMeterPoints exportMeter, 
+        string? importTariffOverride, string? exportTariffOverride, CancellationToken token)
+    {
+        if (importConsumption != null && importConsumption.Any())
+        {
+            await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true,
+                importTariffOverride, token);
 
             var lookup = importConsumption
                 .DistinctBy(x => x.interval_start)
@@ -776,8 +807,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // So only enrich if we got consumption data from an export meter.
             if (exportConsumption != null && exportConsumption.Any())
             {
-                await EnrichConsumptionWithTariffPrices(exportConsumption, exportMeter, false, 
-                                null, req.OverrideExportTariffCode, token);
+                await EnrichConsumptionWithTariffPrices(exportConsumption, exportMeter, false,
+                    exportTariffOverride, token);
 
                 foreach (var export in exportConsumption)
                 {
@@ -792,21 +823,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             else
                 logger.LogWarning("No consumption data found from export meter");
 
-            response.RawConsumptionData = lookup.Values
-                         .Where(x => x.PeriodStart > req.Start)
-                         .OrderBy(x => x.PeriodStart).ToList();
-
-            return response;
+            return lookup.Values;
         }
 
-        logger.LogWarning("No consumption data found from import meter");
-        return null;
+        return [];
     }
 
     private async Task EnrichConsumptionWithTariffPrices(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints meter, 
-                        bool getStandingCharge, 
-                        string? overrideImportTariffCode, string? overrideExportTariffCode, 
-                        CancellationToken token)
+                        bool getStandingCharge, string? tarriffOverride, CancellationToken token)
     {
         var minDate = consumptions.Min(x => x.interval_start);
         var maxDate = consumptions.Max(x => x.interval_end);
@@ -834,16 +858,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             logger.LogInformation("  Found {N} tariffs for meter. Querying rates (Tariffs: {T}", tariffs.Count, string.Join(", ", tariffs.Select(x => x.tariff_code)));
 
             // If we have overrides, replace the consumption tuples with the overriden tariff code
-            if (meter.is_export)
-            {
-                if (!string.IsNullOrEmpty(overrideExportTariffCode))
-                    tariffs = tariffs.Select(x => (x.valid_from, overrideExportTariffCode)).ToList();
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(overrideImportTariffCode))
-                    tariffs = tariffs.Select(x => (x.valid_from, overrideImportTariffCode)).ToList();
-            }
+            if (!string.IsNullOrEmpty(tarriffOverride))
+                tariffs = tariffs.Select(x => (x.valid_from, tarriffOverride)).ToList();
 
             // Create a set of tasks for each tariff that applied during the period
             var tasks = tariffs.Select(x => GetOctopusTariffRates(x.tariff_code, minDate, maxDate, token)).ToList();
