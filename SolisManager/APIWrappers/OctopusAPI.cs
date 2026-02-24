@@ -28,10 +28,15 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
-    private readonly MemoryCacheEntryOptions _ratesCacheOptions =
+    private readonly MemoryCacheEntryOptions _historicRatesCacheOptions =
         new MemoryCacheEntryOptions()
             .SetSize(1)
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
+            .SetAbsoluteExpiration(TimeSpan.FromDays(30));
+
+    private readonly MemoryCacheEntryOptions _latestRatesCacheOptions =
+        new MemoryCacheEntryOptions()
+            .SetSize(1)
+            .SetAbsoluteExpiration(TimeSpan.FromDays(1));
 
     private readonly MemoryCacheEntryOptions _deviceCacheOptions =
         new MemoryCacheEntryOptions()
@@ -134,7 +139,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
                     rates.Count(), first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
 
-                memoryCache.Set(cacheKey, rates, _ratesCacheOptions);
+                var cacheOptions = _historicRatesCacheOptions;
+                if ((DateTime.UtcNow - start).TotalDays < 40)
+                    cacheOptions = _latestRatesCacheOptions;
+                
+                memoryCache.Set(cacheKey, rates, cacheOptions);
 
                 // Return a copy - so that any manipulation of the collection won't subvert the cache
                 return rates.Select(x => new OctopusRate
@@ -697,10 +706,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     /// own smart caching.
     /// </summary>
     /// <returns></returns>
-    public async Task<IEnumerable<OctopusConsumption>?> GetConsumption(string apiKey, string accountNumber,
-        DateTime startDate, DateTime endDate, 
-        string? overrideImportTariffCode = null, string? overrideExportTariffCode = null, 
-        CancellationToken token = default)
+    public async Task<RawConsumptionResponse?> GetConsumption(string apiKey, string accountNumber,
+                                        ConsumptionRequest req, CancellationToken token = default)
     {
         // Do this first and cache it for the following requests
         var authToken = await GetAuthToken(apiKey);
@@ -710,7 +717,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             return null;
         }
 
-        logger.LogInformation("Querying consumption data from {S} to {E}", startDate, endDate);
+        logger.LogInformation("Querying consumption data from {S} to {E}", req.Start, req.End);
 
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
@@ -729,14 +736,16 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             logger.LogWarning("No import meter found in account");
             return null;
         }
+
+        var response = new RawConsumptionResponse();
         
-        var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, startDate, endDate, false, token);
+        var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, req.Start, req.End, false, token);
         Task<IEnumerable<ConsumptionRecord>?> exportMeterTask = Task.FromResult<IEnumerable<ConsumptionRecord>?>(null);
         
         var exportMeter = meters.FirstOrDefault(x => x.is_export);
 
         if (exportMeter != null)
-            exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, startDate, endDate, true, token);
+            exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, req.Start, req.End, true, token);
         else
             logger.LogWarning("No export meter found in account");
 
@@ -747,7 +756,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         if (importConsumption != null && importConsumption.Any())
         {
-            await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true, overrideImportTariffCode, overrideExportTariffCode, token);
+            await EnrichConsumptionWithTariffPrices(importConsumption, importMeter, true, 
+                req.OverrideImportTariffCode, null, token);
 
             var lookup = importConsumption
                 .DistinctBy(x => x.interval_start)
@@ -757,7 +767,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     {
                         PeriodStart = x.interval_start,
                         ImportConsumption = x.consumption,
-                        Tariff = x.tariff ?? "Unknown",
+                        ImportTariff = x.tariff ?? "Unknown",
                         DailyStandingCharge = x.dailyStandingCharge,
                         ImportPrice = x.price ?? 0,
                     });
@@ -766,7 +776,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // So only enrich if we got consumption data from an export meter.
             if (exportConsumption != null && exportConsumption.Any())
             {
-                await EnrichConsumptionWithTariffPrices(exportConsumption, exportMeter, false, overrideImportTariffCode, overrideExportTariffCode, token);
+                await EnrichConsumptionWithTariffPrices(exportConsumption, exportMeter, false, 
+                                null, req.OverrideExportTariffCode, token);
 
                 foreach (var export in exportConsumption)
                 {
@@ -774,15 +785,18 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     {
                         consumptionValue.ExportConsumption = export.consumption;
                         consumptionValue.ExportPrice = export.price ?? 0;
+                        consumptionValue.ExportTariff = export.tariff ?? "Unknown";
                     }
                 }
             }
             else
                 logger.LogWarning("No consumption data found from export meter");
 
-            return lookup.Values
-                         .Where(x => x.PeriodStart > startDate)
+            response.RawConsumptionData = lookup.Values
+                         .Where(x => x.PeriodStart > req.Start)
                          .OrderBy(x => x.PeriodStart).ToList();
+
+            return response;
         }
 
         logger.LogWarning("No consumption data found from import meter");
@@ -906,7 +920,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 allConsumption.AddRange(monthConsumption);
         }
 
-        return allConsumption;
+        // Return a cloned copy, so we don't subvert the cached data
+        return allConsumption.Clone();
     }   
     
     public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeterForMonth(string apiKey, OctopusMeterPoints meterPoints, 
@@ -971,7 +986,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                             results.AddRange(result.results);
                     }
                     
-                    memoryCache.Set(cacheKey, results, _ratesCacheOptions);
+                    var cacheOptions = _historicRatesCacheOptions;
+                    if ((DateTime.UtcNow - start).TotalDays < 40)
+                        cacheOptions = _latestRatesCacheOptions;
+
+                    memoryCache.Set(cacheKey, results, cacheOptions);
 
                     return results;
                 }

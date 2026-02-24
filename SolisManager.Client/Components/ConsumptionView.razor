@@ -70,11 +70,11 @@
     {
         @if (selectedView == ViewSelector.ViewType.Chart)
         {
-            <ConsumptionChart ChartData="consumptionData" ChartComparisonData="comparisonConsumptionData"/>
+            <ConsumptionChart ChartData="consumptionData"/>
         }
         else
         {
-            <MudTable Items="consumptionData" Dense="true" Breakpoint="Breakpoint.None">
+            <MudTable Items="consumptionData.ConsumptionData" Dense="true" Breakpoint="Breakpoint.None">
                 <HeaderContent>
                     <MudTh>Period</MudTh>
                     <MudTh>Tariff</MudTh>
@@ -118,9 +118,7 @@
     private bool? accountValid = null;
     private bool loading = true;
     private SolisManagerConfig? config;
-    private IEnumerable<GroupedConsumption>? consumptionData = null;
-    
-    private IEnumerable<GroupedConsumption>? comparisonConsumptionData = null;
+    private ConsumptionResponse? consumptionData = null;
     private Dictionary<DateTime, GroupedConsumption>? comparisonLookup = [];
     
     private ViewSelector.ViewType selectedView = ViewSelector.ViewType.Grid;
@@ -173,9 +171,9 @@
         new ("Last year", new DateTime(DateTime.Now.Year - 1, 1, 1), new DateTime(DateTime.Now.Year -1, 12, 31, 23, 59, 59)),
     ];
 
-    private string TariffSummary(OctopusConsumption? item) => $"{item?.Tariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
-    private decimal TotalNetCost => consumptionData?.Sum(x => x.NetCost) ?? 0M;
-    private decimal? TotalNetComparisonCost => comparisonConsumptionData?.Sum(x => x.NetCost);
+    private string TariffSummary(OctopusConsumption? item) => $"{item?.ImportTariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
+    private decimal TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost) ?? 0M;
+    private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost);
     
     public void Dispose()
     {
@@ -189,21 +187,20 @@
 
         await tokenSource.CancelAsync();
         tokenSource = new();
-        
-        consumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1), 
-                selectedGrouping, null, null, tokenSource.Token);
 
-        if (comparePrices && (!string.IsNullOrEmpty(overrideExportTariffCode) || !string.IsNullOrEmpty(overrideImportTariffCode)))
+        var req = new ConsumptionRequest()
         {
-            comparisonConsumptionData = await inverterManagerService.GetConsumption(selectedDateRange.start, selectedDateRange.end.AddSeconds(-1),
-                selectedGrouping, overrideImportTariffCode, overrideExportTariffCode, tokenSource.Token);
-            comparisonLookup = comparisonConsumptionData?.ToDictionary(x => x.StartTime!.Value, x => x) ?? [];
-        }
-        else
-        {
-            comparisonConsumptionData = null;
+            GroupBy = selectedGrouping,
+            Start = selectedDateRange.start,
+            End = selectedDateRange.end,
+            OverrideImportTariffCode = comparePrices ? overrideImportTariffCode : null,
+            OverrideExportTariffCode = comparePrices ? overrideExportTariffCode : null
+        };
+
+        if (!comparePrices)
             comparisonLookup = [];
-        }
+
+        consumptionData = await inverterManagerService.GetConsumption(req, tokenSource.Token);
 
         loading = false;
         StateHasChanged();

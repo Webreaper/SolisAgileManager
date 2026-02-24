@@ -1367,52 +1367,37 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
     }
 
-    public async Task<IEnumerable<GroupedConsumption>?> GetConsumption(DateTime start, DateTime end, GroupByType groupBy, 
-            string? overrideImportTariffCode, string? overrideExportTariffCode, CancellationToken token)
+    public async Task<ConsumptionResponse?> GetConsumption(ConsumptionRequest req, CancellationToken token)
     {
         if (string.IsNullOrEmpty(config.OctopusAccountNumber))
         {
             logger.LogWarning("Attempted to get consumption, but no account number specified");
-            return [];
+            return null;
         }
 
         if (string.IsNullOrEmpty(config.OctopusAPIKey))
         {
             logger.LogWarning("Attempted to get consumption, but no API key specified");
-            return [];
+            return null;
         }
-        
-        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, 
-                start, end, overrideImportTariffCode, overrideExportTariffCode, token);
+
+        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, req, token);
 
         if (consumption != null)
         {
-            var grouped = GroupConsumptionData(consumption, groupBy);
-
-            var first = grouped.OrderBy(x => x.StartTime).FirstOrDefault();
-
-            if (first != null && first.StartTime != null)
+            return new ConsumptionResponse()
             {
-                if (groupBy == GroupByType.Month)
-                {
-                    first.StartTime = new DateTime(first.StartTime.Value.Year,
-                        first.StartTime.Value.Month, 1, 0, 0, 0);
-                }
-                else if (groupBy == GroupByType.Week)
-                {
-                    first.StartTime = first.StartTime.Value.StartOfWeek(DayOfWeek.Monday);
-                }
-            }
-
-            return grouped;
+                ConsumptionData = GroupConsumptionData(consumption.RawConsumptionData, req.GroupBy),
+                ComparisonConsumptionData = GroupConsumptionData(consumption.RawComparisonConsumptionData, req.GroupBy),
+            };
         }
 
         logger.LogWarning("Attempted to get consumption, but no data was returned");
-        return [];
+        return null;
     }
     
     
-    private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> consumption, GroupByType groupBy)
+    private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
     {
         Func<OctopusConsumption, object> groupSelector = groupBy switch
         {
@@ -1420,8 +1405,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             GroupByType.Week => x => (x.PeriodStart.Year, ISOWeek.GetWeekOfYear(x.PeriodStart)),
             _ => x => x.PeriodStart.Date,
         };
-
-        return consumption.GroupBy(groupSelector)
+        
+        var grouped = data.GroupBy(groupSelector)
             .Select(x => new GroupedConsumption
             {
                 GroupingKey = groupBy switch
@@ -1432,7 +1417,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 },
                 StartTime = x.Min(p => p.PeriodStart),
                 EndTime = x.Max(p => p.PeriodStart),
-                Tariffs = string.Join( ", ",x.Select( x => x.Tariff).Distinct()),
+                Tariffs = string.Join( ", ",x.Select( x => x.ImportTariff).Distinct()),
                 TotalImport = x.Sum(x => x.ImportConsumption),
                 TotalExport = x.Sum(x => x.ExportConsumption),
                 TotalImportCost = x.Sum(x => x.ImportCost)/ 100M,
@@ -1443,6 +1428,23 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             })
             .OrderByDescending(x => x.StartTime)
             .ToList();
+        
+        var first = grouped.OrderBy(x => x.StartTime).FirstOrDefault();
+
+        if (first != null && first.StartTime != null)
+        {
+            if (groupBy == GroupByType.Month)
+            {
+                first.StartTime = new DateTime(first.StartTime.Value.Year,
+                    first.StartTime.Value.Month, 1, 0, 0, 0);
+            }
+            else if (groupBy == GroupByType.Week)
+            {
+                first.StartTime = first.StartTime.Value.StartOfWeek(DayOfWeek.Monday);
+            }
+        }
+
+        return grouped;
     }
     
     private static decimal WeightedAverage(IEnumerable<OctopusConsumption> rates, 
