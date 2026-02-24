@@ -138,10 +138,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private async Task<int> GetFirmwareVersion()
     {
         ArgumentNullException.ThrowIfNull(inverterConfig);
+        var firmwareVersion = 0;
         
+        // Attempt to read it
         var result = await ReadControlState(CommandIDs.CheckFirmware);
         
-        if (int.TryParse(result, out var firmwareVersion))
+        if (! string.IsNullOrEmpty(result) && int.TryParse(result, out firmwareVersion))
         {
             // Store this so we remember for next time
             inverterConfig.FirmwareVersion = firmwareVersion;
@@ -149,11 +151,14 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         }
         else
         {
+            // Otherwise, use stored config version
             if (inverterConfig?.FirmwareVersion != null)
             {
                 firmwareVersion = inverterConfig.FirmwareVersion.Value;
                 logger.LogWarning("Restored firmware version from config: {V} ({H})", firmwareVersion, firmwareVersion.ToString("X"));
             }
+            else
+                logger.LogError("Unable to determine firmware version");
         }
 
         return firmwareVersion;
