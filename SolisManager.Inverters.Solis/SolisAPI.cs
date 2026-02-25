@@ -181,9 +181,12 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
             logger.LogInformation("Detected 6-slot firmware version: {V} ({H})", firmwareVersion, firmwareVersion.ToString("X"));
         }
+        else
+        {
+            // Assume it's the old one.
+            newFirmwareVersion = false;
+        }
 
-        // Assume it's the old one.
-        newFirmwareVersion = false;
         return newFirmwareVersion.Value;
     }
     
