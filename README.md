@@ -220,6 +220,13 @@ cost you, and which days made you money.
 You can select the timespan for the table and graph to view up to 6 months of history - note that longer
 time periods involve a lot of data, so can take quite a few API calls and time to process the totals.
 
+The costs screen also has a 'Compare' function - a little bit like the well-known Octopus Compare app. 
+If you check the 'Compare' checkbox, and select alternate tariffs, you can see what the relative cost 
+difference would have been - for your exact historical consumption/export - for those tariffs. It's a
+good way of checking that you're on the optimal tariff.
+
+<img width="1517" height="960" alt="Costs Screen" src="https://github.com/user-attachments/assets/4441448d-e140-460b-aa08-2f5c1bd485fa" />
+
 ### Intelligent Go Dispatch Management
 
 ** See Note Below **
