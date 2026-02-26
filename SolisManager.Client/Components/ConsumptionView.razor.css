@@ -41,6 +41,7 @@
     border: solid 1px gray;
     margin: 5px;
     padding: 5px;
+    border-radius: 3px;
 }
 
 .total-cost {
