@@ -36,7 +36,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private readonly MemoryCacheEntryOptions _latestRatesCacheOptions =
         new MemoryCacheEntryOptions()
             .SetSize(1)
-            .SetAbsoluteExpiration(TimeSpan.FromDays(1));
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
     private readonly MemoryCacheEntryOptions _deviceCacheOptions =
         new MemoryCacheEntryOptions()
