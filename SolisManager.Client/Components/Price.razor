@@ -1,17 +1,22 @@
-<div class="@PriceClass">
-    @ValueStr
-</div>
+@if (Value != null)
+{
+    <div class="@PriceClass">
+        @ValueStr
+    </div>
+}
 
 @code {
     [Parameter]
-    public decimal Value { get; set; }
+    public decimal? Value { get; set; }
 
     [CascadingParameter] 
     protected bool DarkMode { get; set; }
 
     [Parameter] public ColorType Colours { get; set; } = ColorType.None;
 
-    private string ValueStr => $"£{Math.Round(Value, 2):F2}";
+    [Parameter] public Func<decimal, string> Formatter { get; set; } = x => $"£{Math.Round(x, 2):F2}";
+
+    private string ValueStr => Formatter(Value!.Value);
     
     public enum ColorType
     {
@@ -20,7 +25,7 @@
         PositiveRed
     }
     
-    private string PriceClass => "price " + (Math.Round(Value, 2), Colours, DarkMode) switch
+    private string PriceClass => "price " + (Math.Round(Value!.Value, 2), Colours, DarkMode) switch
     { 
         (< 0, ColorType.PositiveGreen, false) => "price-red",
         (> 0, ColorType.PositiveGreen, false) => "price-green",

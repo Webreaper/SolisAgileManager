@@ -27,7 +27,7 @@
                                  XValue="@(e => e.StartTime?.Date)"
                                  YValue="@(e => e.NetCost)"
                                  SeriesType="SeriesType.Bar"
-                                 Color="firebrick"
+                                 Color="orange"
                                  PointColor="e => GetComparisonColor(e)"/>
             </ApexChart>
         </div>
@@ -39,7 +39,7 @@
     public ConsumptionResponse? ChartData { get; set; }
     
     private string GetColor(GroupedConsumption item) => item.NetCost > 0 ? "firebrick" : "green";
-    private string GetComparisonColor(GroupedConsumption item) => item.NetCost > 0 ? "darkred" : "darkgreen";
+    private string GetComparisonColor(GroupedConsumption item) => item.NetCost > 0 ? "orange" : "lightblue";
 
     protected override void SetOptions(ApexChartOptions<GroupedConsumption> options)
     {

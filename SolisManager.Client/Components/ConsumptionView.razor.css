@@ -27,14 +27,20 @@
     flex-direction: row;
     column-gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .comparison-selection {
     display: flex;
     flex-wrap: wrap;
     column-gap: 10px;
-    flex: 1 0 250px;
-    flex-direction: column;
+    justify-content: space-between;
+    flex-direction: row;
+}
+.costs-summary { 
+    border: solid 1px gray;
+    margin: 5px;
+    padding: 5px;
 }
 
 .total-cost {

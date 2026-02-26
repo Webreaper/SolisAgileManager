@@ -21,13 +21,28 @@
                         <MudSelectItem T="GroupByType" Value="@group">@group.Humanize()</MudSelectItem>
                     }
                 </MudSelect>
-                <div>
+                <div class="costs-summary">
                     <div class="total-cost">Total: <Price Value="@TotalNetCost" Colours="Price.ColorType.PositiveRed" /></div>
-                    @if (comparePrices && TotalNetComparisonCost != null)
-                    {
-                        <div class="total-cost">Comparison Total: <Price Value="@TotalNetComparisonCost.Value" Colours="Price.ColorType.PositiveRed" /></div>
-                    }
+                    <div class="total-cost">Avg Import: <Price Value="@AverageImportCost" Formatter="@(x => $"{x:N2}p/kWh")"/></div>
                 </div>
+                @if (comparePrices && TotalNetComparisonCost != null && TotalNetComparisonCost != 0)
+                {
+                    <div class="costs-summary">
+                        <div class="total-cost">Comparison Total: <Price Value="@TotalNetComparisonCost.Value" Colours="Price.ColorType.PositiveRed"/></div>
+                        <div class="total-cost">
+                            Difference:
+                            <Price Value="@ComparisonDelta" Colours="Price.ColorType.PositiveRed"/>
+                            @if (ComparisonDelta > 0)
+                            {
+                                <span>(more expensive)</span>
+                            }
+                            else
+                            {
+                                <span>(cheaper)</span>
+                            }
+                        </div>
+                    </div>
+                }
                 <ConfigSettingHelp>
                     <HelpContent>
                         The comparison feature allows to you see what your historic consumption/usage would have cost with other tariffs.
@@ -41,12 +56,12 @@
                 @if (comparePrices)
                 {
                     <div class="comparison-selection">
-                    <OctopusProductSelector @bind-TariffCode="@overrideImportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
-                                            RegionCode="@currentTariff?.Last()" RegionClearable="false" HideRegion
-                                            Label="Import Tariff" Placeholder="Import tariff for comparison"/>
-                    <OctopusProductSelector @bind-TariffCode="@overrideExportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
-                                            RegionCode="@currentTariff?.Last()" RegionClearable="false" ImportTariffs="false" HideRegion
-                                            Label="Export Tariff" Placeholder="Export tariff for comparison"/>
+                        <OctopusProductSelector @bind-TariffCode="@overrideImportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
+                                                RegionCode="@currentTariff?.Last()" RegionClearable="false" HideRegion
+                                                Label="Import Tariff to Compare" Placeholder="Import tariff for comparison"/>
+                        <OctopusProductSelector @bind-TariffCode="@overrideExportTariffCode" @bind-TariffCode:after="@RecalcConsmption"
+                                                RegionCode="@currentTariff?.Last()" RegionClearable="false" ImportTariffs="false" HideRegion
+                                                Label="Export Tariff to Compare" Placeholder="Export tariff for comparison"/>
                     </div>
                 }
             </div>
@@ -127,6 +142,7 @@
                                       (selectedDateRange.Length <= 30 ? string.Empty : " Please be patient, this may take some time.");
     private GroupByType selectedGrouping = GroupByType.Day;
     private DateRange selectedDateRange = DateRanges.First(x => x.desc == "30 days");
+    private decimal? AverageImportCost => consumptionData?.ConsumptionData.Average(x => x.TotalImportCost / x.TotalImport) * 100;
 
     private decimal GetComparisonCost(DateTime? date)
     {
@@ -172,8 +188,9 @@
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.ImportTariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
-    private decimal TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost) ?? 0M;
+    private decimal? TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost);
     private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost);
+    private decimal? ComparisonDelta => TotalNetComparisonCost - TotalNetCost;
     
     public void Dispose()
     {
