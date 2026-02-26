@@ -139,6 +139,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
                     rates.Count(), first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
 
+                // For rates older than 40 days, we cache for a long time. For rates within the last
+                // 40 days, always pull fresh - otherwise our half-hourly recalculation won't update
+                // as time passes!
                 var cacheOptions = _historicRatesCacheOptions;
                 if ((DateTime.UtcNow - start).TotalDays < 40)
                     cacheOptions = _latestRatesCacheOptions;
