@@ -872,16 +872,17 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         decimal dampedForecast;
         string forecastName;
         
-        // Forecast periods are calculated in UTC
-        if (DateTime.UtcNow.Hour < 9)
+        // Forecast periods are calculated in UTC. See if we're after lunch; we need to ensure
+        // the new octopus rates have come in, so can't do it too early. 
+        if (DateTime.UtcNow.Hour < 12)
         {
-            // It's currently before 9am, so we need to use today's forecast
+            // It's currently before lunchtime, so we need to use today's forecast
             dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
             forecastName = "Today's forecast";
         }
         else
         {
-            // It's after 9am so the forecast we're interested in is
+            // It's after lunchtime so the forecast we're interested in is
             // tomorrow's forecast.
             dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
             forecastName = "Tomorrow's forecast";
