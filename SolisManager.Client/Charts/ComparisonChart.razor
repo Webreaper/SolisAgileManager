@@ -89,15 +89,21 @@
 
     protected override void SetOptions(ApexChartOptions<OctopusRate> options)
     {
-        var yAxis = new List<YAxis>();
-
-        yAxis.Add(new YAxis
+        var yAxis = new List<YAxis>()
         {
-            Title = new AxisTitle { Text = "Price (p/kWh)" },
-            SeriesName = "Price",
-            DecimalsInFloat = 2
-        });
-        
+            new()
+            {
+                Title = new AxisTitle { Text = "Price (p/kWh)" },
+                SeriesName = FirstName,
+                DecimalsInFloat = 2
+            },
+            new()
+            {
+                Title = new AxisTitle { Text = "Comparison Price (p/kWh)" },
+                SeriesName = SecondName,
+                DecimalsInFloat = 2
+            }
+        };
         var fill = new Fill
         {
             // First type is for the first series, second type is for the second series.

@@ -1388,17 +1388,24 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         if (consumption != null)
         {
-            return new ConsumptionResponse()
+            var response = new ConsumptionResponse()
             {
                 ConsumptionData = GroupConsumptionData(consumption.RawConsumptionData, req.GroupBy),
                 ComparisonConsumptionData = GroupConsumptionData(consumption.RawComparisonConsumptionData, req.GroupBy),
             };
+
+            // Calculate the averages across the whole period
+            response.AverageImportPrice =
+                WeightedAverage(consumption.RawConsumptionData, x => x.ImportConsumption, x => x.ImportCost);
+            response.AverageExportPrice =
+                WeightedAverage(consumption.RawConsumptionData, x => x.ExportConsumption, x => x.ExportProfit);
+
+            return response;
         }
 
         logger.LogWarning("Attempted to get consumption, but no data was returned");
         return null;
     }
-    
     
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
     {

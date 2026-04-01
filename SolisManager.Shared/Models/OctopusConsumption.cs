@@ -13,6 +13,7 @@ public class OctopusConsumption
     public decimal ImportCost => ImportPrice * ImportConsumption;
     public decimal ExportProfit => ExportPrice * ExportConsumption;
     public decimal NetCost => ImportCost - ExportProfit;
+    
 }
 
 public enum GroupByType

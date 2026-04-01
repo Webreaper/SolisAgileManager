@@ -4,6 +4,9 @@ public class ConsumptionResponse
 {
     public IEnumerable<GroupedConsumption> ConsumptionData { get; set; } = [];
     public IEnumerable<GroupedConsumption> ComparisonConsumptionData { get; set; } = [];
+
+    public decimal AverageImportPrice { get; set; }
+    public decimal AverageExportPrice { get; set; }
 }
 
 public class RawConsumptionResponse
