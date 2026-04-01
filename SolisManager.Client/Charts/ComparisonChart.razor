@@ -29,6 +29,7 @@
                                  SeriesType="SeriesType.Line"
                                  Color="khaki"
                                  Stroke="@(new SeriesStroke { Color = "khaki", Width = 3 })"/>
+
             </ApexChart>
     }
     else
@@ -93,17 +94,12 @@
         {
             new()
             {
-                Title = new AxisTitle { Text = "Price (p/kWh)" },
+                Title = new AxisTitle { Text = $"Price (p/kWh)" },
                 SeriesName = FirstName,
-                DecimalsInFloat = 2
-            },
-            new()
-            {
-                Title = new AxisTitle { Text = "Comparison Price (p/kWh)" },
-                SeriesName = SecondName,
                 DecimalsInFloat = 2
             }
         };
+
         var fill = new Fill
         {
             // First type is for the first series, second type is for the second series.
@@ -123,5 +119,4 @@
         options.Yaxis = yAxis;
         options.Xaxis = new XAxis { Labels = new XAxisLabels { DatetimeUTC = false } };
     }
-
 }
