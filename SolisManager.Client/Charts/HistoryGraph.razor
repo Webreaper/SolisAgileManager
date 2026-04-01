@@ -67,8 +67,6 @@
     private int? defaultDays = 3;
     private IEnumerable<HistoryEntry> FilteredHistoryData => HistoryData?.Where(x => x.Start > DateTime.UtcNow.AddDays(-1 * (defaultDays ?? 7))) ?? [];
     
-    private string FormatYAxisLabel(decimal val) => val == (int)val ? $"{val:F0}" : $"{val:F2}";
-    private string GetBatteryColor(HistoryEntry slot) => "darkred";
     private string GetColor(HistoryEntry slot) => slot.Action.GetActionColour();
 
     private RenderFragment? ZoomButton(string text, int? days = null)

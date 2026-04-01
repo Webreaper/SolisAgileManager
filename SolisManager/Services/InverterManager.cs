@@ -855,36 +855,43 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // Otherwise we might have a race condition
         CalculateForecasts();
 
+        // Find the night-time slots that are set to charge
+        var overnightChargeSlots = slots.Where(x =>
+                x is { Daytime: false, PlanAction: SlotAction.Charge })
+            .ToList();
+
+        var sunrise = config.NightEndTime ?? InverterState.Sunrise;
+
+        if (overnightChargeSlots.Count == 0)
+        {
+            logger.LogInformation(
+                "Skipping NOC evaluation: no overnight charge slots found between {S} => {E}",
+                InverterState.Sunset, sunrise);
+        }
+
         decimal dampedForecast;
         string forecastName;
         
-        // Forecast periods are calculated in UTC
+        // Forecast periods are calculated in UTC. See if we're after lunch; we need to ensure
+        // the new octopus rates have come in, so can't do it too early. 
         if (DateTime.UtcNow.Hour < 12)
         {
-            // It's currently the morning, so we need to use today's forecast
+            // It's currently before lunchtime, so we need to use today's forecast
             dampedForecast = config.SolcastDampFactor * InverterState.TodayForecastKWH;
             forecastName = "Today's forecast";
         }
         else
         {
-            // It's the afternoon/evening, so the forecast we're interested in is
+            // It's after lunchtime so the forecast we're interested in is
             // tomorrow's forecast.
             dampedForecast = config.SolcastDampFactor * InverterState.TomorrowForecastKWH;
             forecastName = "Tomorrow's forecast";
         }
 
         // Now check the forecast
-        if (config.ForecastThreshold < dampedForecast)
+        if (dampedForecast > config.ForecastThreshold)
         {
-            // Find the night-time slots that are set to charge
-            var overnightChargeSlots = slots.Where(x =>
-                    x is { Daytime: false, PlanAction: SlotAction.Charge })
-                .ToList();
 
-            var sunrise = config.NightEndTime ?? InverterState.Sunrise;
-
-            if (overnightChargeSlots.Count > 0)
-            {
                 logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh). Found {C} overnight charge slots to skip between {S} => {E}",
                     forecastName, dampedForecast, config.ForecastThreshold, overnightChargeSlots.Count, InverterState.Sunset, sunrise);
 
@@ -893,10 +900,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     slot.PlanAction = SlotAction.DoNothing;
                     slot.ActionReason = $"Skipping overnight charge due to {forecastName} of {dampedForecast:F2}kWh";
                 }
-            }
-            else
-                logger.LogInformation("{FN} = {F:F2}kWh (so > {T}kWh), but no overnight charge slots found between {S} => {E}",
-                    forecastName, dampedForecast, config.ForecastThreshold, InverterState.Sunset, sunrise);
         }
         else
         {
@@ -1385,17 +1388,24 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         if (consumption != null)
         {
-            return new ConsumptionResponse()
+            var response = new ConsumptionResponse()
             {
                 ConsumptionData = GroupConsumptionData(consumption.RawConsumptionData, req.GroupBy),
                 ComparisonConsumptionData = GroupConsumptionData(consumption.RawComparisonConsumptionData, req.GroupBy),
             };
+
+            // Calculate the averages across the whole period
+            response.AverageImportPrice =
+                WeightedAverage(consumption.RawConsumptionData, x => x.ImportConsumption, x => x.ImportCost);
+            response.AverageExportPrice =
+                WeightedAverage(consumption.RawConsumptionData, x => x.ExportConsumption, x => x.ExportProfit);
+
+            return response;
         }
 
         logger.LogWarning("Attempted to get consumption, but no data was returned");
         return null;
     }
-    
     
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
     {

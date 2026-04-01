@@ -142,7 +142,7 @@
                                       (selectedDateRange.Length <= 30 ? string.Empty : " Please be patient, this may take some time.");
     private GroupByType selectedGrouping = GroupByType.Day;
     private DateRange selectedDateRange = DateRanges.First(x => x.desc == "30 days");
-    private decimal? AverageImportCost => consumptionData?.ConsumptionData.Average(x => x.TotalImportCost / x.TotalImport) * 100;
+    private decimal? AverageImportCost => consumptionData?.AverageImportPrice;
 
     private decimal GetComparisonCost(DateTime? date)
     {

@@ -12,6 +12,23 @@
                        Options="@Options"
                        Height="@("100%")">
 
+                <ApexPointTooltip>
+                    <div style="padding:5px;">
+                        <div style="font-weight:bold;">
+                            @context.DataPoint.Items.Select(x => x.StartTime!.Value.ToString("dd-MMM")).First()
+                            Cost: £@context.DataPoint.Items.Sum(e => e.NetCost).ToString("N2")
+                        </div>
+                        <div>Import Total: £@context.DataPoint.Items.Sum(e => e.TotalImportCost).ToString("N2")</div>
+                        <div>Import Average: @context.DataPoint.Items.Average(e => e.AverageImportPrice).ToString("N2") p/kWh</div>
+                        @if (context.DataPoint.Items.Average(e => e.AverageExportPrice) > 0)
+                        {
+                            <div>Export Total: £@context.DataPoint.Items.Sum(e => e.TotalExportProfit).ToString("N2")</div>
+                            <div>Export Average: @context.DataPoint.Items.Average(e => e.AverageExportPrice).ToString("N2") p/kWh</div>
+                        }
+                    </div>
+                </ApexPointTooltip>
+                
+                <ChildContent>
                 <ApexPointSeries TItem="GroupedConsumption"
                                  Items="@ChartData.ConsumptionData"
                                  Name="Cost"
@@ -21,14 +38,18 @@
                                  Color="darkred"
                                  PointColor="e => GetColor(e)"/>
 
-                <ApexPointSeries TItem="GroupedConsumption"
-                                 Items="@ChartData.ComparisonConsumptionData"
-                                 Name="Comparison Cost"
-                                 XValue="@(e => e.StartTime?.Date)"
-                                 YValue="@(e => e.NetCost)"
-                                 SeriesType="SeriesType.Bar"
-                                 Color="orange"
-                                 PointColor="e => GetComparisonColor(e)"/>
+                @if (ChartData.ComparisonConsumptionData.Any())
+                {
+                    <ApexPointSeries TItem="GroupedConsumption"
+                                     Items="@ChartData.ComparisonConsumptionData"
+                                     Name="Comparison Cost"
+                                     XValue="@(e => e.StartTime?.Date)"
+                                     YValue="@(e => e.NetCost)"
+                                     SeriesType="SeriesType.Bar"
+                                     Color="orange"
+                                     PointColor="e => GetComparisonColor(e)"/>
+                }
+                </ChildContent>
             </ApexChart>
         </div>
     }
@@ -43,14 +64,21 @@
 
     protected override void SetOptions(ApexChartOptions<GroupedConsumption> options)
     {
-        var yAxis = new List<YAxis>();
-
-        yAxis.Add(new YAxis
+        var yAxis = new List<YAxis>()
         {
-            Title = new AxisTitle { Text = "Cost (£)" },
-            SeriesName = "Cost",
-            DecimalsInFloat = 2
-        });
+            new()
+            {
+                Title = new AxisTitle { Text = "Cost (£)" },
+                SeriesName = "Cost",
+                DecimalsInFloat = 2
+            },
+            new()
+            {
+                Title = new AxisTitle { Text = "Comparison Cost (£)" },
+                SeriesName = "Comparison Cost",
+                DecimalsInFloat = 2
+            }
+        };
         
         options.Yaxis = yAxis;
         options.Xaxis = new XAxis { Labels = new XAxisLabels { DatetimeUTC = false } };
