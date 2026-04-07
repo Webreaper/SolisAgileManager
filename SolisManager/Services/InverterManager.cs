@@ -49,7 +49,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         var forecasts = solcastApi.GetSolcastForecasts();
 
         // Store the last update time
-        InverterState.SolcastTimeStamp = solcastApi.LastAPIUpdateUTC;
+        InverterState.SolcastTimeStamp = solcastApi.LastAPIUpdate;
             
         if (forecasts == null || !forecasts.Any())
             return;

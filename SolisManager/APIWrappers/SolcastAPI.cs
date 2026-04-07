@@ -12,7 +12,7 @@ namespace SolisManager.APIWrappers;
 /// </summary>
 public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentProvider, ILogger<SolcastAPI> logger)
 {
-    public DateTime? LastAPIUpdateUTC
+    public DateTime? LastAPIUpdate
     {
         get
         {
@@ -275,7 +275,7 @@ public class SolcastAPI(SolisManagerConfig config, IUserAgentProvider userAgentP
 
     private record SolcastResponse
     {
-        public DateTime lastUpdate { get; set; } = DateTime.UtcNow;
+        public DateTime lastUpdate { get; set; } = DateTime.Now;
         public IEnumerable<SolcastForecast>? forecasts { get; set; } = [];
     }
     

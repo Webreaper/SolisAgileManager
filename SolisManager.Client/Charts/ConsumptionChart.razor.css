@@ -10,3 +10,25 @@
     }
 }
 
+.chart-tooltip {
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 2px;
+}
+
+.chart-tooltip-title {
+    display: flex;
+    font-weight: bold;
+    flex-direction: row;
+    justify-content: space-between;
+    padding-bottom: 3px;
+    margin-bottom: 3px;
+    border-bottom: 1px solid darkgray;
+}
+
+.price-row { 
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}

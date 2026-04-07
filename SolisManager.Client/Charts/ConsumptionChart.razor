@@ -13,17 +13,17 @@
                        Height="@("100%")">
 
                 <ApexPointTooltip>
-                    <div style="padding:5px;">
-                        <div style="font-weight:bold;">
-                            @context.DataPoint.Items.Select(x => x.StartTime!.Value.ToString("dd-MMM")).First()
-                            Cost: £@context.DataPoint.Items.Sum(e => e.NetCost).ToString("N2")
+                    <div class="chart-tooltip">
+                        <div class="chart-tooltip-title">
+                            <div>@context.DataPoint.Items.Select(x => x.StartTime!.Value.ToString("dd-MMM")).First()</div>
+                            <Price Label="Net Cost" Value=@context.DataPoint.Items.Sum(e => e.NetCost) Colours="Price.ColorType.PositiveRed "/>
                         </div>
-                        <div>Import Total: £@context.DataPoint.Items.Sum(e => e.TotalImportCost).ToString("N2")</div>
-                        <div>Import Average: @context.DataPoint.Items.Average(e => e.AverageImportPrice).ToString("N2") p/kWh</div>
+                        <Price Label="Import Total" Value="@context.DataPoint.Items.Sum(e => e.TotalImportCost)" Colours="Price.ColorType.PositiveRed"/>
+                        <div class="price-row">Import Average: @context.DataPoint.Items.Average(e => e.AverageImportPrice).ToString("N2")<text>p/kWh</text></div>
                         @if (context.DataPoint.Items.Average(e => e.AverageExportPrice) > 0)
                         {
-                            <div>Export Total: £@context.DataPoint.Items.Sum(e => e.TotalExportProfit).ToString("N2")</div>
-                            <div>Export Average: @context.DataPoint.Items.Average(e => e.AverageExportPrice).ToString("N2") p/kWh</div>
+                            <Price Label="Export Total" Value="@context.DataPoint.Items.Sum(e => e.TotalExportProfit)" Colours="Price.ColorType.PositiveGreen"/>
+                            <div class="price-row">Export Average: @context.DataPoint.Items.Average(e => e.AverageExportPrice).ToString("N2")<text>p/kWh</text></div>
                         }
                     </div>
                 </ApexPointTooltip>
