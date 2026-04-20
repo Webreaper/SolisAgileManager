@@ -385,7 +385,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
 
                 // Pass through the number of EEPROM writes so we can display in the UI
                 // If we haven't had a write for > 24 hours, reset the count.
-                if ((DateTime.UtcNow - eepromCountDate).TotalHours > 24)
+                if (eepromCountDate.Date != DateTime.Now.Date)
                     eepromWrites = 0;
                 inverterState.DailyEepromWrites = eepromWrites;
 
