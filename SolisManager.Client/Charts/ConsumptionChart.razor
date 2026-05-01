@@ -15,7 +15,7 @@
                 <ApexPointTooltip>
                     <div class="chart-tooltip">
                         <div class="chart-tooltip-title">
-                            <div>@context.DataPoint.Items.Select(x => x.StartTime!.Value.ToString("dd-MMM")).First()</div>
+                            <div>@TooltipRange(context.DataPoint.Items)</div>
                             <Price Label="Net Cost" Value=@context.DataPoint.Items.Sum(e => e.NetCost) Colours="Price.ColorType.PositiveRed "/>
                         </div>
                         <Price Label="Import Total" Value="@context.DataPoint.Items.Sum(e => e.TotalImportCost)" Colours="Price.ColorType.PositiveRed"/>
@@ -59,9 +59,33 @@
     [Parameter, EditorRequired]
     public ConsumptionResponse? ChartData { get; set; }
     
+    [Parameter]
+    public GroupByType SelectedGrouping { get; set; }
+    
     private string GetColor(GroupedConsumption item) => item.NetCost > 0 ? "firebrick" : "green";
     private string GetComparisonColor(GroupedConsumption item) => item.NetCost > 0 ? "orange" : "lightblue";
 
+    private string TooltipRange(IEnumerable<GroupedConsumption>? items)
+    {
+        string result = string.Empty;
+        if (items != null)
+        {
+            var startDate = items.First().StartTime!.Value;
+            var endDate = items.Last().EndTime.Value;
+
+            return SelectedGrouping switch
+            {
+                GroupByType.Month => startDate.ToString("MMMM"),
+                GroupByType.Week => startDate.Month == endDate.Month ? 
+                                        $"{startDate:dd}-{endDate:dd} {startDate:MMMM}" :
+                                        $"{startDate:dd-MMM} - {endDate:dd-MMM}",
+                _ => startDate.ToString("dd-MMMM")
+            };
+        }
+
+        return result;
+    }
+    
     protected override void SetOptions(ApexChartOptions<GroupedConsumption> options)
     {
         var yAxis = new List<YAxis>()

@@ -20,6 +20,7 @@
 .chart-tooltip-title {
     display: flex;
     font-weight: bold;
+    column-gap: 10px;
     flex-direction: row;
     justify-content: space-between;
     padding-bottom: 3px;
