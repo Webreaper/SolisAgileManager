@@ -85,7 +85,7 @@
     {
         @if (selectedView == ViewSelector.ViewType.Chart)
         {
-            <ConsumptionChart ChartData="consumptionData"/>
+            <ConsumptionChart ChartData="consumptionData" SelectedGrouping="@selectedGrouping"/>
         }
         else
         {
