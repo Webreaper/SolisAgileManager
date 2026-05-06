@@ -92,7 +92,7 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
 
         public override string ToString()
         {
-            return $"{start_time} - {end_time} {import_export}";
+            return $"{start_time} - {end_time} {import_export} {pence_per_kwh}p/kWh Updated: {updated_at}";
         }
     }
 }
