@@ -22,7 +22,7 @@ public record SolisManagerConfig
     public string SolcastSiteIdentifier { get; set; } = string.Empty;
     public decimal SolcastDampFactor { get; set; } = 1M; // Default to 100% of the solcast value
     public bool SolcastExtraUpdates { get; set; } = false;
-    public string AxleAPIKey { get; set; } = string.Empty; 
+    public string? AxleAPIKey { get; set; }; 
     public bool DisableAutoDischarge { get; set; } = false;
 
     public bool IntelligentGoCharging { get; set; } = false;
