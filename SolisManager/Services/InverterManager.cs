@@ -24,6 +24,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private readonly OctopusAPI octopusAPI;
     private readonly IInverter inverterAPI;
     private readonly SolcastAPI solcastApi;
+    private readonly AxleApi axleApi;
     private readonly ILogger<InverterManager> logger;
     
     public InverterManager(
@@ -31,10 +32,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         OctopusAPI _octopusAPI,
         InverterFactory _inverterFactory,
         SolcastAPI _solcastApi,
+        AxleApi _axleAPI,
         ILogger<InverterManager> _logger)
     {
         config = _config;
         octopusAPI = _octopusAPI;
+        axleApi = _axleAPI;
         solcastApi = _solcastApi; 
         logger = _logger;
 
@@ -367,6 +370,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         // If the tariff is IOG, apply any charging when there's smart-charge slots
         await ApplyIOGDispatches(processedSlots);
 
+        await ApplyAxleEvents(processedSlots);
+        ;
         InverterState.Prices = processedSlots;
 
         // Update the state
@@ -1071,6 +1076,20 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ExecuteSlotChanges(InverterState.Prices);
     }
 
+    private async Task ApplyAxleEvents(IEnumerable<PricePlanSlot> slots)
+    {
+        if (!string.IsNullOrEmpty(config.AxleAPIKey))
+        {
+            var events = axleApi.GetAxleEventsAsync();
+            
+            var futureEvents = events.Where(x => x.start_time > DateTime.Now).ToList();
+
+            if (futureEvents.Any())
+            {
+                // Do something!!
+            }
+        }
+    }
     private async Task ApplyIOGDispatches(IEnumerable<PricePlanSlot> slots)
     {
         if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })

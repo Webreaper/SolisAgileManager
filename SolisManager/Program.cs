@@ -94,8 +94,10 @@ public class Program
         builder.Services.AddSingleton<SolcastScheduler>();
         builder.Services.AddSingleton<SolcastExtraScheduler>();
         builder.Services.AddSingleton<VersionCheckScheduler>();
+        builder.Services.AddSingleton<AxleEventScheduler>();
         builder.Services.AddSingleton<TariffScheduler>();
         builder.Services.AddSingleton<InverterTimeAdjustScheduler>();
+        builder.Services.AddSingleton<AxleApi>();
 
         builder.Services.AddSingleton<RestartService>();
         builder.Services.AddSingleton<SolcastAPI>();
@@ -261,6 +263,14 @@ public class Program
         app.Services.UseScheduler(s => s
             .Schedule<AutoOverrideScheduler>()
             .Cron("0,5,10,15,20,25,30,35,40,45,50,55 * * * *"));
+
+        // Query for Axle events every 30 minutes for now. Time this 
+        // to always happen a couple of minutes before the slot plan
+        // recalculation
+        app.Services.UseScheduler(s => s
+            .Schedule<AxleEventScheduler>()
+            .Cron("28,58 * * * *")
+            .RunOnceAtStart());
 
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();
