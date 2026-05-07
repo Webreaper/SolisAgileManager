@@ -1076,20 +1076,54 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ExecuteSlotChanges(InverterState.Prices);
     }
 
-    private async Task ApplyAxleEvents(IEnumerable<PricePlanSlot> slots)
+    private Task ApplyAxleEvents(IEnumerable<PricePlanSlot> slots)
     {
         if (!string.IsNullOrEmpty(config.AxleAPIKey))
         {
             var events = axleApi.GetAxleEventsAsync();
-            
             var futureEvents = events.Where(x => x.start_time > DateTime.Now).ToList();
 
             if (futureEvents.Any())
             {
-                // Do something!!
+                var axleEventSlots = new Dictionary<DateTime, PricePlanSlot>();
+                
+                 foreach (var dispatch in futureEvents)
+                {
+                    if (dispatch.end_time <= DateTime.UtcNow)
+                    {
+                        logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start_time,
+                            dispatch.end_time);
+                        continue;
+                    }
+
+                    foreach (var slot in slots)
+                    {
+                        if (slot.valid_from < dispatch.start_time && slot.valid_to > dispatch.end_time)
+                            axleEventSlots.TryAdd(slot.valid_from, slot);
+                    }
+                }
+                
+                if (axleEventSlots.Any())
+                {
+                    logger.LogInformation("Applying discharge action to {N} slots for Axle Energy Event",
+                        axleEventSlots.Count);
+
+                    foreach (var slot in axleEventSlots.Values)
+                    {
+                        slot.AutoOverride = new SlotOverride
+                        {
+                            Action = SlotAction.Discharge,
+                            Explanation = "Axle Discharge Event active",
+                            Type = AutoOverrideType.AxleDischargeEvent,
+                        };
+                    }
+                }
             }
         }
+
+        return Task.CompletedTask;
     }
+    
     private async Task ApplyIOGDispatches(IEnumerable<PricePlanSlot> slots)
     {
         if (config is { TariffIsIntelligentGo: true, IntelligentGoCharging: true })

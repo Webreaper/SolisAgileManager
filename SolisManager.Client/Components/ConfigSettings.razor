@@ -102,6 +102,20 @@
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">
+            <h5>Axle.Energy VPP Settings (experimental)</h5>
+            <ConfigSettingHelp>
+                <HelpContent>
+                    Enter your Axle.Energy API Key to enable VPP discharge event handling. 
+                    See <NavLink href="https://vpp.axle.energy/app/account/events" target="_blank">Axle.Energy VPP</NavLink> 
+                    for details. 
+                </HelpContent>
+                <ChildContent>
+                    <MudTextField T="string" Label="Axle Energy API Key" @bind-Value="@config.AxleAPIKey" Immediate="true" 
+                                  Lines="1" MaxLines="3" Variant="UIConstants.MudVariant"/>
+                </ChildContent>
+            </ConfigSettingHelp>
+        </div>
+        <div class="config-fields">
             <h5>Forecast Rules</h5>
             <ConfigSettingHelp HelpText="Enable this option and set a threshold for tomorrow's PV forecast. If the forecast is above the threshold, the overnight charge will be skipped.">
                 <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPlacement="Placement.End" class="wrapped-field"/>
