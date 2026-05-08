@@ -6,7 +6,7 @@ public enum AutoOverrideType
     IOGSmartCharge,
     ChargeIfLowBattery,
     AlwayChargeBelowSOC,
-    AxleDischargeEvent,
+    AxleEvent,
 }
 
 public class SlotOverride

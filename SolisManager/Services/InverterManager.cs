@@ -1085,7 +1085,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             if (futureEvents.Any())
             {
-                var axleEventSlots = new Dictionary<DateTime, PricePlanSlot>();
+                var slotEvents = new Dictionary<DateTime, (PricePlanSlot slot, AxleApi.AxleEvent evt)>();
                 
                  foreach (var dispatch in futureEvents)
                 {
@@ -1099,23 +1099,44 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     foreach (var slot in slots)
                     {
                         if (slot.valid_from < dispatch.start_time && slot.valid_to > dispatch.end_time)
-                            axleEventSlots.TryAdd(slot.valid_from, slot);
+                        {
+                            slotEvents.TryAdd(slot.valid_from, (slot, dispatch));
+                        }
                     }
                 }
                 
-                if (axleEventSlots.Any())
+                if (slotEvents.Any())
                 {
-                    logger.LogInformation("Applying discharge action to {N} slots for Axle Energy Event",
-                        axleEventSlots.Count);
+                    logger.LogInformation("Applying actions to {N} slots for Axle Energy Event",
+                        slotEvents.Count);
 
-                    foreach (var slot in axleEventSlots.Values)
+                    foreach (var pair in slotEvents.Values)
                     {
-                        slot.AutoOverride = new SlotOverride
+                        if(pair.evt.import_export == null)
                         {
-                            Action = SlotAction.Discharge,
-                            Explanation = "Axle Discharge Event active",
-                            Type = AutoOverrideType.AxleDischargeEvent,
-                        };
+                            logger.LogWarning("No import/export specified for Axle Event - skipping (start: {Start}, end: {End})",
+                                                            pair.evt.start_time, pair.evt.end_time);
+                            continue;
+                        }
+
+                        if (pair.evt.import_export.Equals("export", StringComparison.OrdinalIgnoreCase))
+                        {
+                            pair.slot.AutoOverride = new SlotOverride
+                            {
+                                Action = SlotAction.Discharge,
+                                Explanation = "Axle Discharge Event active",
+                                Type = AutoOverrideType.AxleEvent,
+                            };
+                        }
+                        else
+                        {
+                            pair.slot.AutoOverride = new SlotOverride
+                            {
+                                Action = SlotAction.Charge,
+                                Explanation = "Axle Charge Event active",
+                                Type = AutoOverrideType.AxleEvent,
+                            };
+                        }
                     }
                 }
             }
