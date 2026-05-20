@@ -13,9 +13,14 @@ namespace SolisManager.APIWrappers;
 public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProvider, ILogger<AxleApi> logger)
 {
     private readonly List<AxleEvent> axleEvents = new();
+    private bool checkedEvents = false;
 
-    public IEnumerable<AxleEvent> GetAxleEventsAsync()
+    public async Task<IEnumerable<AxleEvent>> GetAxleEventsAsync()
     {
+        if (!checkedEvents)
+        {
+            await QueryForAxleEvents();
+        }
         return axleEvents;
     }
 
@@ -35,6 +40,8 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
 
     public async Task QueryForAxleEvents()
     {
+        checkedEvents = true;
+        
         if (string.IsNullOrEmpty(config.AxleAPIKey))
             return;
 

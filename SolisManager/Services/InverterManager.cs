@@ -371,7 +371,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ApplyIOGDispatches(processedSlots);
 
         await ApplyAxleEvents(processedSlots);
-        ;
+
         InverterState.Prices = processedSlots;
 
         // Update the state
@@ -1076,20 +1076,20 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await ExecuteSlotChanges(InverterState.Prices);
     }
 
-    private Task ApplyAxleEvents(IEnumerable<PricePlanSlot> slots)
+    private async Task ApplyAxleEvents(IEnumerable<PricePlanSlot> slots)
     {
         if (!string.IsNullOrEmpty(config.AxleAPIKey))
         {
-            var events = axleApi.GetAxleEventsAsync();
+            var events = await axleApi.GetAxleEventsAsync();
             var futureEvents = events.Where(x => x.start_time > DateTime.Now).ToList();
 
             if (futureEvents.Any())
             {
                 var slotEvents = new Dictionary<DateTime, (PricePlanSlot slot, AxleApi.AxleEvent evt)>();
                 
-                 foreach (var dispatch in futureEvents)
+                foreach (var dispatch in futureEvents)
                 {
-                    if (dispatch.end_time <= DateTime.UtcNow)
+                    if (dispatch.end_time <= DateTime.Now)
                     {
                         logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start_time,
                             dispatch.end_time);
@@ -1098,7 +1098,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                     foreach (var slot in slots)
                     {
-                        if (slot.valid_from < dispatch.start_time && slot.valid_to > dispatch.end_time)
+                        if (slot.valid_from >= dispatch.start_time && slot.valid_to <= dispatch.end_time)
                         {
                             slotEvents.TryAdd(slot.valid_from, (slot, dispatch));
                         }
@@ -1141,8 +1141,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 }
             }
         }
-
-        return Task.CompletedTask;
     }
     
     private async Task ApplyIOGDispatches(IEnumerable<PricePlanSlot> slots)

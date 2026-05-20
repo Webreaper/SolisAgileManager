@@ -193,6 +193,14 @@ public class Program
 
         app.ConfigureAPIEndpoints();
 
+        // Query for Axle events every 30 minutes for now. Time this 
+        // to always happen a couple of minutes before the slot plan
+        // recalculation
+        app.Services.UseScheduler(s => s
+            .Schedule<AxleEventScheduler>()
+            .Cron("28,58 * * * *")
+            .RunOnceAtStart());
+
         // We query at 9am to check the coming day's forecast, and at
         // just before 11pm so we've got the most up-to-date calculation for
         // when the no-overnight-charge rule kicks in.
@@ -263,15 +271,7 @@ public class Program
         app.Services.UseScheduler(s => s
             .Schedule<AutoOverrideScheduler>()
             .Cron("0,5,10,15,20,25,30,35,40,45,50,55 * * * *"));
-
-        // Query for Axle events every 30 minutes for now. Time this 
-        // to always happen a couple of minutes before the slot plan
-        // recalculation
-        app.Services.UseScheduler(s => s
-            .Schedule<AxleEventScheduler>()
-            .Cron("28,58 * * * *")
-            .RunOnceAtStart());
-
+        
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();
 
