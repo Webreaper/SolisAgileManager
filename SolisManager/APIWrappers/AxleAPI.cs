@@ -48,15 +48,15 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
         try
         {
             logger.LogInformation("Querying Axle API for VPP events...");
-            
-            var responseData = await url.GetJsonAsync<AxleEventResponse>();
+
+            var axleEvent = await url.GetJsonAsync<AxleEvent>();
 
             axleEvents.Clear();
             
-            if (responseData?.events != null && responseData.events.Any())
+            if (axleEvent != null )
             {
-                logger.LogInformation("Axle API succeeded: {F} events retrieved", responseData.events.Count());
-                axleEvents.AddRange(responseData.events);
+                logger.LogInformation("Axle API succeeded: event retrieved: {Event}", axleEvent);
+                axleEvents.Add(axleEvent);
 
                 LogAxleEvents();
             }
@@ -76,23 +76,22 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
             logger.LogError("Exception getting Axle events: {E}", ex);
         }
     }
-
-    private record AxleEventResponse
-    {
-        public IEnumerable<AxleEvent>? events { get; set; } = [];
-    }
     
     public record AxleEvent
     {
         public DateTime start_time { get; set; }
         public DateTime end_time { get; set; }
         public string? import_export { get; set; }
-        public decimal pence_per_kwh { get; set; }
+        public decimal? pence_per_kwh { get; set; }
         public DateTime updated_at { get; set; }
 
         public override string ToString()
         {
-            return $"{start_time} - {end_time} {import_export} {pence_per_kwh}p/kWh Updated: {updated_at}";
+            var price = string.Empty;
+            if (pence_per_kwh != null)
+                price = $"{pence_per_kwh}p/kWh ";
+            
+            return $"{start_time} - {end_time} {import_export} {price} Updated: {updated_at}";
         }
     }
 }
