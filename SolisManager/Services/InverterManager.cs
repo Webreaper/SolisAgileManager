@@ -369,9 +369,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         // If the tariff is IOG, apply any charging when there's smart-charge slots
         await ApplyIOGDispatches(processedSlots);
-
-        await ApplyAxleEvents(processedSlots);
-
+        
         InverterState.Prices = processedSlots;
 
         // Update the state
@@ -459,6 +457,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private async Task ExecuteSlotChanges(IEnumerable<PricePlanSlot> slots)
     {
+        // Always apply the Axle events
+        await ApplyAxleEvents(slots);
+
         var firstSlot = slots.FirstOrDefault();
         if (firstSlot != null)
         {
@@ -477,16 +478,19 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 
                 if (firstSlot.ActionToExecute.action == SlotAction.Charge)
                 {
+                    logger.LogInformation("Executing slot action: Charge at {A}A", firstSlot.ActionToExecute.overrideAmps);
                     await inverterAPI.SetCharge(start, end, null, null, false, 
                         firstSlot.ActionToExecute.overrideAmps, config.Simulate);
                 }
                 else if (firstSlot.ActionToExecute.action == SlotAction.Discharge)
                 {
+                    logger.LogInformation("Executing slot action: Discharge at {A}A", firstSlot.ActionToExecute.overrideAmps);
                     await inverterAPI.SetCharge(null, null, start, end, false, 
                         firstSlot.ActionToExecute.overrideAmps, config.Simulate);
                 }
                 else if (firstSlot.ActionToExecute.action == SlotAction.Hold)
                 {
+                    logger.LogInformation("Executing slot action: Hold");
                     await inverterAPI.SetCharge(null, null, start, end, true, null, config.Simulate);
                 }
                 else
@@ -1081,62 +1085,62 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         if (!string.IsNullOrEmpty(config.AxleAPIKey))
         {
             var events = await axleApi.GetAxleEventsAsync();
-            var futureEvents = events.Where(x => x.start_time > DateTime.Now).ToList();
 
-            if (futureEvents.Any())
+            var slotEvents = new Dictionary<DateTime, (PricePlanSlot slot, AxleApi.AxleEvent evt)>();
+            
+            foreach (var dispatch in events)
             {
-                var slotEvents = new Dictionary<DateTime, (PricePlanSlot slot, AxleApi.AxleEvent evt)>();
-                
-                foreach (var dispatch in futureEvents)
+                if (dispatch.end_time <= DateTime.Now)
                 {
-                    if (dispatch.end_time <= DateTime.Now)
+                    logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start_time,
+                        dispatch.end_time);
+                    continue;
+                }
+
+                foreach (var slot in slots)
+                {
+                    // Clear previous VPP overrides
+                    slot.VPPOverride = null;
+                    
+                    if (slot.valid_from >= dispatch.start_time && slot.valid_to <= dispatch.end_time)
                     {
-                        logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start_time,
-                            dispatch.end_time);
+                        slotEvents.TryAdd(slot.valid_from, (slot, dispatch));
+                    }
+                }
+            }
+            
+            if (slotEvents.Any())
+            {
+                logger.LogInformation("Applying actions to {N} slots for Axle Energy Event",
+                    slotEvents.Count);
+                
+                foreach (var pair in slotEvents.Values)
+                {
+                    if (pair.evt.import_export == null)
+                    {
+                        logger.LogWarning(
+                            "No import/export specified for Axle Event - skipping (start: {Start}, end: {End})",
+                            pair.evt.start_time, pair.evt.end_time);
                         continue;
                     }
 
-                    foreach (var slot in slots)
+                    if (pair.evt.import_export.Equals("export", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (slot.valid_from >= dispatch.start_time && slot.valid_to <= dispatch.end_time)
+                        pair.slot.VPPOverride = new SlotOverride
                         {
-                            slotEvents.TryAdd(slot.valid_from, (slot, dispatch));
-                        }
+                            Action = SlotAction.Discharge,
+                            Explanation = "Axle Discharge Event active",
+                            Type = AutoOverrideType.AxleEvent,
+                        };
                     }
-                }
-                
-                if (slotEvents.Any())
-                {
-                    logger.LogInformation("Applying actions to {N} slots for Axle Energy Event",
-                        slotEvents.Count);
-
-                    foreach (var pair in slotEvents.Values)
+                    else
                     {
-                        if(pair.evt.import_export == null)
+                        pair.slot.VPPOverride = new SlotOverride
                         {
-                            logger.LogWarning("No import/export specified for Axle Event - skipping (start: {Start}, end: {End})",
-                                                            pair.evt.start_time, pair.evt.end_time);
-                            continue;
-                        }
-
-                        if (pair.evt.import_export.Equals("export", StringComparison.OrdinalIgnoreCase))
-                        {
-                            pair.slot.AutoOverride = new SlotOverride
-                            {
-                                Action = SlotAction.Discharge,
-                                Explanation = "Axle Discharge Event active",
-                                Type = AutoOverrideType.AxleEvent,
-                            };
-                        }
-                        else
-                        {
-                            pair.slot.AutoOverride = new SlotOverride
-                            {
-                                Action = SlotAction.Charge,
-                                Explanation = "Axle Charge Event active",
-                                Type = AutoOverrideType.AxleEvent,
-                            };
-                        }
+                            Action = SlotAction.Charge,
+                            Explanation = "Axle Charge Event active",
+                            Type = AutoOverrideType.AxleEvent,
+                        };
                     }
                 }
             }

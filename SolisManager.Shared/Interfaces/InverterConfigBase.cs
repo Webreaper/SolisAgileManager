@@ -11,4 +11,8 @@ namespace SolisManager.Shared.Interfaces;
 public class InverterConfigBase
 {
     [JsonIgnore] public virtual bool IsValid => false;
+
+    public virtual void UpgradeInverterConfig()
+    {
+    }
 }

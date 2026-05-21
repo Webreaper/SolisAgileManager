@@ -524,8 +524,11 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
         
         if (dischargeStart != null && dischargeEnd != null)
         {
+            // Default to the Max Charge amps if none specified
+            var maxDischarge = inverterConfig.MaxDischargeRateAmps ?? inverterConfig.MaxChargeRateAmps;
+            
             dischargeTimes = $"{dischargeStart.Value:HH:mm}-{dischargeEnd.Value:HH:mm}";
-            dischargePower = holdCharge ? 0 : (overrideAmps ?? inverterConfig.MaxChargeRateAmps);
+            dischargePower = holdCharge ? 0 : (overrideAmps ?? maxDischarge);
         }
         
         // Now check if we actually need to do anything. No point making a write call to the 

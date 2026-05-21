@@ -61,6 +61,8 @@ public record SolisManagerConfig
             var content = File.ReadAllText(configPath);
             var settings = JsonSerializer.Deserialize<SolisManagerConfig>(content);
             settings.CopyPropertiesTo(this);
+            if(settings?.InverterConfig is not null)
+                settings.InverterConfig.UpgradeInverterConfig();
             return true;
         }
 

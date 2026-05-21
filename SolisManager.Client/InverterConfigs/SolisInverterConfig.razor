@@ -14,7 +14,11 @@
         <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
             <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" @bind-Value:after="ConfigChanged"
                              Min="5" Max="750" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+            <MudNumericField T="int?" Label="Max Discharge Rate (Amps)" @bind-Value="@config.MaxDischargeRateAmps" @bind-Value:after="ConfigChanged"
+                             Min="5" Max="750" Variant="UIConstants.MudVariant" class="wrapped-field"/>
         </ConfigSettingHelp>
+    </div>
+    <div class="config-field-row">
         <ConfigSettingHelp HelpText="Specifies the minimum discharge SOC percentage that will be applied. This setting only affects inverters with newer firmware">
             <MudNumericField T="int" Label="Min Discharge SOC (%)" @bind-Value="@config.MinDischargeSOC"  @bind-Value:after="ConfigChanged"
                              Min="15" Max="70" Variant="UIConstants.MudVariant" class="wrapped-field"/>
