@@ -43,6 +43,22 @@
     align-items: center;
 }
 
+.setting-title {
+    display: flex;
+    flex-direction: row;
+    column-gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.setting-title ::deep a {
+    font-weight: bold;
+}
+
+.setting-title ::deep a:hover {
+    text-decoration: underline;
+}
+
 .tariff-tip {
     font-size: 9pt;
 }

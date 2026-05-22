@@ -87,6 +87,6 @@ public class AxleEventScheduler(AxleApi axleApi, ILogger<InverterStateScheduler>
     public async Task Invoke()
     {
         logger.LogDebug("Executing Axle Events scheduler");
-        await axleApi.QueryForAxleEvents();
+        await axleApi.QueryForAxleEvent();
     }
 }

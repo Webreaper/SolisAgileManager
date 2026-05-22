@@ -102,12 +102,18 @@
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">
-            <h5>Axle.Energy VPP Settings (experimental)</h5>
+            <div class="setting-title">
+                <h5>Axle.Energy VPP Settings</h5>
+                <NavLink href="https://vpp.axle.energy/landing?ref=R-LKLMKHRL" target="_blank">
+                    Sign Up
+                    <MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.OpenInNew"/>
+                </NavLink>
+            </div>
             <ConfigSettingHelp>
                 <HelpContent>
                     Enter your Axle.Energy API Key to enable VPP discharge event handling. 
-                    See <NavLink href="https://vpp.axle.energy/app/account/events" target="_blank">Axle.Energy VPP</NavLink> 
-                    for details. 
+                    See <NavLink href="https://vpp.axle.energy/landing?ref=R-LKLMKHRL" target="_blank">Axle.Energy VPP</NavLink> 
+                    for details (this is a referral link, so will earn you and me £25 if you sign up).
                 </HelpContent>
                 <ChildContent>
                     <MudTextField T="string" Label="Axle Energy API Key" @bind-Value="@config.AxleAPIKey" Immediate="true" 

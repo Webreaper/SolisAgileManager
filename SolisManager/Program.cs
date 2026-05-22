@@ -258,12 +258,6 @@ public class Program
             .Cron("15 */3 * * *")
             .RunOnceAtStart());
 
-        // Recalculate the slot plan every 30 minutes 
-        app.Services.UseScheduler(s => s
-            .Schedule<RatesScheduler>()
-            .Cron("0,30 * * * *")
-            .RunOnceAtStart());
-
         // Every 5 minutes check for the SOC and IOG slots to apply
         // to the current slot plan as overrides
         // No point running this at startup because slots may
@@ -271,6 +265,12 @@ public class Program
         app.Services.UseScheduler(s => s
             .Schedule<AutoOverrideScheduler>()
             .Cron("0,5,10,15,20,25,30,35,40,45,50,55 * * * *"));
+
+        // Recalculate the slot plan every 30 minutes 
+        app.Services.UseScheduler(s => s
+            .Schedule<RatesScheduler>()
+            .Cron("0,30 * * * *")
+            .RunOnceAtStart());
         
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();

@@ -19,7 +19,9 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
     {
         if (!checkedEvents)
         {
-            await QueryForAxleEvents();
+            // First time through we always query. After that it gets
+            // done asynchronously on the schedule
+            await QueryForAxleEvent();
         }
         return axleEvents;
     }
@@ -38,12 +40,25 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
         }
     }
 
-    public async Task QueryForAxleEvents()
+    private AxleEvent GetDummyAxleEvent()
     {
-        checkedEvents = true;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return new AxleEvent
+        {
+            start_time = new DateTime(today, new TimeOnly(07, 30, 00)),
+            end_time = new DateTime(today, new TimeOnly(08, 30, 00)),
+            import_export = "export", 
+            updated_at = DateTime.Now
+        };
+    }
+    
+    public async Task QueryForAxleEvent()
+    {
         
         if (string.IsNullOrEmpty(config.AxleAPIKey))
             return;
+
+        checkedEvents = true;
 
         var url = "https://api.axle.energy"
             .WithHeader("User-Agent", userAgentProvider.UserAgent)
@@ -56,7 +71,16 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
         {
             logger.LogInformation("Querying Axle API for VPP events...");
 
-            var axleEvent = await url.GetJsonAsync<AxleEvent>();
+            AxleEvent axleEvent;
+            
+            //if (config.Simulate)
+            {
+                axleEvent = GetDummyAxleEvent();
+            }
+            else
+            {
+                axleEvent =await url.GetJsonAsync<AxleEvent>();
+            }
 
             axleEvents.Clear();
             
