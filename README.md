@@ -213,8 +213,12 @@ during the event. If you have other suggestions, please raise a Github issue.
 
 You'll also need to set some other config settings that control the way the charging plan works:
 
-* Max Charge Rate in Amps - set to the level that your battery can charge/discharge at. You should refer
+* Max Charge Rate in Amps - set to the level that your battery can charge at. You should refer
   to your inverter/installer to check what is the max safe charging rate for your system's battery. 
+
+* Max Discharge Rate in Amps - set to the level that your battery can discharge at. You should refer
+  to your inverter/installer to check what is the max safe charging rate for your system's battery. 
+  If left blank, the Max Charge Rate will be used. 
 
 * Charge slots for full battery - which tells the app how many slots of charging will be needed to go from
   empty to full. This will depend on your battery size and charging rate. Eventually the app will calculate
