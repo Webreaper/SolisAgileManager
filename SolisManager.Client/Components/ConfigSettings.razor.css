@@ -51,12 +51,28 @@
     align-items: center;
 }
 
-.setting-title ::deep a {
+.vpp-signup {
+    background-color: #997404;
+    opacity: 70%;
     font-weight: bold;
+    border-radius: 15px;
+    padding: 5px;
+    padding-right: 10px;
+    padding-left: 10px;
 }
 
-.setting-title ::deep a:hover {
+.vpp-signup:hover {
+    background-color: darkorange;
+    color: white;
+}
+
+.vpp-signup ::deep a {
+    color: white;
+}
+
+.vpp-signup ::deep a:hover {
     text-decoration: underline;
+    color: white;
 }
 
 .tariff-tip {
