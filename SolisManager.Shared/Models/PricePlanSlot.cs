@@ -57,21 +57,21 @@ public record PricePlanSlot
             string? reason = null;
             int? overrideAmps = null;
 
-            if (VPPOverride != null)
-            {
-                // VPP overrides are the highest priority
-                action = VPPOverride.Action;
-                reason = VPPOverride.Explanation;
-                overrideAmps = VPPOverride.OverrideAmps;
-                actionType = "VPP";
-            }
-            else if (ManualOverride != null)
+            if (ManualOverride != null)
             {
                 // Then Manual overrides are the next highest priority
                 action = ManualOverride.Action;
                 reason = ManualOverride.Explanation;
                 overrideAmps = ManualOverride.OverrideAmps;
                 actionType = "Manual";
+            }
+            else if (VPPOverride != null)
+            {
+                // Assuming no manual overrides, then VPP takes precedence
+                action = VPPOverride.Action;
+                reason = VPPOverride.Explanation;
+                overrideAmps = VPPOverride.OverrideAmps;
+                actionType = "VPP";
             }
             else if (AutoOverride != null)
             {
