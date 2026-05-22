@@ -15,7 +15,15 @@
 }
 
 .tooltip-content {
-    
+
+}
+
+::deep .tooltip-content a {
+    font-weight: 600;
+}
+
+::deep .tooltip-content a:hover {
+    text-decoration: underline;
 }
 
 ::deep .close-icon {

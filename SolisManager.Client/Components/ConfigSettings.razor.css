@@ -43,6 +43,38 @@
     align-items: center;
 }
 
+.setting-title {
+    display: flex;
+    flex-direction: row;
+    column-gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vpp-signup {
+    background-color: #997404;
+    opacity: 70%;
+    font-weight: bold;
+    border-radius: 15px;
+    padding: 5px;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+.vpp-signup:hover {
+    background-color: darkorange;
+    color: white;
+}
+
+.vpp-signup ::deep a {
+    color: white;
+}
+
+.vpp-signup ::deep a:hover {
+    text-decoration: underline;
+    color: white;
+}
+
 .tariff-tip {
     font-size: 9pt;
 }

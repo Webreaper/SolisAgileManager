@@ -10,9 +10,16 @@ public class InverterConfigSolis : InverterConfigBase
     public string SolisAPISecret { get; set; } = string.Empty;
     public string SolisInverterSerial { get; set; } = string.Empty;
     public int MaxChargeRateAmps { get; set; } = 50;
+    public int? MaxDischargeRateAmps { get; set; }
     public int MinDischargeSOC { get; set; } = 15;
     
     public int? FirmwareVersion { get; set; }
+
+    public override void UpgradeInverterConfig()
+    {
+        if (MaxDischargeRateAmps == null)
+            MaxDischargeRateAmps = MaxChargeRateAmps;
+    }
     
     [JsonIgnore]
     public override bool IsValid => !string.IsNullOrEmpty(SolisAPIKey) &&

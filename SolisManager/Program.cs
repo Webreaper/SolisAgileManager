@@ -94,8 +94,10 @@ public class Program
         builder.Services.AddSingleton<SolcastScheduler>();
         builder.Services.AddSingleton<SolcastExtraScheduler>();
         builder.Services.AddSingleton<VersionCheckScheduler>();
+        builder.Services.AddSingleton<AxleEventScheduler>();
         builder.Services.AddSingleton<TariffScheduler>();
         builder.Services.AddSingleton<InverterTimeAdjustScheduler>();
+        builder.Services.AddSingleton<AxleApi>();
 
         builder.Services.AddSingleton<RestartService>();
         builder.Services.AddSingleton<SolcastAPI>();
@@ -191,6 +193,14 @@ public class Program
 
         app.ConfigureAPIEndpoints();
 
+        // Query for Axle events every 30 minutes for now. Time this 
+        // to always happen a couple of minutes before the slot plan
+        // recalculation
+        app.Services.UseScheduler(s => s
+            .Schedule<AxleEventScheduler>()
+            .Cron("28,58 * * * *")
+            .RunOnceAtStart());
+
         // We query at 9am to check the coming day's forecast, and at
         // just before 11pm so we've got the most up-to-date calculation for
         // when the no-overnight-charge rule kicks in.
@@ -248,12 +258,6 @@ public class Program
             .Cron("15 */3 * * *")
             .RunOnceAtStart());
 
-        // Recalculate the slot plan every 30 minutes 
-        app.Services.UseScheduler(s => s
-            .Schedule<RatesScheduler>()
-            .Cron("0,30 * * * *")
-            .RunOnceAtStart());
-
         // Every 5 minutes check for the SOC and IOG slots to apply
         // to the current slot plan as overrides
         // No point running this at startup because slots may
@@ -262,6 +266,12 @@ public class Program
             .Schedule<AutoOverrideScheduler>()
             .Cron("0,5,10,15,20,25,30,35,40,45,50,55 * * * *"));
 
+        // Recalculate the slot plan every 30 minutes 
+        app.Services.UseScheduler(s => s
+            .Schedule<RatesScheduler>()
+            .Cron("0,30 * * * *")
+            .RunOnceAtStart());
+        
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();
 

@@ -46,6 +46,7 @@ public record PricePlanSlot
     public SlotOverride? ManualOverride { get; set; }
     public SlotOverride? ScheduledOverride { get; set; }
     public SlotOverride? AutoOverride { get; set; }
+    public SlotOverride? VPPOverride { get; set; }
 
     public (SlotAction action, string type, int? overrideAmps, string reason) ActionToExecute {
         get
@@ -58,11 +59,19 @@ public record PricePlanSlot
 
             if (ManualOverride != null)
             {
-                // Manual overrides are the highest priority
+                // Then Manual overrides are the next highest priority
                 action = ManualOverride.Action;
                 reason = ManualOverride.Explanation;
                 overrideAmps = ManualOverride.OverrideAmps;
                 actionType = "Manual";
+            }
+            else if (VPPOverride != null)
+            {
+                // Assuming no manual overrides, then VPP takes precedence
+                action = VPPOverride.Action;
+                reason = VPPOverride.Explanation;
+                overrideAmps = VPPOverride.OverrideAmps;
+                actionType = "VPP";
             }
             else if (AutoOverride != null)
             {

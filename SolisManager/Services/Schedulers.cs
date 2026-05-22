@@ -81,3 +81,12 @@ public class VersionCheckScheduler( InverterManager service, ILogger<InverterSta
         await service.CheckForNewVersion();
     }
 }
+
+public class AxleEventScheduler(AxleApi axleApi, ILogger<InverterStateScheduler> logger) : IInvocable
+{
+    public async Task Invoke()
+    {
+        logger.LogDebug("Executing Axle Events scheduler");
+        await axleApi.QueryForAxleEvent();
+    }
+}

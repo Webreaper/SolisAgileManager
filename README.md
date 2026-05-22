@@ -22,6 +22,7 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 * 'Dump-And-Recharge' feature for when Agile prices go negative
 * History view showing forecast/actual PV generation
 * Simulation Mode, so you can see how the charging strategy will work as you step through the day
+* Axle.Energy VPP integration
 
 ### Referral Link
 
@@ -29,6 +30,11 @@ If you don't already use Octopus, but like the sound of this app and want to sig
 please use my referral link, and we'll both get £50!
 
 * [https://share.octopus.energy/wise-dog-4](https://share.octopus.energy/wise-dog-4)
+
+If you decide to sign up to Axle.Energy to earn more from your inverter, please consider using my
+referral link, so we both earn £25.
+
+* [https://vpp.axle.energy/landing?ref=R-LKLMKHRL](https://vpp.axle.energy/landing?ref=R-LKLMKHRL)
 
 ### Screenshots:
 
@@ -164,12 +170,58 @@ the last `A` to the correct [Region Code](https://mysmartenergy.uk/Electricity-R
 need. Solis Manager doesn't do anything with the standing charge, so it doesn't matter if you're on an older
 tariff. 
 
+### Axle.Energy VPP Integration
+
+[Axle.Energy](https://vpp.axle.energy/landing?ref=R-LKLMKHRL) is a Virtual Power Plant (VPP) provider, who 
+aims to help supplement/balance the grid by drawing on consumer/residential Solar plants to provide energy 
+to the grid in times when it is under stress. 
+
+The idea is that you sign up to Axle Energy's program, and then they send you 'Events' - which are periods
+when the grid is under strain - and during those periods you discharge your battery to the grid to help
+supplement generation.
+
+The program works in two modes:
+
+* `Full control` - where Axle.Energy manages your inverter + battery completely, to try and maximise 
+  profits for you
+* `Events Only` - where you continue to manage your inverter + battery to suit your personal needs best,
+  but Axle can send events to request that you discharge your battery, and then pays for that discharge.
+
+SolisAgileManager supports the `Events Only` model; the app will continue to charge/discharge your battery
+based on the normal pricing stragey, but if an Axle Event is received, it will update the slot in the 
+strategy to discharge the battery. Note that manually overriding a VPP event will always take precedent,
+so if you decide not to participate you can just cancel the charge/discharge with a mannual override.
+
+<img width="1618" height="638" alt="image" src="https://github.com/user-attachments/assets/e2a50114-5777-4b12-8ec7-3c1ee61cfe9b" />
+
+To join the program:
+
+* Sign up to [Axle.Energy VPP](https://vpp.axle.energy/landing?ref=R-LKLMKHRL) (note, this link is a 
+  referral link)
+* Register your address and MPAN so they can track your export for billing purposes
+* Give them access to your Solis Inverter. Note that you do not need to give them 'full control' when
+  you enable their access in SolisCLoud. I gave them permissions to _read_ my inverter data, but not
+  to _control_ the inverter, since all the discharge control will be managed by SolisAgileManager.
+* Once you're set up, go to `Account => Home Assistant` and generate an Authentication Token.
+* In the SolisAgileManager settings screen, paste your Axle authentication token into the Axle.Energy 
+  VPP Settings API Key field.
+
+Note that this feature is currently new and experimental. It's relatively simple - it will just mark
+the plan slot as `Discharge` during each Axle event. Once I've had a chance to test the way events
+are scheduled, I may enhance the management to make it smarter - for example, once a future event is 
+in the schedule, applying some target pre-charging to ensure that the max discharge can be achieved
+during the event. If you have other suggestions, please raise a Github issue.
+
 ### Other Configuration Settings
 
 You'll also need to set some other config settings that control the way the charging plan works:
 
-* Max Charge Rate in Amps - set to the level that your battery can charge/discharge at. You should refer
+* Max Charge Rate in Amps - set to the level that your battery can charge at. You should refer
   to your inverter/installer to check what is the max safe charging rate for your system's battery. 
+
+* Max Discharge Rate in Amps - set to the level that your battery can discharge at. You should refer
+  to your inverter/installer to check what is the max safe charging rate for your system's battery. 
+  If left blank, the Max Charge Rate will be used. 
 
 * Charge slots for full battery - which tells the app how many slots of charging will be needed to go from
   empty to full. This will depend on your battery size and charging rate. Eventually the app will calculate
