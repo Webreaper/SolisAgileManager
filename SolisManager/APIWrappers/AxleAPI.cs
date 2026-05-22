@@ -73,7 +73,7 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
 
             AxleEvent axleEvent;
             
-            if (true) // config.Simulate
+            if (config.Simulate)
             {
                 axleEvent = GetDummyAxleEvent();
             }
