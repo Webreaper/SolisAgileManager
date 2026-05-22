@@ -189,7 +189,10 @@ The program works in two modes:
 
 SolisAgileManager supports the `Events Only` model; the app will continue to charge/discharge your battery
 based on the normal pricing stragey, but if an Axle Event is received, it will update the slot in the 
-strategy to discharge the battery. 
+strategy to discharge the battery. Note that manually overriding a VPP event will always take precedent,
+so if you decide not to participate you can just cancel the charge/discharge with a mannual override.
+
+<img width="1618" height="638" alt="image" src="https://github.com/user-attachments/assets/e2a50114-5777-4b12-8ec7-3c1ee61cfe9b" />
 
 To join the program:
 
