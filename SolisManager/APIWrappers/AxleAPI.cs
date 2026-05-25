@@ -23,7 +23,14 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
             // done asynchronously on the schedule
             await QueryForAxleEvent();
         }
-        return axleEvents;
+        
+        return axleEvents.Where(x => x is
+            { 
+                start_time: not null, 
+                end_time: not null, 
+                import_export: not null
+            })
+            .ToList();
     }
 
     private void LogAxleEvents()
@@ -110,11 +117,11 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
     
     public record AxleEvent
     {
-        public DateTime start_time { get; set; }
-        public DateTime end_time { get; set; }
+        public DateTime? start_time { get; set; }
+        public DateTime? end_time { get; set; }
         public string? import_export { get; set; }
         public decimal? pence_per_kwh { get; set; }
-        public DateTime updated_at { get; set; }
+        public DateTime? updated_at { get; set; }
 
         public override string ToString()
         {
