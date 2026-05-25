@@ -24,13 +24,7 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
             await QueryForAxleEvent();
         }
         
-        return axleEvents.Where(x => x is
-            { 
-                start_time: not null, 
-                end_time: not null, 
-                import_export: not null
-            })
-            .ToList();
+        return axleEvents;
     }
 
     private void LogAxleEvents()
@@ -80,24 +74,26 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
 
             AxleEvent axleEvent;
             
-            if (config.Simulate)
-            {
-                axleEvent = GetDummyAxleEvent();
-            }
-            else
+            // if (config.Simulate)
+            // {
+            //     axleEvent = GetDummyAxleEvent();
+            // }
+            // else
             {
                 axleEvent =await url.GetJsonAsync<AxleEvent>();
             }
 
             axleEvents.Clear();
             
-            if (axleEvent != null )
+            if (axleEvent is { start_time: not null, end_time: not null, import_export: not null })
             {
                 logger.LogInformation("Axle API succeeded: event retrieved: {Event}", axleEvent);
                 axleEvents.Add(axleEvent);
 
                 LogAxleEvents();
             }
+            else 
+                logger.LogWarning("Axle API: event retrieved but had no data, so ignoring");
         }
         catch (FlurlHttpException ex)
         {
