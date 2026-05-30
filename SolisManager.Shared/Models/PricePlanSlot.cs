@@ -75,15 +75,28 @@ public record PricePlanSlot
             }
             else if (AutoOverride != null)
             {
-                // Then auto overrides like SOC and IOG
+                // Then auto overrides like SOC and IOG. These take precedence 
+                // over VPP, because you don't want a VPP export event sending
+                // the charge into the car if an IOG dispatch comes. 
+                // Also SOC overrides trigger - you might want to say "discharge
+                // until 50%" so that should take precedence over the VPP if you 
+                // only want to dump 50% of the battery to the VPP event.
                 action = AutoOverride.Action;
                 reason = AutoOverride.Explanation;
                 overrideAmps = AutoOverride.OverrideAmps;
                 actionType = "Auto";
             }
+            else if (VPPOverride != null)
+            {
+                // Next priority is VPP.
+                action = VPPOverride.Action;
+                reason = VPPOverride.Explanation;
+                overrideAmps = VPPOverride.OverrideAmps;
+                actionType = "VPP";
+            }
             else if (ScheduledOverride != null)
             {
-                // Scheduled overrides next
+                // Scheduled overrides last
                 action = ScheduledOverride.Action;
                 reason = ScheduledOverride.Explanation;
                 overrideAmps = ScheduledOverride.OverrideAmps;

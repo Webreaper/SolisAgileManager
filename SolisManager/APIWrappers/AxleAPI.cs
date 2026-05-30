@@ -23,6 +23,7 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
             // done asynchronously on the schedule
             await QueryForAxleEvent();
         }
+        
         return axleEvents;
     }
 
@@ -73,24 +74,26 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
 
             AxleEvent axleEvent;
             
-            if (config.Simulate)
-            {
-                axleEvent = GetDummyAxleEvent();
-            }
-            else
+            // if (config.Simulate)
+            // {
+            //     axleEvent = GetDummyAxleEvent();
+            // }
+            // else
             {
                 axleEvent =await url.GetJsonAsync<AxleEvent>();
             }
 
             axleEvents.Clear();
             
-            if (axleEvent != null )
+            if (axleEvent is { start_time: not null, end_time: not null, import_export: not null })
             {
                 logger.LogInformation("Axle API succeeded: event retrieved: {Event}", axleEvent);
                 axleEvents.Add(axleEvent);
 
                 LogAxleEvents();
             }
+            else 
+                logger.LogWarning("Axle API: event retrieved but had no data, so ignoring");
         }
         catch (FlurlHttpException ex)
         {
@@ -110,11 +113,11 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
     
     public record AxleEvent
     {
-        public DateTime start_time { get; set; }
-        public DateTime end_time { get; set; }
+        public DateTime? start_time { get; set; }
+        public DateTime? end_time { get; set; }
         public string? import_export { get; set; }
         public decimal? pence_per_kwh { get; set; }
-        public DateTime updated_at { get; set; }
+        public DateTime? updated_at { get; set; }
 
         public override string ToString()
         {
