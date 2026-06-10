@@ -18,16 +18,17 @@ public static class LinqExtensions
         return result;
     }
 
-    public static T[] GetPreviousNItems<T>(this T[] source, int count, Func<T, bool> predicate)
+    public static T[] GetPreviousNItems<T>(this IEnumerable<T> source, int count, Func<T, bool> predicate)
     {
-        var rootItem = Array.FindIndex(source, x => predicate(x));
+        var array = source.ToArray();
+        var rootItem = Array.FindIndex(array, x => predicate(x));
 
         if (rootItem <= 0)
             return [];
 
-        int lastItemIndex = rootItem - 1;
+        int lastItemIndex = rootItem;
         int firstItemIndex = Math.Max(lastItemIndex - count, 0);
-        return source[firstItemIndex .. lastItemIndex];
+        return array[firstItemIndex .. lastItemIndex];
     }
 
     public static void RemoveWhere<TKey, TValue>(this IDictionary<TKey, TValue> dict, 

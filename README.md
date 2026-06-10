@@ -23,6 +23,7 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 * History view showing forecast/actual PV generation
 * Simulation Mode, so you can see how the charging strategy will work as you step through the day
 * Axle.Energy VPP integration
+* No AI has been used in the development of this app.
 
 ### Referral Link
 
@@ -187,10 +188,14 @@ The program works in two modes:
 * `Events Only` - where you continue to manage your inverter + battery to suit your personal needs best,
   but Axle can send events to request that you discharge your battery, and then pays for that discharge.
 
-SolisAgileManager supports the `Events Only` model; the app will continue to charge/discharge your battery
+SolisManager supports the `Events Only` model; the app will continue to charge/discharge your battery
 based on the normal pricing stragey, but if an Axle Event is received, it will update the slot in the 
 strategy to discharge the battery. Note that manually overriding a VPP event will always take precedent,
 so if you decide not to participate you can just cancel the charge/discharge with a mannual override.
+
+SolisManager will also prepare for the event by charging (or discharging, if it's an 'import' 
+event) the battery for an hour before the event starts. This will attempt to get the maximum return
+by ensuring the battery is fully charged before being discharged to the grid. 
 
 <img width="1618" height="638" alt="image" src="https://github.com/user-attachments/assets/e2a50114-5777-4b12-8ec7-3c1ee61cfe9b" />
 
@@ -205,12 +210,6 @@ To join the program:
 * Once you're set up, go to `Account => Home Assistant` and generate an Authentication Token.
 * In the SolisAgileManager settings screen, paste your Axle authentication token into the Axle.Energy 
   VPP Settings API Key field.
-
-Note that this feature is currently new and experimental. It's relatively simple - it will just mark
-the plan slot as `Discharge` during each Axle event. Once I've had a chance to test the way events
-are scheduled, I may enhance the management to make it smarter - for example, once a future event is 
-in the schedule, applying some target pre-charging to ensure that the max discharge can be achieved
-during the event. If you have other suggestions, please raise a Github issue.
 
 ### Other Configuration Settings
 

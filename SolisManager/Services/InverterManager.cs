@@ -1113,6 +1113,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             {
                 logger.LogInformation("Applying actions to {N} slots for Axle Energy Event",
                     slotEvents.Count);
+
+                SlotAction prevSlotAction = SlotAction.DoNothing;
                 
                 foreach (var pair in slotEvents.Values)
                 {
@@ -1132,6 +1134,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Explanation = "Axle Discharge Event active",
                             Type = AutoOverrideType.AxleEvent,
                         };
+                        prevSlotAction = SlotAction.Charge;
                     }
                     else
                     {
@@ -1141,7 +1144,19 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Explanation = "Axle Charge Event active",
                             Type = AutoOverrideType.AxleEvent,
                         };
-                    }
+                        prevSlotAction = SlotAction.Charge;
+                    } 
+                }
+                
+                var prevTwoSlots = slots.GetPreviousNItems(2, x => x.VPPOverride != null && x.VPPOverride.Type == AutoOverrideType.AxleEvent);
+                foreach (var slot in prevTwoSlots)
+                {
+                    slot.VPPOverride = new SlotOverride
+                    {
+                        Action = prevSlotAction,
+                        Explanation = "Axle Event Preparation",
+                        Type = AutoOverrideType.AxleEvent,
+                    };
                 }
             }
         }
