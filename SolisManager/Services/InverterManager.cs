@@ -1147,16 +1147,23 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         prevSlotAction = SlotAction.Charge;
                     } 
                 }
-                
-                var prevTwoSlots = slots.GetPreviousNItems(2, x => x.VPPOverride != null && x.VPPOverride.Type == AutoOverrideType.AxleEvent);
-                foreach (var slot in prevTwoSlots)
+
+                if (config.AxleEventPrecharge)
                 {
-                    slot.VPPOverride = new SlotOverride
+                    const int prepSlots = 2;
+                    logger.LogInformation("Applying Axle event prep actions to {N} slots for Axle Energy Event",
+                        prepSlots);
+                    var prevTwoSlots = slots.GetPreviousNItems(prepSlots,
+                        x => x.VPPOverride != null && x.VPPOverride.Type == AutoOverrideType.AxleEvent);
+                    foreach (var slot in prevTwoSlots)
                     {
-                        Action = prevSlotAction,
-                        Explanation = "Axle Event Preparation",
-                        Type = AutoOverrideType.AxleEvent,
-                    };
+                        slot.VPPOverride = new SlotOverride
+                        {
+                            Action = prevSlotAction,
+                            Explanation = "Axle Event Preparation",
+                            Type = AutoOverrideType.AxleEvent,
+                        };
+                    }
                 }
             }
         }
