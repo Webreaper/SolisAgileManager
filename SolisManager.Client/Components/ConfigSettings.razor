@@ -122,6 +122,17 @@
                                   Lines="1" MaxLines="3" Variant="UIConstants.MudVariant"/>
                 </ChildContent>
             </ConfigSettingHelp>
+            <ConfigSettingHelp>
+                <HelpContent>
+                    If the Axle.Energy VPP is enabled, your battery will pre-charge for an hour before the event to ensure you
+                    have maximum energy stored to export. This pre-charge can be disabled. For import events, the battery will 
+                    be discharged for an hour before the event.
+                </HelpContent>
+                <ChildContent>
+                    <MudCheckBox Label="Pre-Charge/Discharge before Axle Events" @bind-Value="@config.AxleEventPrecharge" LabelPlacement="Placement.End" 
+                                 Disabled="!AxleEnabled" class="wrapped-field"/>
+                </ChildContent>
+            </ConfigSettingHelp>
         </div>
         <div class="config-fields">
             <h5>Forecast Rules</h5>
@@ -215,6 +226,7 @@
     private string? glassPaneText = null;
 
     private bool AutomaticAccount => config != null && !string.IsNullOrEmpty(config.OctopusAccountNumber) && !string.IsNullOrEmpty(config.OctopusAPIKey);
+    private bool AxleEnabled => config != null && !string.IsNullOrEmpty(config.AxleAPIKey);
     private bool ManualNightEnd = false;
     
     private int PeakPercentageProxy

@@ -23,6 +23,7 @@ public record SolisManagerConfig
     public decimal SolcastDampFactor { get; set; } = 1M; // Default to 100% of the solcast value
     public bool SolcastExtraUpdates { get; set; } = false;
     public string? AxleAPIKey { get; set; }
+    public bool AxleEventPrecharge { get; set; } = true;
     public bool DisableAutoDischarge { get; set; } = false;
 
     public bool IntelligentGoCharging { get; set; } = false;
