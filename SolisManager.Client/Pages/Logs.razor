@@ -1,0 +1,48 @@
+﻿@page "/logs"
+
+@inject ILogViewService logService
+
+<PageTitle>Solis Manager Logs</PageTitle>
+
+<MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
+          FixedHeader="true" FixedFooter="true" Height="800px">
+    <HeaderContent>
+        <MudTh Style="width: 15%;">Date</MudTh>
+        <MudTh Style="width: 15%;">Level</MudTh>
+        <MudTh>Message</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.timestamp.ToString("dd-MMM-yyyy HH:mm:ss")</MudTd>
+        <MudTd>@context.level.ToString()</MudTd>
+        <MudTd>@context.logText</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
+    </PagerContent>
+</MudTable>
+<ErrorBoundary>
+
+</ErrorBoundary>
+@code {
+    private MudTable<ILogViewService.LogEntry>? table;
+
+    private async Task RefreshData()
+    {
+        if (table != null)
+            await table.ReloadServerData();
+    }
+
+    private async Task<TableData<ILogViewService.LogEntry>> ServerReload(TableState state, CancellationToken token)
+    {
+        var result = new TableData<ILogViewService.LogEntry> { TotalItems = 0, Items = [] };
+        var req = new ILogViewService.LogViewRequest(string.Empty, state.Page, state.PageSize);
+        var response = await logService.GetLogs(req, token);
+        if (response.LogEntries.Any())
+        {
+            result.Items = response.LogEntries;
+            result.TotalItems = response.TotalItemCount;
+        }
+
+        return result;
+    }
+}

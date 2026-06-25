@@ -23,6 +23,7 @@ class Program
 
         builder.Services.AddScoped<IInverterManagerService, ClientInverterManagerService>();
         builder.Services.AddScoped<IToolsService, ClientToolsService>();
+        builder.Services.AddScoped<ILogViewService, ClientLogViewService>();
         
         builder.Services.AddApexCharts();
         builder.Services.AddBlazoredLocalStorage();

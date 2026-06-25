@@ -9,7 +9,7 @@ public class ClientLogViewService(HttpClient httpClient, ILogger<ClientLogViewSe
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync("logs", req, token);
+            var response = await httpClient.PostAsJsonAsync("inverter/logs", req, token);
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadFromJsonAsync<ILogViewService.LogViewResponse?>(token);
 
@@ -21,6 +21,6 @@ public class ClientLogViewService(HttpClient httpClient, ILogger<ClientLogViewSe
             logger.LogError(ex, "Unable to retreive logs");
         }
         
-        return new ILogViewService.LogViewResponse("unknown", []);
+        return new ILogViewService.LogViewResponse("unknown", [], 0);
     }
 }

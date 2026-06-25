@@ -9,7 +9,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
 {
     public Task<ILogViewService.LogViewResponse> GetLogs(ILogViewService.LogViewRequest req, CancellationToken token)
     {
-        ILogViewService.LogViewResponse response = new("unknown", []);
+        ILogViewService.LogViewResponse response = new("unknown", [], 0);
         var logDir = new DirectoryInfo(Program.ConfigFolder);
         var file = logDir.GetFiles("*.log")
             .OrderByDescending(x => x.LastWriteTimeUtc)
@@ -19,8 +19,9 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
         {
             try
             {
-                var dateStr = file.Name.Split('-', 2)[1];
-                if (DateOnly.TryParseExact(dateStr, "YYYYMMDD", out var logFileDate))
+                var dateStr = Path.GetFileNameWithoutExtension(file.Name).Split('-', 2)[1];
+
+                if (DateOnly.TryParseExact(dateStr, "yyyyMMdd", out var logFileDate))
                 {
                     var reader = new ReverseLineReader(file.FullName);
 
@@ -33,9 +34,12 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     response = response with
                     {
                         LogFileName = file.Name,
-                        LogEntries = entries
+                        LogEntries = entries,
+                        TotalItemCount = 5000 // How do we calculate this?
                     };
                 }
+                else 
+                    _logger.LogError("Unexpected log file name date format: {N}", file.Name);
             }
             catch ( Exception ex )
             {
@@ -66,10 +70,11 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     {
                         "ERR" => LogLevel.Error,
                         "WRN" => LogLevel.Warning,
+                        "TRC" => LogLevel.Trace,
                         _ => LogLevel.Information
                     };
 
-                    if (TimeOnly.TryParseExact(timeStr, "HH:MM:dd:fff", out var logEntryTime))
+                    if (TimeOnly.TryParseExact(timeStr, "HH:mm:ss.fff", out var logEntryTime))
                     {
                         DateTime timestamp = new DateTime(logFileDate, logEntryTime);
                         return new ILogViewService.LogEntry(timestamp, level, message);
