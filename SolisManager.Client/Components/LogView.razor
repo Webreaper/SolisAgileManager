@@ -17,16 +17,16 @@
             </div>
             <div class="search-bar">
                 <MudTextField @bind-Value="searchText" @bind-Value:after="() => RefreshData(false)" Label="Search"
-                              DebounceInterval="200" Immediate="true" AutoFocus="true"
+                              DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
                               AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true"/>
                 <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="() => RefreshData(false)"
-                           Label="Level Filter" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                           Label="Log Level" Style="width:100px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Error">Error</MudSelectItem>
                 </MudSelect>
-                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="() => RefreshData(true)"/>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" title="Reload the logs" OnClick="() => RefreshData(true)"/>
             </div>
         </div>
         <div class="log-table">

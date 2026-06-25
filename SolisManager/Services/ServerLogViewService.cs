@@ -1,3 +1,4 @@
+using System.Text;
 using SolisManager.Shared.Interfaces;
 
 namespace SolisManager.Services;
@@ -31,10 +32,13 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                 {
                     if (!logLines.Any() || req.force)
                     {
-                        logLines = File.ReadAllLines(file.FullName);
+                        using var fs = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                        logLines = ReadLines(fs, Encoding.UTF8).ToArray();
                     }
                     
-                    var entries = logLines.Skip(req.pageNumber * req.PageSize)
+                    var entries = logLines
+                        .Reverse()
+                        .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
@@ -61,6 +65,16 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
         return Task.FromResult(response);
     }
 
+    private IEnumerable<string> ReadLines(Stream stream, Encoding encoding)
+    {
+        using (var reader = new StreamReader(stream, encoding))
+        {
+            while (reader.ReadLine() is { } line)
+            {
+                yield return line;
+            }
+        }
+    }
     // TODO: Use a regex here
     private ILogViewService.LogEntry? CreateLogEntry(DateOnly logFileDate, string s)
     {
