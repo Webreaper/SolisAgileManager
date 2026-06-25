@@ -21,6 +21,6 @@ public class ClientLogViewService(HttpClient httpClient, ILogger<ClientLogViewSe
             logger.LogError(ex, "Unable to retreive logs");
         }
         
-        return new ILogViewService.LogViewResponse("unknown", [], 0);
+        return new ILogViewService.LogViewResponse("unknown", [], 0, null);
     }
 }

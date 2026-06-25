@@ -1,20 +1,26 @@
-using System.Globalization;
-using Microsoft.Extensions.Logging.Abstractions;
 using SolisManager.Shared.Interfaces;
-using SolisManager.Utils;
 
 namespace SolisManager.Services;
 
 public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogViewService
 {
+    private static string[] logLines = [];
+    
     public Task<ILogViewService.LogViewResponse> GetLogs(ILogViewService.LogViewRequest req, CancellationToken token)
     {
-        ILogViewService.LogViewResponse response = new("unknown", [], 0);
         var logDir = new DirectoryInfo(Program.ConfigFolder);
-        var file = logDir.GetFiles("*.log")
+        var files = logDir.GetFiles("*.log")
             .OrderByDescending(x => x.LastWriteTimeUtc)
-            .FirstOrDefault();
+            .ToList();
 
+        ILogViewService.LogViewResponse response = new("unknown", [], 0, 
+                        logFiles: files.Select(x => x.Name).ToArray());
+
+        var file = files.FirstOrDefault(x => x.Name.Equals(req.LogFile));
+
+        if (file == null)
+            file = files.FirstOrDefault();
+        
         if ( file != null )
         {
             try
@@ -23,20 +29,24 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
 
                 if (DateOnly.TryParseExact(dateStr, "yyyyMMdd", out var logFileDate))
                 {
-                    var reader = new ReverseLineReader(file.FullName);
-
-                    var entries = reader.Skip(req.pageNumber * req.PageSize)
+                    if (!logLines.Any() || req.force)
+                    {
+                        logLines = File.ReadAllLines(file.FullName);
+                    }
+                    
+                    var entries = logLines.Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
+                        .Where(x => string.IsNullOrEmpty(req.searchText) || x.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
                         .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter)
-                        .ToList();
+                        .ToArray();
 
                     response = response with
                     {
                         LogFileName = file.Name,
                         LogEntries = entries,
-                        TotalItemCount = 5000 // How do we calculate this?
+                        TotalItemCount = logLines.Length
                     };
                 }
                 else 

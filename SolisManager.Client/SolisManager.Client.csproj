@@ -49,6 +49,9 @@
       <Content Update="InverterConfigs\SolisInverterConfig.razor.css">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
+      <Content Update="Components\LogView.razor.css">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>
