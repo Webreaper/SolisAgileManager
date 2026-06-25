@@ -475,16 +475,17 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 // The timespan is from the start of the first slot, to the end of the last slot.
                 var start = matchedSlots.First().valid_from;
                 var end = matchedSlots.Last().valid_to;
+                var logExtra = firstSlot.ActionToExecute.overrideAmps is > 0 ? $"at {firstSlot.ActionToExecute.overrideAmps}A" : string.Empty;
                 
                 if (firstSlot.ActionToExecute.action == SlotAction.Charge)
                 {
-                    logger.LogInformation("Executing slot action: Charge at {A}A", firstSlot.ActionToExecute.overrideAmps);
+                    logger.LogInformation("Executing slot action: Charge{Extra}", logExtra);
                     await inverterAPI.SetCharge(start, end, null, null, false, 
                         firstSlot.ActionToExecute.overrideAmps, config.Simulate);
                 }
                 else if (firstSlot.ActionToExecute.action == SlotAction.Discharge)
                 {
-                    logger.LogInformation("Executing slot action: Discharge at {A}A", firstSlot.ActionToExecute.overrideAmps);
+                    logger.LogInformation("Executing slot action: Discharge{Extra}", logExtra);
                     await inverterAPI.SetCharge(null, null, start, end, false, 
                         firstSlot.ActionToExecute.overrideAmps, config.Simulate);
                 }
