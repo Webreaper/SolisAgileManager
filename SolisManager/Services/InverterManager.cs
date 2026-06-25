@@ -1087,13 +1087,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             var events = await axleApi.GetAxleEventsAsync();
 
             var slotEvents = new Dictionary<DateTime, (PricePlanSlot slot, AxleApi.AxleEvent evt)>();
+            var ignoredDispatches = 0;
             
             foreach (var dispatch in events)
             {
                 if (dispatch.end_time <= DateTime.Now)
                 {
-                    logger.LogInformation("Unexpected past dispatch - ignoring... ({S} - {E}", dispatch.start_time,
-                        dispatch.end_time);
+                    ignoredDispatches++;
                     continue;
                 }
 
@@ -1108,7 +1108,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     }
                 }
             }
-            
+
+            if (ignoredDispatches > 0)
+                logger.LogInformation("Ignoring {N} past dispatches", ignoredDispatches);
+
             if (slotEvents.Any())
             {
                 logger.LogInformation("Applying actions to {N} slots for Axle Energy Event",
