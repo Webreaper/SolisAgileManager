@@ -29,6 +29,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         .Take(req.PageSize)
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
+                        .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter)
                         .ToList();
 
                     response = response with

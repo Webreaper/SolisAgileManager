@@ -4,10 +4,19 @@
 
 <PageTitle>Solis Manager Logs</PageTitle>
 
+<div>
+    <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="RefreshData" 
+               Label="Level Filter" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+        <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
+        @foreach (var level in Enum.GetValues<LogLevel>())
+        {
+            <MudSelectItem T="LogLevel" Value="@level">@level.Humanize()</MudSelectItem>
+        }
+    </MudSelect></div>
 <MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
           FixedHeader="true" FixedFooter="true" Height="800px">
     <HeaderContent>
-        <MudTh Style="width: 15%;">Date</MudTh>
+        <MudTh Style="width: 15%;">Timestamp</MudTh>
         <MudTh Style="width: 15%;">Level</MudTh>
         <MudTh>Message</MudTh>
     </HeaderContent>
@@ -25,6 +34,7 @@
 </ErrorBoundary>
 @code {
     private MudTable<ILogViewService.LogEntry>? table;
+    private LogLevel logLevelFilter = LogLevel.None;
 
     private async Task RefreshData()
     {
@@ -35,7 +45,7 @@
     private async Task<TableData<ILogViewService.LogEntry>> ServerReload(TableState state, CancellationToken token)
     {
         var result = new TableData<ILogViewService.LogEntry> { TotalItems = 0, Items = [] };
-        var req = new ILogViewService.LogViewRequest(string.Empty, state.Page, state.PageSize);
+        var req = new ILogViewService.LogViewRequest(string.Empty, levelFilter: logLevelFilter, state.Page, state.PageSize);
         var response = await logService.GetLogs(req, token);
         if (response.LogEntries.Any())
         {
