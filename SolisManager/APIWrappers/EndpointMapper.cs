@@ -17,8 +17,8 @@ public static class EndpointMapper
             .MapGetConfigAPI()
             .MapToolsAPI()
             .MapSaveConfigAPI()
-            .MapProductsApi();
-        
+            .MapProductsApi()
+            .MapGetLogsAPI();
         return app;
     }
 
@@ -176,6 +176,20 @@ public static class EndpointMapper
                 var configToSave = JsonSerializer.Deserialize<SolisManagerConfig>(configJson);
                 ArgumentNullException.ThrowIfNull(configToSave);
                 var result = await inverterService.SaveConfig(configToSave);
+                return TypedResults.Ok(result);
+            });
+
+        return group;
+    }
+    
+    private static RouteGroupBuilder MapGetLogsAPI(this RouteGroupBuilder group)
+    {
+        group.MapPost("logs",
+            async (ILogViewService.LogViewRequest req, 
+                [FromServices] ILogViewService logViewService,
+                CancellationToken token) =>
+            {
+                var result = await logViewService.GetLogs(req, token);
                 return TypedResults.Ok(result);
             });
 

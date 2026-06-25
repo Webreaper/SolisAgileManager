@@ -98,6 +98,7 @@ public class Program
         builder.Services.AddSingleton<TariffScheduler>();
         builder.Services.AddSingleton<InverterTimeAdjustScheduler>();
         builder.Services.AddSingleton<AxleApi>();
+        builder.Services.AddScoped<ILogViewService, ServerLogViewService>();
 
         builder.Services.AddSingleton<RestartService>();
         builder.Services.AddSingleton<SolcastAPI>();

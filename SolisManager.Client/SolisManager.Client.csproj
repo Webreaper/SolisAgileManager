@@ -14,7 +14,6 @@
         <PackageReference Include="Blazored.LocalStorage" />
         <PackageReference Include="Humanizer.Core.uk" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
-        <PackageReference Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" />
         <PackageReference Include="Microsoft.Extensions.Http" />
         <PackageReference Include="MudBlazor" />
     </ItemGroup>
@@ -48,6 +47,9 @@
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
       <Content Update="InverterConfigs\SolisInverterConfig.razor.css">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </Content>
+      <Content Update="Components\LogView.razor.css">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
     </ItemGroup>

@@ -1,0 +1,43 @@
+.log-view{
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+    height: calc(100vh - 40px);
+    width: 100%;
+}
+
+.top-bar {
+    display: flex;
+    flex-direction: row;
+    column-gap: 15px;
+    max-width: 100%;
+    justify-content: space-between;
+}
+
+.files-selector { 
+    width: 300px;
+}
+
+.search-bar{
+    display: flex;
+    flex-direction: row;
+    column-gap: 15px;
+    max-width: 400px;
+}
+
+.log-table {
+    flex: 1 1 100%;
+    overflow-y: scroll;
+}
+
+::deep .log-info {
+    color: dodgerblue;
+}
+
+::deep .log-warn {
+    color: orange;
+}
+
+::deep .log-error {
+    color: firebrick;
+}
