@@ -25,6 +25,15 @@
     max-width: 500px;
 }
 
+.log-level-text {
+}
+
+@media screen and (max-width: 900px) {
+    .log-level-text {
+        display:none;
+    }
+}
+
 .log-table {
     flex: 1 1 100%;
     overflow-y: scroll;

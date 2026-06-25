@@ -31,14 +31,20 @@
         </div>
         <div class="log-table">
             <MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
-                      FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null">
+                      FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null"
+                      Breakpoint="Breakpoint.None">
                 <HeaderContent>
                     <MudTh Style="width: 15%;">Timestamp</MudTh>
                     <MudTh Style="width: 15%;">Level</MudTh>
                     <MudTh>Message</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.timestamp.ToString("dd-MMM-yyyy HH:mm:ss")</MudTd>
+                    <MudTd>
+                        <span class="log-level-text">
+                            @context.timestamp.ToString("dd-MMM-yyyy")
+                        </span>
+                        @context.timestamp.ToString("HH:mm:ss")
+                    </MudTd>
                     <MudTd>@Level(context)</MudTd>
                     <MudTd>@context.logText</MudTd>
                 </RowTemplate>
@@ -74,7 +80,7 @@
         };
         return @<span class="@levelClass">
                    <MudIcon Icon="@icon" Size="Size.Small"/>
-                   @e.level.ToString()
+                   <span class="log-level-text">@e.level.ToString()</span>
                </span>;
     }
     
