@@ -26,7 +26,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private readonly SolcastAPI solcastApi;
     private readonly AxleApi axleApi;
     private readonly ILogger<InverterManager> logger;
-    
+    private AsyncEventConflator conflator = new(5 * 1000);
+
     public InverterManager(
         SolisManagerConfig _config,
         OctopusAPI _octopusAPI,
@@ -1416,7 +1417,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         var charge = CreateOverrides(lastDischarge, SlotAction.Charge, config.SlotsForFullBatteryCharge);
         await SetManualOverrides(discharge.Concat(charge).ToList());
     }
-
+    
     private async Task SetManualOverrides(List<ManualOverrideRequest> overrides)
     {
         var lookup = InverterState.Prices
@@ -1442,7 +1443,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             }
         }
 
-        await RecalculateSlotPlan(InverterState.Prices);
+        // Wait a few seconds before recalculating and applying the overrides,
+        // in case the person is adding multiple overrides one after the other.
+        await conflator.ConflateAsync( _ => RecalculateSlotPlan(InverterState.Prices));
     }
     
     public async Task ClearManualOverrides()

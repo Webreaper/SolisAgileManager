@@ -34,7 +34,9 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         logLines = File.ReadAllLines(file.FullName);
                     }
                     
-                    var entries = logLines.Skip(req.pageNumber * req.PageSize)
+                    var entries = logLines
+                        .Reverse()
+                        .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
