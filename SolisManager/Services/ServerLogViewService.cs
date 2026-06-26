@@ -82,13 +82,13 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
         {
             try
             {
-                var parts = s.Split(']', 2);
+                var parts = s.Split(']', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 if ( parts.Length == 2 )
                 {
                     var header = parts[0];
                     var message = parts[1];
                     
-                    var headerParts = parts[0].Substring(1).Split('-');
+                    var headerParts = parts[0].Substring(1).Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
                     var timeStr = headerParts[0];
                     var level = headerParts[1] switch
