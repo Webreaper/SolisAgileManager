@@ -20,7 +20,7 @@
                               DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
                               AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
                 <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="() => RefreshData(false)"
-                           Label="Log Level" Style="max-width:100px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
