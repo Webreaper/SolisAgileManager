@@ -93,7 +93,7 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
                 LogAxleEvents();
             }
             else 
-                logger.LogWarning("Axle API: event retrieved but had no data, so ignoring");
+                logger.LogInformation("Axle API: event retrieved but had no data, so ignoring");
         }
         catch (FlurlHttpException ex)
         {
