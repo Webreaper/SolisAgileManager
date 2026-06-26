@@ -11,22 +11,44 @@
     flex-direction: row;
     column-gap: 15px;
     max-width: 100%;
+    flex-wrap: wrap;
     justify-content: space-between;
 }
 
 .files-selector { 
-    width: 300px;
+    flex: 0 1 300px;
 }
 
 .search-bar{
     display: flex;
-    flex-direction: row;
+    flex-direction: row;    
+    flex-wrap: wrap;
     column-gap: 15px;
-    max-width: 500px;
+    flex: 0 1 40%;
+}
+
+.log-level-text {
+}
+
+@media screen and (max-width: 900px) {
+    .log-level-text {
+        display:none;
+    }
+    .files-selector {
+        flex: 0 1 200px;
+    }
+
+    .search-bar{
+        flex: 0 1 100%;
+    }
+    
+    .table-text {
+        font-size: 9pt; 
+    }
 }
 
 .log-table {
-    flex: 1 1 100%;
+    flex: 0 1 100%;
     overflow-y: scroll;
 }
 
