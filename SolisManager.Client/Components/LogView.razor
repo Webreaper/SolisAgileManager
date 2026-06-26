@@ -18,9 +18,9 @@
             <div class="search-bar">
                 <MudTextField @bind-Value="searchText" @bind-Value:after="() => RefreshData(false)" Label="Search"
                               DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
-                              AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true"/>
+                              AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
                 <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="() => RefreshData(false)"
-                           Label="Log Level" Style="width:100px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                           Label="Log Level" Style="max-width:100px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
@@ -34,19 +34,21 @@
                       FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null"
                       Breakpoint="Breakpoint.None">
                 <HeaderContent>
-                    <MudTh Style="width: 15%;">Timestamp</MudTh>
+                    <MudTh Style="width: 15%;">Time</MudTh>
                     <MudTh Style="width: 15%;">Level</MudTh>
                     <MudTh>Message</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <span class="log-level-text">
-                            @context.timestamp.ToString("dd-MMM-yyyy")
+                        <span class="table-text">
+                            <span class="log-level-text">
+                                @context.timestamp.ToString("dd-MMM-yyyy")
+                            </span>
+                            @context.timestamp.ToString("HH:mm:ss")
                         </span>
-                        @context.timestamp.ToString("HH:mm:ss")
                     </MudTd>
                     <MudTd>@Level(context)</MudTd>
-                    <MudTd>@context.logText</MudTd>
+                    <MudTd><span class="table-text">@context.logText</span></MudTd>
                 </RowTemplate>
                 <PagerContent>
                     <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
@@ -80,7 +82,7 @@
         };
         return @<span class="@levelClass">
                    <MudIcon Icon="@icon" Size="Size.Small"/>
-                   <span class="log-level-text">@e.level.ToString()</span>
+                   <span class="log-level-text table-text">@e.level.ToString()</span>
                </span>;
     }
     
