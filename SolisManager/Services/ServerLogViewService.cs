@@ -36,12 +36,16 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         logLines = ReadLines(fs, Encoding.UTF8).ToArray();
                     }
                     
-                    var entries = logLines
+                    var filteredQuery = logLines
                         .Reverse()
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
                         .Where(x => string.IsNullOrEmpty(req.searchText) || x.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
-                        .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter)
+                        .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter);
+                        
+                    var totalItems = filteredQuery.Count();
+                        
+                    var entries = filteredQuery
                         .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
                         .ToArray();
@@ -50,7 +54,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     {
                         LogFileName = file.Name,
                         LogEntries = entries,
-                        TotalItemCount = logLines.Length
+                        TotalItemCount = totalItems
                     };
                 }
                 else 
