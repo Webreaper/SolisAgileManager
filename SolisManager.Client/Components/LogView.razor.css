@@ -17,6 +17,10 @@
 
 .files-selector { 
     flex: 0 1 300px;
+    display: flex;
+    flex-direction: row;
+    column-gap: 5px;
+    flex-wrap: nowrap;
 }
 
 .search-bar{
