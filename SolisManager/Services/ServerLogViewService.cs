@@ -38,12 +38,12 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     
                     var entries = logLines
                         .Reverse()
-                        .Skip(req.pageNumber * req.PageSize)
-                        .Take(req.PageSize)
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
                         .Where(x => string.IsNullOrEmpty(req.searchText) || x.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
                         .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter)
+                        .Skip(req.pageNumber * req.PageSize)
+                        .Take(req.PageSize)
                         .ToArray();
 
                     response = response with
