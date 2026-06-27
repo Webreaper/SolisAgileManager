@@ -43,8 +43,10 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         .Where(x => string.IsNullOrEmpty(req.searchText) || x.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
                         .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter);
                         
+                    // ReSharper disable once PossibleMultipleEnumeration
                     var totalItems = filteredQuery.Count();
                         
+                    // ReSharper disable once PossibleMultipleEnumeration
                     var entries = filteredQuery
                         .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
