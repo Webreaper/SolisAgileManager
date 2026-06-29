@@ -24,8 +24,7 @@
                               AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
                 <MudSelect T="LogLevel" @bind-SelectedValues="logLevelFilter" @bind-SelectedValues:after="() => RefreshData(false)"
                            Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" 
-                           Margin="Margin.Dense" MultiSelection="true">
-                    <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
+                           Margin="Margin.Dense" MultiSelection="true" SelectAll="true" SelectAllText="All">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Error">Error</MudSelectItem>
@@ -65,7 +64,7 @@
 </div>
 @code {
     private MudTable<ILogViewService.LogEntry>? table;
-    private IReadOnlyCollection<LogLevel> logLevelFilter = [];
+    private IReadOnlyCollection<LogLevel> logLevelFilter = [LogLevel.Information, LogLevel.Warning, LogLevel.Error];
     private string? logFile;
     private IEnumerable<string>? logFiles;
     private string searchText = string.Empty;
