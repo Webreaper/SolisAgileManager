@@ -1015,7 +1015,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     return results;
                 }
             }
-            catch (TaskCanceledException ex)
+            catch (TaskCanceledException)
             {
                 logger.LogTrace("Consumption query cancelled");
             }

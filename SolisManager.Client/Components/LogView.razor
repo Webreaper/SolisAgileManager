@@ -22,8 +22,9 @@
                 <MudTextField @bind-Value="searchText" @bind-Value:after="() => RefreshData(false)" Label="Search"
                               DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
                               AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
-                <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="() => RefreshData(false)"
-                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                <MudSelect T="LogLevel" @bind-SelectedValues="logLevelFilter" @bind-SelectedValues:after="() => RefreshData(false)"
+                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" 
+                           Margin="Margin.Dense" MultiSelection="true">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
@@ -64,12 +65,12 @@
 </div>
 @code {
     private MudTable<ILogViewService.LogEntry>? table;
-    private LogLevel logLevelFilter = LogLevel.None;
+    private IReadOnlyCollection<LogLevel> logLevelFilter = [];
     private string? logFile;
     private IEnumerable<string>? logFiles;
     private string searchText = string.Empty;
-    private bool forceReload = false;
-    private bool loadedSettings = false;
+    private bool forceReload;
+    private bool loadedSettings;
 
     private const string LevelSetting = "LogLevel";
     private const string TextSetting = "SearchText";
@@ -99,7 +100,7 @@
     {
         try
         {
-            await localStorage.SetItemAsync(LevelSetting, logLevelFilter.ToString());
+            await localStorage.SetItemAsync(LevelSetting, string.Join(",", logLevelFilter));
             await localStorage.SetItemAsync(TextSetting, searchText);
         }
         catch( Exception ex)
@@ -108,6 +109,23 @@
         }
     }
 
+    /// <summary>
+    /// Weird - for some reason <code>Enum.Parse<LogLevel)("7")</code> returns "7"?!?!
+    /// So do our own
+    /// </summary>
+    /// <param name="levelStr"></param>
+    /// <returns></returns>
+    private LogLevel? ParseLevel(string levelStr)
+    {
+        return levelStr switch
+        {
+            "INF" or "Information" => LogLevel.Information,
+            "WRN" or "Warning" => LogLevel.Warning,
+            "ERR" or "Error" => LogLevel.Error,
+            _ => null
+        };
+    }
+    
     private async Task LoadSettings()
     {
         try
@@ -115,8 +133,15 @@
             var level = await localStorage.GetItemAsync<string>(LevelSetting);
             var search = await localStorage.GetItemAsync<string>(TextSetting);
 
-            if (!string.IsNullOrEmpty(level) && Enum.TryParse<LogLevel>(level, out var levelFilter))
-                logLevelFilter = levelFilter;
+            if (!string.IsNullOrEmpty(level))
+            {
+                logLevelFilter = level.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)   
+                                      .Select(ParseLevel).ToList()
+                                      .Where(x => x != null)
+                                      .Select(x => x!.Value)
+                                      .Distinct()
+                                      .ToList();
+            }
 
             if (!string.IsNullOrEmpty(search))
                 searchText = search;
@@ -147,7 +172,7 @@
         var result = new TableData<ILogViewService.LogEntry> { TotalItems = 0, Items = [] };
         try
         {
-            var req = new ILogViewService.LogViewRequest(searchText, levelFilter: logLevelFilter, state.Page, 
+            var req = new ILogViewService.LogViewRequest(searchText, levelFilters: logLevelFilter, state.Page, 
                             state.PageSize, LogFile: logFile, force: forceReload);
 
             var response = await logService.GetLogs(req, token);
