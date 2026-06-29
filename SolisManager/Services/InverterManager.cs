@@ -1133,7 +1133,9 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         continue;
                     }
 
-                    bool notified = firstNotification || notifiedSlots.Contains(pair.slot.valid_from);
+                    // Exclude all but the first slot from notifications
+                    if (!firstNotification)
+                        notifiedSlots.Add(pair.slot.valid_from);
                     
                     if (pair.evt.import_export.Equals("export", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1142,7 +1144,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Action = SlotAction.Discharge,
                             Explanation = "Axle Discharge Event active",
                             Type = AutoOverrideType.AxleEvent,
-                            Notify = !notified
+                            Notify = !notifiedSlots.Contains(pair.slot.valid_from)
                         };
                         prevSlotAction = SlotAction.Charge;
                     }
@@ -1153,7 +1155,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Action = SlotAction.Charge,
                             Explanation = "Axle Charge Event active",
                             Type = AutoOverrideType.AxleEvent,
-                            Notify = !notified
+                            Notify = !notifiedSlots.Contains(pair.slot.valid_from)
                         };
                         prevSlotAction = SlotAction.Charge;
                     }
