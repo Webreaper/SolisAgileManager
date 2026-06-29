@@ -79,6 +79,14 @@ public static class EndpointMapper
                 return TypedResults.Ok(result);
             });
 
+        group.MapPost("notifyslot",
+            async (PricePlanSlot slot, 
+                [FromServices] IInverterManagerService service) =>
+            {
+                await service.SlotNotified(slot);
+                return TypedResults.Ok();
+            });
+
         return group;
     }
 
