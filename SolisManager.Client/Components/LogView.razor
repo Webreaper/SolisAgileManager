@@ -1,4 +1,6 @@
 @inject ILogViewService logService
+@inject ILocalStorageService localStorage
+@inject ILogger<LogView> logger
 
 <div class="log-view">
     <ErrorBoundary>
@@ -20,50 +22,57 @@
                 <MudTextField @bind-Value="searchText" @bind-Value:after="() => RefreshData(false)" Label="Search"
                               DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
                               AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
-                <MudSelect T="LogLevel" @bind-Value="logLevelFilter" @bind-Value:after="() => RefreshData(false)"
-                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
-                    <MudSelectItem T="LogLevel" Value="@LogLevel.None">All</MudSelectItem>
+                <MudSelect T="LogLevel" @bind-SelectedValues="logLevelFilter" @bind-SelectedValues:after="() => RefreshData(false)"
+                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" 
+                           Margin="Margin.Dense" MultiSelection="true" SelectAll="true" SelectAllText="All">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Error">Error</MudSelectItem>
                 </MudSelect>
             </div>
         </div>
-        <div class="log-table">
-            <MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
-                      FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null"
-                      Breakpoint="Breakpoint.None">
-                <HeaderContent>
-                    <MudTh Style="width: 15%;">Time</MudTh>
-                    <MudTh Style="width: 15%;">Level</MudTh>
-                    <MudTh>Message</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>
-                        <span class="table-text">
-                            <span class="log-level-text">
-                                @context.timestamp.ToString("dd-MMM-yyyy")
+        @if (loadedSettings)
+        {
+            <div class="log-table">
+                <MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
+                          FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null"
+                          Breakpoint="Breakpoint.None" PagerPosition="PagerPosition.Top">
+                    <HeaderContent>
+                        <MudTh Style="width: 15%;">Time</MudTh>
+                        <MudTh Style="width: 15%;">Level</MudTh>
+                        <MudTh>Message</MudTh>
+                    </HeaderContent>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
+                    </PagerContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <span class="table-text">
+                                <span class="log-level-text">
+                                    @context.timestamp.ToString("dd-MMM-yyyy")
+                                </span>
+                                @context.timestamp.ToString("HH:mm:ss")
                             </span>
-                            @context.timestamp.ToString("HH:mm:ss")
-                        </span>
-                    </MudTd>
-                    <MudTd>@Level(context)</MudTd>
-                    <MudTd><span class="table-text">@context.logText</span></MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
-                </PagerContent>
-            </MudTable>
-        </div>
+                        </MudTd>
+                        <MudTd>@Level(context)</MudTd>
+                        <MudTd><span class="table-text">@context.logText</span></MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
     </ErrorBoundary>
 </div>
 @code {
     private MudTable<ILogViewService.LogEntry>? table;
-    private LogLevel logLevelFilter = LogLevel.None;
+    private IReadOnlyCollection<LogLevel> logLevelFilter = [LogLevel.Information, LogLevel.Warning, LogLevel.Error];
     private string? logFile;
     private IEnumerable<string>? logFiles;
     private string searchText = string.Empty;
-    private bool forceReload = false;
+    private bool forceReload;
+    private bool loadedSettings;
+
+    private const string LevelSetting = "LogLevel";
+    private const string TextSetting = "SearchText";
 
     private RenderFragment Level(ILogViewService.LogEntry e)
     {
@@ -85,10 +94,74 @@
                    <span class="log-level-text table-text">@e.level.ToString()</span>
                </span>;
     }
+
+    private async Task SaveSettings()
+    {
+        try
+        {
+            await localStorage.SetItemAsync(LevelSetting, string.Join(",", logLevelFilter));
+            await localStorage.SetItemAsync(TextSetting, searchText);
+        }
+        catch( Exception ex)
+        {
+            logger.LogError(ex, "Error saving log view settings");
+        }
+    }
+
+    /// <summary>
+    /// Weird - for some reason <code>Enum.Parse<LogLevel)("7")</code> returns "7"?!?!
+    /// So do our own
+    /// </summary>
+    /// <param name="levelStr"></param>
+    /// <returns></returns>
+    private LogLevel? ParseLevel(string levelStr)
+    {
+        return levelStr switch
+        {
+            "INF" or "Information" => LogLevel.Information,
+            "WRN" or "Warning" => LogLevel.Warning,
+            "ERR" or "Error" => LogLevel.Error,
+            _ => null
+        };
+    }
     
+    private async Task LoadSettings()
+    {
+        try
+        {
+            var level = await localStorage.GetItemAsync<string>(LevelSetting);
+            var search = await localStorage.GetItemAsync<string>(TextSetting);
+
+            if (!string.IsNullOrEmpty(level))
+            {
+                logLevelFilter = level.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)   
+                                      .Select(ParseLevel).ToList()
+                                      .Where(x => x != null)
+                                      .Select(x => x!.Value)
+                                      .Distinct()
+                                      .ToList();
+            }
+
+            if (!string.IsNullOrEmpty(search))
+                searchText = search;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading log view settings");
+        }
+        finally
+        {
+            loadedSettings = true;
+            StateHasChanged();
+        }
+    }
+
     private async Task RefreshData(bool force)
     {
+        await SaveSettings();        
+
         forceReload = force;
+        
         if (table != null)
             await table.ReloadServerData();
     }
@@ -98,7 +171,7 @@
         var result = new TableData<ILogViewService.LogEntry> { TotalItems = 0, Items = [] };
         try
         {
-            var req = new ILogViewService.LogViewRequest(searchText, levelFilter: logLevelFilter, state.Page, 
+            var req = new ILogViewService.LogViewRequest(searchText, levelFilters: logLevelFilter, state.Page, 
                             state.PageSize, LogFile: logFile, force: forceReload);
 
             var response = await logService.GetLogs(req, token);
@@ -119,6 +192,14 @@
         }
 
         return result;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if( firstRender )
+            await LoadSettings();
+        
+        await base.OnAfterRenderAsync(firstRender);
     }
 
 }

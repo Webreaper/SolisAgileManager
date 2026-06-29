@@ -267,7 +267,7 @@
 
         if (newJson != originalConfigJson)
         {
-            var result = await dialogService.ShowMessageBox("Navigate Away and Lost Changes?", "You have made config changes - do you want to discard them and navigate away?", "Discard", "Cancel");
+            var result = await dialogService.ShowMessageBoxAsync("Navigate Away and Lost Changes?", "You have made config changes - do you want to discard them and navigate away?", "Discard", "Cancel");
             if( result == null || !result.Value )
                 context.PreventNavigation();
         }
@@ -308,7 +308,7 @@
         MarkupString msg = new MarkupString("To validate the inverter configuration, a five-minute test charge will be run on your battery." +
                                             "<br/><br/>This will override existing charging slot settings in the SolisCloud Inverter Control, so if you don't enable " +
                                             "Solis Agile Manager immediately, you'll need to reconfigure them via the SolisCloud app.");
-        var result = await dialogService.ShowMessageBox("Run A Test Charge?",
+        var result = await dialogService.ShowMessageBoxAsync("Run A Test Charge?",
             msg, yesText: "Charge My Battery", cancelText: "Cancel");
 
         try

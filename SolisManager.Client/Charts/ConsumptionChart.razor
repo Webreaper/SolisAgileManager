@@ -71,7 +71,7 @@
         if (items != null)
         {
             var startDate = items.First().StartTime!.Value;
-            var endDate = items.Last().EndTime.Value;
+            var endDate = items.Last().EndTime!.Value;
 
             return SelectedGrouping switch
             {
