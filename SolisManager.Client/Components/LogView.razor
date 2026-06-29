@@ -32,14 +32,14 @@
         <div class="log-table">
             <MudTable T="ILogViewService.LogEntry" @ref="table" Dense="true" ServerData="ServerReload"
                       FixedHeader="true" FixedFooter="true" Height="100%" LoadingContent="null"
-                      Breakpoint="Breakpoint.None">
+                      Breakpoint="Breakpoint.None" PagerPosition="PagerPosition.Top">
                 <HeaderContent>
                     <MudTh Style="width: 15%;">Time</MudTh>
                     <MudTh Style="width: 15%;">Level</MudTh>
                     <MudTh>Message</MudTh>
                 </HeaderContent>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
+                    <MudTablePager PageSizeOptions="[50, 100, 200, 500]" />
                 </PagerContent>
                 <RowTemplate>
                     <MudTd>

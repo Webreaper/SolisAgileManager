@@ -1,5 +1,4 @@
 ﻿@page "/tools"
-@using SolisManager.Shared.Interfaces
 
 @inject IInverterManagerService clientInverterManagerService
 @inject NavigationManager navManager
@@ -24,7 +23,7 @@
 @code {
     private async Task RestartApp()
     {
-        var result = await dialogService.ShowMessageBox("Restart Solis Manager?", "Do you really want to shut down and restart the app?", "Shutdown & Restart", "Cancel");
+        var result = await dialogService.ShowMessageBoxAsync("Restart Solis Manager?", "Do you really want to shut down and restart the app?", "Shutdown & Restart", "Cancel");
         if (result != null && result.Value)
         {
             snackBar.Add("Application will be restarted", Severity.Warning);

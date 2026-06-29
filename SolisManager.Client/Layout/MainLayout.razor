@@ -53,7 +53,7 @@
             if (await localStorage.ContainKeyAsync(darkModeKey))
                 DarkMode = await localStorage.GetItemAsync<bool>(darkModeKey);
             else if( _mudThemeProvider != null)
-                DarkMode = await _mudThemeProvider.GetSystemPreference();
+                DarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
             
             loading = false;
             StateHasChanged();
