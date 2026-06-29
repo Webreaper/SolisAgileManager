@@ -40,8 +40,8 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         .Reverse()
                         .Select(x => CreateLogEntry(logFileDate, x))
                         .Where(x => x != null)
-                        .Where(x => string.IsNullOrEmpty(req.searchText) || x.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
-                        .Where(x => req.levelFilter == LogLevel.None || x.level == req.levelFilter);
+                        .Where(x => string.IsNullOrEmpty(req.searchText) || x!.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
+                        .Where(x => req.levelFilter == LogLevel.None || x!.level == req.levelFilter);
                         
                     // ReSharper disable once PossibleMultipleEnumeration
                     var totalItems = filteredQuery.Count();
@@ -50,6 +50,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     var entries = filteredQuery
                         .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
+                        .Select(x => x!)
                         .ToArray();
 
                     response = response with

@@ -42,9 +42,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         new MemoryCacheEntryOptions()
             .SetSize(1)
             .SetAbsoluteExpiration(TimeSpan.FromHours(12));
-
-    private static readonly string EVFlexDeviceType = "ELECTRIC_VEHICLES";
-
+    
     private IEnumerable<DateTime> GetIndividualMonths(DateTime startDate, DateTime endDate)
     {
         var result = new List<DateTime>();
@@ -784,8 +782,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
 
-    private async Task<IEnumerable<OctopusConsumption>> GetEnrichedConsumptionData(IEnumerable<ConsumptionRecord> importConsumption,
-        IEnumerable<ConsumptionRecord> exportConsumption, OctopusMeterPoints importMeter, OctopusMeterPoints exportMeter, 
+    private async Task<IEnumerable<OctopusConsumption>> GetEnrichedConsumptionData(IEnumerable<ConsumptionRecord>? importConsumption,
+        IEnumerable<ConsumptionRecord>? exportConsumption, OctopusMeterPoints importMeter, OctopusMeterPoints? exportMeter, 
         string? importTariffOverride, string? exportTariffOverride, CancellationToken token)
     {
         if (importConsumption != null && importConsumption.Any())
@@ -832,9 +830,12 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return [];
     }
 
-    private async Task EnrichConsumptionWithTariffPrices(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints meter, 
+    private async Task EnrichConsumptionWithTariffPrices(IEnumerable<ConsumptionRecord> consumptions, OctopusMeterPoints? meter, 
                         bool getStandingCharge, string? tarriffOverride, CancellationToken token)
     {
+        if (meter == null)
+            return;
+        
         var minDate = consumptions.Min(x => x.interval_start);
         var maxDate = consumptions.Max(x => x.interval_end);
 
@@ -986,9 +987,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                         page_size = pageSize,
                         order_by = "period"
                     });
-                    
-                var result = await url.GetJsonAsync<Consumption>(cancellationToken:token);
-                
+
+                var result = await url.GetJsonAsync<Consumption>(cancellationToken: token);
+
                 if (result != null)
                 {
                     results = new List<ConsumptionRecord>(result.results);
@@ -1013,6 +1014,10 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
                     return results;
                 }
+            }
+            catch (TaskCanceledException ex)
+            {
+                logger.LogTrace("Consumption query cancelled");
             }
             catch (FlurlHttpException ex)
             {

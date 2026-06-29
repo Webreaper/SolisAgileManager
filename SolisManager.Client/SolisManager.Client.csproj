@@ -11,7 +11,7 @@
 
     <ItemGroup>
         <PackageReference Include="Blazor-ApexCharts" />
-        <PackageReference Include="Blazored.LocalStorage" />
+        <PackageReference Include="Blazor.Storage" />
         <PackageReference Include="Humanizer.Core.uk" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
         <PackageReference Include="Microsoft.Extensions.Http" />

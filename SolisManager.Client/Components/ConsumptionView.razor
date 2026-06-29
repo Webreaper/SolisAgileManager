@@ -146,7 +146,7 @@
 
     private decimal GetComparisonCost(DateTime? date)
     {
-        if (date != null && comparisonLookup.TryGetValue(date.Value, out var cost))
+        if (date != null && comparisonLookup != null && comparisonLookup.TryGetValue(date.Value, out var cost))
             return cost.NetCost;
         return 0;
     }
