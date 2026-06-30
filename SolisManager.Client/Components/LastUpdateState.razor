@@ -59,7 +59,8 @@
             snackbar.Add($"Warning - Daily EEPROM Writes ({InverterState.DailyEepromWrites}) is high. Please check the logs", Severity.Warning, 
                 x =>
                 {
-                    x.HideTransitionDuration = 120 * 1000;
+                    x.RequireInteraction = true;
+                    x.BackgroundBlurred = true;
                 });
         }
         else

@@ -16,4 +16,5 @@ public class SlotOverride
     public decimal? OverridePrice { get; set; }
     public AutoOverrideType Type { get; set; } = AutoOverrideType.None;
     public string? Explanation { get; set; }
+    public bool Notify { get; set; }
 }

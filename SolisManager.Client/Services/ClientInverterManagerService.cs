@@ -156,4 +156,10 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         var result = await httpClient.GetFromJsonAsync<OctopusTariffResponse>($"inverter/octopustariffs/{product}");
         return result;
     }
+
+    public async Task SlotNotified(PricePlanSlot slot)
+    {
+        var response = await httpClient.PostAsJsonAsync($"inverter/notifyslot", slot);
+        response.EnsureSuccessStatusCode();
+    }
 }

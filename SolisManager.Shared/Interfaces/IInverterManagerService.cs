@@ -26,7 +26,7 @@ public interface IInverterManagerService
 
     Task<OctopusProductResponse?> GetOctopusProducts();
     Task<OctopusTariffResponse?> GetOctopusTariffs(string product);
-
+    Task SlotNotified(PricePlanSlot slot);
 }
 
 public interface IInverterRefreshService

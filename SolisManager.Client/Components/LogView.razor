@@ -42,6 +42,9 @@
                         <MudTh Style="width: 15%;">Level</MudTh>
                         <MudTh>Message</MudTh>
                     </HeaderContent>
+                    <NoRecordsContent>
+                        No log files match the selected filters @FilterSummary()
+                    </NoRecordsContent>
                     <PagerContent>
                         <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
                     </PagerContent>
@@ -74,6 +77,22 @@
     private const string LevelSetting = "LogLevel";
     private const string TextSetting = "SearchText";
 
+    private string? FilterSummary()
+    {
+        var breadcrumbs = new List<string>();
+        
+        if( logLevelFilter.Any())
+            breadcrumbs.Add( $"Log level: {string.Join(" or ", logLevelFilter)}");
+        
+        if( ! string.IsNullOrEmpty(searchText))
+            breadcrumbs.Add($"Search text: {searchText}");
+        
+        if( breadcrumbs.Any())
+            return $"({string.Join(", ", breadcrumbs)})";
+
+        return null;
+    }
+    
     private RenderFragment Level(ILogViewService.LogEntry e)
     {
         var levelClass = e.level switch

@@ -26,6 +26,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private readonly SolcastAPI solcastApi;
     private readonly AxleApi axleApi;
     private readonly ILogger<InverterManager> logger;
+    private readonly HashSet<DateTime> notifiedSlots = new();
     private AsyncEventConflator conflator = new(5 * 1000);
 
     public InverterManager(
@@ -1120,7 +1121,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     slotEvents.Count);
 
                 SlotAction prevSlotAction = SlotAction.DoNothing;
-                
+                bool firstNotification = true;
+
                 foreach (var pair in slotEvents.Values)
                 {
                     if (pair.evt.import_export == null)
@@ -1131,6 +1133,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         continue;
                     }
 
+                    // Exclude all but the first slot from notifications
+                    if (!firstNotification)
+                        notifiedSlots.Add(pair.slot.valid_from);
+                    
                     if (pair.evt.import_export.Equals("export", StringComparison.OrdinalIgnoreCase))
                     {
                         pair.slot.VPPOverride = new SlotOverride
@@ -1138,6 +1144,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Action = SlotAction.Discharge,
                             Explanation = "Axle Discharge Event active",
                             Type = AutoOverrideType.AxleEvent,
+                            Notify = !notifiedSlots.Contains(pair.slot.valid_from)
                         };
                         prevSlotAction = SlotAction.Charge;
                     }
@@ -1148,9 +1155,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                             Action = SlotAction.Charge,
                             Explanation = "Axle Charge Event active",
                             Type = AutoOverrideType.AxleEvent,
+                            Notify = !notifiedSlots.Contains(pair.slot.valid_from)
                         };
                         prevSlotAction = SlotAction.Charge;
-                    } 
+                    }
+
+                    firstNotification = false;
                 }
 
                 if (config.AxleEventPrecharge)
@@ -1594,6 +1604,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     public async Task<OctopusTariffResponse?> GetOctopusTariffs(string product)
     {
         return await octopusAPI.GetOctopusTariffs(product);
+    }
+    
+    public Task SlotNotified(PricePlanSlot slot)
+    {
+        notifiedSlots.Add(slot.valid_from);
+        return Task.CompletedTask;
     }
 
     public async Task CheckForNewVersion()
