@@ -84,7 +84,7 @@ public static class Utils
         services.AddMudServices(config =>
         {
             config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
-            config.SnackbarConfiguration.SnackbarVariant = UIConstants.MudVariant;
+            config.SnackbarConfiguration.SnackbarVariant = UIConstants.GlobalMudVariant;
             config.SnackbarConfiguration.PreventDuplicates = true;
             config.SnackbarConfiguration.ShowTransitionDuration = 250;
             config.SnackbarConfiguration.HideTransitionDuration = 150;

@@ -21,8 +21,7 @@
                     <div class="time-selection">
                         <SlotPicker @bind-SlotTime="scheduledAction.StartTime" Label="Start" disabled="scheduledAction.Disabled"/>
                         <div class="schedule-field action-picker">
-                            <MudSelect @bind-Value="scheduledAction.Action" Label="Action" Disabled="scheduledAction.Disabled" Variant="UIConstants.MudVariant"
-                                       Dense="true" Margin="Margin.Dense">
+                            <MudSelect @bind-Value="scheduledAction.Action" Label="Action" Disabled="scheduledAction.Disabled" @attributes="UIConstants.SelectAttribs">
                                 @SlotChoice(SlotAction.Charge)
                                 @SlotChoice(SlotAction.Discharge)
                                 @SlotChoice(SlotAction.DoNothing)
@@ -33,11 +32,11 @@
                         {
                             <div class="schedule-field soc-control">
                                 <MudNumericField T="int?" @bind-Value="@scheduledAction.SOCTrigger" Label="@SOCText(scheduledAction)"
-                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant" Margin="Margin.Dense"/>
+                                                 Disabled="@(scheduledAction.Disabled)" @attributes="UIConstants.TextAttribs"/>
                             </div>
                             <div class="schedule-field amps-control">
                                 <MudNumericField T="int?" @bind-Value="@scheduledAction.Amps" Label="Amps"
-                                                 Disabled="@(scheduledAction.Disabled)" Variant="UIConstants.MudVariant" Margin="Margin.Dense"/>
+                                                 Disabled="@(scheduledAction.Disabled)" @attributes="UIConstants.SelectAttribs"/>
                             </div>
                         }
                         <div class="schedule-field">
@@ -72,11 +71,11 @@
     <DialogActions>
         <div class="button-bar">
             <div>
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="UIConstants.MudVariant" OnClick="AddEntry">Add Action</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" @attributes="UIConstants.ButtonAttribs" OnClick="AddEntry">Add Action</MudButton>
             </div>
             <div>
-                <MudButton OnClick="Cancel" Variant="UIConstants.MudVariant">Cancel</MudButton>
-                <MudButton Color="Color.Primary" Variant="UIConstants.MudVariant" OnClick="Save">Update</MudButton>
+                <MudButton OnClick="Cancel" @attributes="UIConstants.ButtonAttribs">Cancel</MudButton>
+                <MudButton Color="Color.Primary" @attributes="UIConstants.ButtonAttribs" OnClick="Save">Update</MudButton>
             </div>
         </div>
     </DialogActions>

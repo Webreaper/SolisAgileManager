@@ -3,7 +3,7 @@
 @if (inverterConfigTypes.Length > 1)
 {
     <MudSelect T="Type" @bind-Value="selectedInverterConfigType" @bind-Value:after="InverterTypeChanged"
-               Label="Inverter Type" Variant="UIConstants.MudVariant" Dense="true">
+               Label="Inverter Type" @attributes="UIConstants.SelectAttribs">
         @foreach (var choice in inverterConfigTypes)
         {
             <MudSelectItem T="Type" Value="@choice">@GetInverterTypeName(choice)</MudSelectItem>

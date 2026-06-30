@@ -5,23 +5,23 @@
 @if (config != null)
 {
     <MudTextField T="string" Label="Solis API Key" @bind-Value="@config.SolisAPIKey" @bind-Value:after="ConfigChanged" 
-                    Immediate="true" Variant="UIConstants.MudVariant"/>
+                    Immediate="true" @attributes="UIConstants.TextAttribs"/>
     <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolisAPISecret"  @bind-Value:after="ConfigChanged"
-                  Immediate="true" Variant="UIConstants.MudVariant"/>
+                  Immediate="true" @attributes="UIConstants.TextAttribs"/>
     <MudTextField T="string" Label="Solis Inverter Serial Number" @bind-Value="@config.SolisInverterSerial"  @bind-Value:after="ConfigChanged"
-                  Immediate="true" Variant="UIConstants.MudVariant"/>
+                  Immediate="true" @attributes="UIConstants.TextAttribs"/>
     <div class="config-field-row">
         <ConfigSettingHelp HelpText="Specifies the maximum charge and discharge rate in Amps">
             <MudNumericField T="int" Label="Max Charge Rate (Amps)" @bind-Value="@config.MaxChargeRateAmps" @bind-Value:after="ConfigChanged"
-                             Min="5" Max="750" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                             Min="5" Max="750" @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
             <MudNumericField T="int?" Label="Max Discharge Rate (Amps)" @bind-Value="@config.MaxDischargeRateAmps" @bind-Value:after="ConfigChanged"
-                             Min="5" Max="750" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                             Min="5" Max="750" @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
         </ConfigSettingHelp>
     </div>
     <div class="config-field-row">
         <ConfigSettingHelp HelpText="Specifies the minimum discharge SOC percentage that will be applied. This setting only affects inverters with newer firmware">
             <MudNumericField T="int" Label="Min Discharge SOC (%)" @bind-Value="@config.MinDischargeSOC"  @bind-Value:after="ConfigChanged"
-                             Min="15" Max="70" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                             Min="15" Max="70" @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
         </ConfigSettingHelp>
         @if (config?.MaxChargeRateAmps > 100)
         {

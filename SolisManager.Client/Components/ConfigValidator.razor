@@ -18,7 +18,7 @@ else
                 could easily control your Inverter.</MudText>
             <MudText>If you want to be able to access the application remotely, please ensure you 
                 only do so via a VPN or a reverse proxy.</MudText> 
-            <MudButton OnClick="AcknowledgeSecurityWarning" Variant="UIConstants.MudVariant">OK, I understand</MudButton>
+            <MudButton OnClick="AcknowledgeSecurityWarning" @attributes="UIConstants.ButtonAttribs">OK, I understand</MudButton>
         </div>
     }
     else

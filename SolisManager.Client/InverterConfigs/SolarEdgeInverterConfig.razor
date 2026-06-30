@@ -5,9 +5,9 @@
 @if (config != null)
 {
     <MudTextField T="string" Label="Solis API Key" @bind-Value="@config.SolarEdgeAPIKey" @bind-Value:after="ConfigChanged" 
-                    Immediate="true" Variant="UIConstants.MudVariant"/>
+                    Immediate="true" @attributes="UIConstants.TextAttribs"/>
     <MudTextField T="string" Label="Solis API Secret" @bind-Value="@config.SolarEdgeAPISecret"  @bind-Value:after="ConfigChanged"
-                  Immediate="true" Variant="UIConstants.MudVariant"/>
+                  Immediate="true" @attributes="UIConstants.TextAttribs"/>
 }
 
 @code {

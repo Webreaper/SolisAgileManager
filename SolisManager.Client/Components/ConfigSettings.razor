@@ -45,8 +45,8 @@
             </ConfigSettingHelp>
             @if (!manualProductKey)
             {
-                <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" Variant="UIConstants.MudVariant"/>
-                <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" @attributes="UIConstants.TextAttribs"/>
+                <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" @attributes="UIConstants.TextAttribs"/>
             }
             else
             {
@@ -71,7 +71,7 @@
                 <MudCheckBox Label="Intelligent Go Charging" @bind-Value="@config.IntelligentGoCharging" class="wrapped-field"
                              Disabled="@(!config.TariffIsIntelligentGo)"/>
                 <MudNumericField T="int?" @bind-Value="@config.IntelligentGoAmps" Label="IOG Charge Amps"
-                                 Disabled="@(!config.TariffIsIntelligentGo)" Variant="UIConstants.MudVariant"/>
+                                 Disabled="@(!config.TariffIsIntelligentGo)" @attributes="UIConstants.TextAttribs"/>
                 <MudCheckBox Label="Use Full 30-minute slot" @bind-Value="@config.IntelligentGoUseFullSlots" class="wrapped-field"
                              Disabled="@(!config.TariffIsIntelligentGo)"/>
             </div>
@@ -79,13 +79,13 @@
         <div class="config-fields">
             <h5>Solcast Settings</h5>
             <ConfigSettingHelp HelpText="Specify up to two Solcast comma-separated site identifiers (one for each string)">
-                <MudTextField T="string" Label="Solcast API Key" @bind-Value="@config.SolcastAPIKey" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Solcast API Key" @bind-Value="@config.SolcastAPIKey" Immediate="true" @attributes="UIConstants.TextAttribs"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp HelpText="Set your Solcast Site Identifier here. If you have multiple strings, add the site IDs separated by a comma.">
-                <MudTextField T="string" Label="Solcast Site ID / Resource ID" @bind-Value="@config.SolcastSiteIdentifier" Immediate="true" Variant="UIConstants.MudVariant"/>
+                <MudTextField T="string" Label="Solcast Site ID / Resource ID" @bind-Value="@config.SolcastSiteIdentifier" Immediate="true" @attributes="UIConstants.TextAttribs"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp HelpText="Damping factor for Solcast (e.g., if Solcast estimates are double actual yield, set this to 50%). A value of 100% will use the raw solcast data">
-                <MudNumericField T="int" Label="Solcast Damping/Reduction %" @bind-Value="@DampingPercentageProxy" Min="0" Max="100" Variant="UIConstants.MudVariant"/>
+                <MudNumericField T="int" Label="Solcast Damping/Reduction %" @bind-Value="@DampingPercentageProxy" Min="0" Max="100" @attributes="UIConstants.TextAttribs"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp>
                 <HelpContent>
@@ -119,7 +119,7 @@
                 </HelpContent>
                 <ChildContent>
                     <MudTextField T="string" Label="Axle Energy API Key" @bind-Value="@config.AxleAPIKey" Immediate="true" 
-                                  Lines="1" MaxLines="3" Variant="UIConstants.MudVariant"/>
+                                  Lines="1" MaxLines="3" @attributes="UIConstants.TextAttribs"/>
                 </ChildContent>
             </ConfigSettingHelp>
             <ConfigSettingHelp>
@@ -139,7 +139,7 @@
             <ConfigSettingHelp HelpText="Enable this option and set a threshold for tomorrow's PV forecast. If the forecast is above the threshold, the overnight charge will be skipped.">
                 <MudCheckBox Label="No Overnight Charge" @bind-Value="@config.SkipOvernightCharge" LabelPlacement="Placement.End" class="wrapped-field"/>
                 <MudNumericField T="decimal" @bind-Value="@config.ForecastThreshold"  Label="If tomorrow's forecast exceeds (kWh)" Min="5" Max="100"
-                                 Variant="UIConstants.MudVariant" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
+                                 @attributes="UIConstants.TextAttribs" Disabled="@(!config.SkipOvernightCharge)" class="wrapped-field"/>
             </ConfigSettingHelp>
             @if (config.SkipOvernightCharge)
             {
@@ -159,7 +159,7 @@
         <div class="config-fields">
             <h5>General/Battery Options</h5>
             <MudSlider @bind-Value="@config.SlotsForFullBatteryCharge" Size="Size.Large" TickMarks="true" ValueLabel="true"
-                       Min="1" Max="24" Immediate="true" Variant="UIConstants.MudVariant">
+                       Min="1" Max="24" Immediate="true" Variant="UIConstants.GlobalMudVariant">
                 <ConfigSettingHelp>
                     <HelpContent>This setting tells the app how many slots 30-minute slots of charging will be needed 
                         to go from empty to full. This will depend on your battery size and charging rate.<br/>
@@ -177,19 +177,19 @@
             <div class="config-field-row">
                 <ConfigSettingHelp HelpText="Target SOC percentage to be achieved prior to the highest-priced peak period in the day.">
                     <MudNumericField T="int" Label="Battery % for Peak Period" @bind-Value="@PeakPercentageProxy" Min="20" Max="100" 
-                                     Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                                     @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="Ensures that if the price falls below a certain threshold, the battery will be charged regardless of SOC %">
                     <MudNumericField T="int" Label="Always charge below (p/kWh)" @bind-Value="@config.AlwaysChargeBelowPrice" Min="-10" Max="100" 
-                                     Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                                     @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="If the battery is below the specified SOC, will charge regardless of price">
                     <MudNumericField T="int?" Label="Charge if SOC (%) Below" @bind-Value="@config.AlwaysChargeBelowSOC" Min="0" Max="100" 
-                                     Clearable="true" Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                                     Clearable="true" @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="If slots are available with below-average prices, they will be used to boost-charge the battery if the SOC is below this value">
                     <MudNumericField T="int" Label="Battery Boost Threshold (%)" @bind-Value="@config.LowBatteryPercentage" Min="1" Max="150" 
-                                     Variant="UIConstants.MudVariant" class="wrapped-field"/>
+                                     @attributes="UIConstants.TextAttribs" class="wrapped-field"/>
                 </ConfigSettingHelp>
                 <ConfigSettingHelp HelpText="If prices are negative, SolisManager will discharge and charge your battery. If you do not want this, check this option">
                     <MudCheckBox Label="Disable Auto-discharge" LabelPlacement="Placement.End" @bind-Value="@config.DisableAutoDischarge"/>
@@ -205,10 +205,10 @@
             </div>
         </div>
         <div class="button-bar">
-            <MudButton OnClick="SaveConfig" Variant="UIConstants.MudVariant" Color="Color.Primary" Disabled="@(!config.IsValid())">Save Settings</MudButton>
+            <MudButton OnClick="SaveConfig" @attributes="UIConstants.ButtonAttribs" Color="Color.Primary" Disabled="@(!config.IsValid())">Save Settings</MudButton>
             @if (config.IsValid())
             {
-                <MudButton OnClick="@TestCharge" Variant="UIConstants.MudVariant" Color="Color.Warning">Save and Test Charge</MudButton>
+                <MudButton OnClick="@TestCharge" @attributes="UIConstants.ButtonAttribs" Color="Color.Warning">Save and Test Charge</MudButton>
             }
         </div>
     }
@@ -218,7 +218,7 @@
     [Parameter] public EventCallback OnSettingsChanged { get; set; }
 
     [CascadingParameter] protected bool DarkMode { get; set; }
-    
+
     private SolisManagerConfig? config;
     private bool manualProductKey = false;
     private string DarkModeStyle => DarkMode ? "config-settings-dark" : string.Empty;

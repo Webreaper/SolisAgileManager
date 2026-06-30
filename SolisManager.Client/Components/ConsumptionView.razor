@@ -8,14 +8,14 @@
         <ChildContent>
             <div class="consumption-header">
                 <MudSelect T="DateRange" @bind-Value="selectedDateRange" @bind-Value:after="RecalcConsmption" Label="Range" 
-                           Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                           @attributes="UIConstants.SelectAttribs">
                     @foreach (var range in DateRanges)
                     {
                         <MudSelectItem T="DateRange" Value="@range">@range.desc</MudSelectItem>
                     }
                 </MudSelect>
                 <MudSelect T="GroupByType" @bind-Value="selectedGrouping" @bind-Value:after="RecalcConsmption" 
-                           Label="Group By" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                           Label="Group By" @attributes="UIConstants.SelectAttribs">
                     @foreach (var group in Enum.GetValues<GroupByType>())
                     {
                         <MudSelectItem T="GroupByType" Value="@group">@group.Humanize()</MudSelectItem>
