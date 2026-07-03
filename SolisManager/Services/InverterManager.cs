@@ -1170,13 +1170,17 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                         prepSlots);
                     var prevTwoSlots = slots.GetPreviousNItems(prepSlots,
                         x => x.VPPOverride != null && x.VPPOverride.Type == AutoOverrideType.AxleEvent);
+
+                    if (config.AxlePrechargeBoostOnly && prevSlotAction == SlotAction.Charge)
+                        prevSlotAction = SlotAction.ChargeIfLowBattery;
+                    
                     foreach (var slot in prevTwoSlots)
                     {
                         slot.VPPOverride = new SlotOverride
                         {
                             Action = prevSlotAction,
                             Explanation = "Axle Event Preparation",
-                            Type = AutoOverrideType.AxleEvent,
+                            Type = AutoOverrideType.AxleEvent
                         };
                     }
                 }

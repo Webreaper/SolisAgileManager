@@ -122,6 +122,8 @@
                                   Lines="1" MaxLines="3" @attributes="UIConstants.TextAttribs"/>
                 </ChildContent>
             </ConfigSettingHelp>
+        </div>
+        <div class="config-field-row">
             <ConfigSettingHelp>
                 <HelpContent>
                     If the Axle.Energy VPP is enabled, your battery will pre-charge for an hour before the event to ensure you
@@ -129,9 +131,13 @@
                     be discharged for an hour before the event.
                 </HelpContent>
                 <ChildContent>
-                    <MudCheckBox Label="Pre-Charge/Discharge before Axle Events" @bind-Value="@config.AxleEventPrecharge" LabelPlacement="Placement.End" 
+                    <MudCheckBox Label="Pre-Charge before" @bind-Value="@config.AxleEventPrecharge" LabelPlacement="Placement.End" 
                                  Disabled="!AxleEnabled" class="wrapped-field"/>
                 </ChildContent>
+            </ConfigSettingHelp>
+            <ConfigSettingHelp HelpText="If selected, this will make the pre-charge a boost charge - it will only charge if the SOC is below the Battery Boost Threshold (below)">
+                <MudCheckBox Label="Boost Charge" @bind-Value="@config.AxlePrechargeBoostOnly" LabelPlacement="Placement.End" 
+                             class="wrapped-field" Disabled="@(!config.AxleEventPrecharge)"/>
             </ConfigSettingHelp>
         </div>
         <div class="config-fields">

@@ -24,6 +24,7 @@ public record SolisManagerConfig
     public bool SolcastExtraUpdates { get; set; } = false;
     public string? AxleAPIKey { get; set; }
     public bool AxleEventPrecharge { get; set; } = true;
+    public bool AxlePrechargeBoostOnly { get; set; }
     public bool DisableAutoDischarge { get; set; } = false;
 
     public bool IntelligentGoCharging { get; set; } = false;
