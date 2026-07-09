@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -12,7 +13,15 @@ public record SolisManagerConfig
     public InverterConfigBase? InverterConfig { get; set; } = null;
     public string OctopusAccountNumber { get; set; } = string.Empty;
     public string OctopusAPIKey { get; set; } = string.Empty;
+    // The product code from the account
     public string OctopusProductCode { get; set; } = String.Empty;
+    
+    // Manually overridden product code
+    public string? OverrideProductCode { get; set; } = string.Empty;
+
+    [NotMapped]
+    public string ProductCode => string.IsNullOrEmpty(OverrideProductCode) ? OctopusProductCode : OverrideProductCode;
+    
     public int SlotsForFullBatteryCharge { get; set; }
     public int AlwaysChargeBelowPrice { get; set; } = 10;
     public int? AlwaysChargeBelowSOC { get; set; } = null;
@@ -92,11 +101,11 @@ public record SolisManagerConfig
         return true;
     }
 
-    public bool TariffIsIntelligentGo => ! string.IsNullOrEmpty(OctopusProductCode) &&
-                                         (OctopusProductCode.Contains("INTELLI-VAR") ||
-                                         OctopusProductCode.Contains("INTELLI-FIX") ||
-                                         OctopusProductCode.Contains("IOG-SMB-VAR") ||
-                                         OctopusProductCode.Contains("INTELLI-BB-VAR"));
+    public bool TariffIsIntelligentGo => ! string.IsNullOrEmpty(ProductCode) &&
+                                         (ProductCode.Contains("INTELLI-VAR") ||
+                                          ProductCode.Contains("INTELLI-FIX") ||
+                                          ProductCode.Contains("IOG-SMB-VAR") ||
+                                          ProductCode.Contains("INTELLI-BB-VAR"));
     
     [Obsolete]
     public string? SolisAPIKey { get; set; }

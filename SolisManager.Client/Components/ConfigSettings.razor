@@ -37,27 +37,35 @@
                     list.
                 </HelpContent>
                 <ChildContent>
-                    <MudRadioGroup @bind-Value="@manualProductKey">
-                        <MudRadio Size="Size.Small" Value="@false">Use API Key (recommended)</MudRadio>
-                        <MudRadio Size="Size.Small" Value="@true">Select Octopus Tariff</MudRadio>
-                    </MudRadioGroup>
+                    <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" 
+                                  @bind-Value:after="GetAccountProduct" @attributes="UIConstants.TextAttribs"/>
+                    <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" 
+                                  @bind-Value:after="GetAccountProduct" @attributes="UIConstants.TextAttribs"/>
+                    @if (!string.IsNullOrEmpty(evaluatedProductCode))
+                    {
+                        <div class="eval-product-code">
+                            Account product code: @evaluatedProductCode
+                        </div>
+                    }
                 </ChildContent>
             </ConfigSettingHelp>
-            @if (!manualProductKey)
-            {
-                <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" @attributes="UIConstants.TextAttribs"/>
-                <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" @attributes="UIConstants.TextAttribs"/>
-            }
-            else
-            {
-                <OctopusProductSelector @bind-TariffCode="config.OctopusProductCode" Disabled="@AutomaticAccount"/>
-                @if (AutomaticAccount)
-                {
-                    <div class="tariff-tip">
-                        The Octopus Product has been set from your account. To set manually, clear the account/API settings.
-                    </div>
-                }
-            }
+
+            <ConfigSettingHelp>
+                <HelpContent>
+                    In some rare occasions, the Octopus account doesn't return the correct product code for your import
+                    meter - this can happen if you recently moved tariffs. This setting allows you to manually override
+                    the product.
+                    Note that if you pick the wrong product, and it doesn't match your account, you may end up paying
+                    more than you should!
+                </HelpContent>
+                <ChildContent>
+                    <MudCheckBox Label="Override Product" @bind-Value="@overrideProduct" class="wrapped-field"
+                                 Disabled="@(!config.TariffIsIntelligentGo)"/>
+                </ChildContent>
+            </ConfigSettingHelp>
+            <div class="config-field-row">
+                <OctopusProductSelector @bind-TariffCode="config.OverrideProductCode" Disabled="@(!overrideProduct)" RegionClearable/>
+            </div>
         </div>
         @if (config.TariffIsIntelligentGo)
         {
@@ -226,12 +234,11 @@
     [CascadingParameter] protected bool DarkMode { get; set; }
 
     private SolisManagerConfig? config;
-    private bool manualProductKey = false;
+    private bool overrideProduct = false;
     private string DarkModeStyle => DarkMode ? "config-settings-dark" : string.Empty;
     private string originalConfigJson = string.Empty;
     private string? glassPaneText = null;
-
-    private bool AutomaticAccount => config != null && !string.IsNullOrEmpty(config.OctopusAccountNumber) && !string.IsNullOrEmpty(config.OctopusAPIKey);
+    private string? evaluatedProductCode = null;
     private bool AxleEnabled => config != null && !string.IsNullOrEmpty(config.AxleAPIKey);
     private bool ManualNightEnd = false;
     
@@ -252,7 +259,8 @@
         config = await inverterManagerService.GetConfig();
         originalConfigJson = JsonSerializer.Serialize(config);
         ManualNightEnd = config.NightEndTime != null;
-        
+        evaluatedProductCode = config.OctopusProductCode;
+        overrideProduct = ! string.IsNullOrEmpty(config.OverrideProductCode);
         await base.OnInitializedAsync();
     }
 
@@ -288,6 +296,18 @@
 
             if (config != null && config.InverterConfig != null)
             {
+                @if (!string.IsNullOrEmpty(config.OverrideProductCode) && config.OverrideProductCode != config.OctopusProductCode)
+                {
+                    MarkupString msg = new MarkupString("You have overriden the product/tariff, so it no longer matches the one retrieved from your" +
+                                                        "Octopus account. Please ensure this was the intended decision, otherwise the charging " +
+                                                        "strategy could incurr excess costs.");
+                    var result = await dialogService.ShowMessageBoxAsync("Override Octopus Tariff Product?",
+                        msg, yesText: "Continue", cancelText: "Cancel");
+
+                    if (result == null || !result.Value)
+                        return;
+                }
+
                 var response = await inverterManagerService.SaveConfig(config);
 
                 if (response.Success)
@@ -337,6 +357,10 @@
         }
     }
 
+    private async Task GetAccountProduct()
+    {
+        evaluatedProductCode = await inverterManagerService.GetAccountProductCode(config.OctopusAccountNumber, config.OctopusAPIKey);
+    }
     private RenderFragment? InverterSettings()
     {
         if (config?.InverterConfig == null)

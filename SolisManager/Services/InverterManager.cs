@@ -291,7 +291,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
                 var start = DateTime.Now.RoundToHalfHour();
     
-                var rates = await octopusAPI.GetOctopusRates(config.OctopusProductCode, start, 
+                var rates = await octopusAPI.GetOctopusRates(config.ProductCode, start, 
                     start.AddDays(3), CancellationToken.None);
 
                 slots = rates.Where(x => x.valid_from >= start )
@@ -1005,6 +1005,17 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         await RecalculateSlotPlan(InverterState.Prices);
     }
 
+    public async Task<string?> GetAccountProductCode(string account, string apiKey)
+    {
+        if (!string.IsNullOrEmpty(account) && !string.IsNullOrEmpty(apiKey))
+        {
+            return await octopusAPI.GetCurrentOctopusTariffCode(config.OctopusAPIKey,
+                    config.OctopusAccountNumber);
+        }
+
+        return null;
+    }
+    
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
     {
         try
@@ -1018,8 +1029,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 if (!string.IsNullOrEmpty(productCode))
                 {
                     if (theConfig.OctopusProductCode != productCode)
-                        logger.LogInformation("Octopus product code has changed: {Old} => {New}",
-                            theConfig.OctopusProductCode, productCode);
+                    {
+                        var msg = $"Octopus account product code has changed: {theConfig.OctopusProductCode} => {productCode}";
+                        if (!string.IsNullOrEmpty(theConfig.OverrideProductCode))
+                            msg += $" Override product code ({theConfig.OverrideProductCode}) will take precendence";
+                        
+                        logger.LogInformation(msg);
+                    }
 
                     theConfig.OctopusProductCode = productCode;
                     return true;
@@ -1349,6 +1365,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                     Message = "Unable to get tariff details from Octopus. Please check your account and API key."
                 };
             }
+        }
+
+        if (newConfig.OverrideProductCode == newConfig.OctopusProductCode)
+        {
+            // Reset this - it's not an override if they're the same
+            newConfig.OverrideProductCode = null;
         }
         
         newConfig.CopyPropertiesTo(config);

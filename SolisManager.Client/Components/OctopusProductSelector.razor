@@ -8,7 +8,7 @@
             @if (selectedRegion == null && regions != null && string.IsNullOrEmpty(TariffCode))
             {
                 <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" @bind-Value:after="SelectedRegionChanged" 
-                           Label="Region" @attributes="UIConstants.SelectAttribs">
+                           Label="Region" @attributes="UIConstants.SelectAttribs" Disabled="@Disabled">
                     @foreach (var region in regions.Values)
                     {
                         <MudSelectItem T="OctopusRegion" Value="@region">@region.fullName</MudSelectItem>

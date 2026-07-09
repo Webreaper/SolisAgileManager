@@ -226,7 +226,7 @@
     protected override async Task OnInitializedAsync()
     {
         config = await inverterManagerService.GetConfig();
-        currentTariff = config.OctopusProductCode;
+        currentTariff = config.ProductCode;
         accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);
         
         await RecalcConsmption();
