@@ -59,7 +59,7 @@
                     more than you should!
                 </HelpContent>
                 <ChildContent>
-                    <MudCheckBox Label="Override Product" @bind-Value="@overrideProduct" class="wrapped-field"/>
+                    <MudCheckBox Label="Override Product" @bind-Value="@overrideProduct" @bind-Value:after="CancelOverride" class="wrapped-field"/>
                 </ChildContent>
             </ConfigSettingHelp>
             <div class="config-field-row">
@@ -253,6 +253,12 @@
         set => config!.SolcastDampFactor = value / 100.0M;
     }
 
+    private void CancelOverride()
+    {
+        if( config != null && ! overrideProduct )
+            config.OverrideProductCode = null;
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         config = await inverterManagerService.GetConfig();
