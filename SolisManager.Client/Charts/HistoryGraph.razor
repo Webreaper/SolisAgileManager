@@ -86,7 +86,7 @@
                 if (days == defaultDays)
                     color = Color.Primary;
                 
-                return @<MudButton OnClick="@(() => ZoomDays(days))" Variant="UIConstants.MudVariant" Color="@color" Size="Size.Small">@text</MudButton>;
+                return @<MudButton OnClick="@(() => ZoomDays(days))" @attributes="UIConstants.ButtonAttribs" Color="@color" Size="Size.Small">@text</MudButton>;
             }
         }
 

@@ -51,6 +51,12 @@
     align-items: center;
 }
 
+.eval-product-code {
+    opacity: 0.8;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .vpp-signup {
     background-color: #997404;
     opacity: 70%;

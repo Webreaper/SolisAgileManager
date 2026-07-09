@@ -32,7 +32,7 @@
             {
                 <div title="Clear any manual overrides that are currently in effect">
                     <MudButton OnClick="@ClearManualOverrides" StartIcon="@Icons.Material.Filled.Cancel"
-                               Variant="UIConstants.MudVariant" Size="Size.Small">
+                               @attributes="UIConstants.ButtonAttribs" Size="Size.Small">
                         Reset
                     </MudButton>
                 </div>

@@ -6,7 +6,7 @@
         if (Slot.ManualOverride != null)
         {
             <div class="reset-button">
-                <MudButton OnClick="ClearOverride" Variant="UIConstants.MudVariant" Size="Size.Small">Reset</MudButton>
+                <MudButton OnClick="ClearOverride" @attributes="UIConstants.ButtonAttribs" Size="Size.Small">Reset</MudButton>
             </div>
         }
         else
@@ -18,7 +18,7 @@
                 }
             </div>
             <div class="manual-button">
-                <MudButton OnClick="OpenActionPopup" Variant="UIConstants.MudVariant" Class="smaller-button" Size="Size.Small">Override</MudButton>
+                <MudButton OnClick="OpenActionPopup" @attributes="UIConstants.ButtonAttribs" Class="smaller-button" Size="Size.Small">Override</MudButton>
             </div>
         }
 }

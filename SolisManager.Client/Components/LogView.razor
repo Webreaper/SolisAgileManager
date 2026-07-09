@@ -9,7 +9,7 @@
                 @if (logFiles != null && logFiles.Any())
                 {
                     <MudSelect T="string" @bind-Value="logFile" @bind-Value:after="() => RefreshData(true)"
-                               Label="Log File" Dense="true" Variant="UIConstants.MudVariant" Margin="Margin.Dense">
+                               Label="Log File" @attributes="UIConstants.SelectAttribs">
                         @foreach (var file in logFiles)
                         {
                             <MudSelectItem T="string" Value="@file">@file</MudSelectItem>
@@ -21,10 +21,10 @@
             <div class="search-bar">
                 <MudTextField @bind-Value="searchText" @bind-Value:after="() => RefreshData(false)" Label="Search"
                               DebounceInterval="200" Placeholder="Search Text" Immediate="true" AutoFocus="true"
-                              AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Margin="Margin.Dense"/>
+                              AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" @attributes="UIConstants.TextAttribs"/>
                 <MudSelect T="LogLevel" @bind-SelectedValues="logLevelFilter" @bind-SelectedValues:after="() => RefreshData(false)"
-                           Label="Log Level" Style="min-width:50px;" Dense="true" Variant="UIConstants.MudVariant" 
-                           Margin="Margin.Dense" MultiSelection="true" SelectAll="true" SelectAllText="All">
+                           Label="Log Level" Style="min-width:50px;" @attributes="UIConstants.SelectAttribs" MultiSelection="true"
+                           SelectAll="true" SelectAllText="All">
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Information">Info</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Warning">Warning</MudSelectItem>
                     <MudSelectItem T="LogLevel" Value="@LogLevel.Error">Error</MudSelectItem>

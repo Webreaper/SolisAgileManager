@@ -163,7 +163,9 @@ public class Program
             if( ! string.IsNullOrEmpty(config.OctopusAPIKey))
                 logger.LogInformation("  Octopus API Key was specified");
             if( ! string.IsNullOrEmpty(config.OctopusProductCode))
-                logger.LogInformation("  Octopus Product Code: {C}", config.OctopusProductCode);
+                logger.LogInformation("  Octopus Account Product Code: {C}", config.OctopusProductCode);
+            if( ! string.IsNullOrEmpty(config.OverrideProductCode))
+                logger.LogInformation("  Override Product Code: {C}", config.OverrideProductCode);
             if( config.ScheduledActions != null )
                 logger.LogInformation("  Scheduled actions configured: {C}", config.ScheduledActions.Count);
         }

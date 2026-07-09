@@ -59,7 +59,7 @@
     protected override async Task OnInitializedAsync()
     {
         var config = await inverterManagerService.GetConfig();
-        currentTariff = config.OctopusProductCode;
+        currentTariff = config.ProductCode;
         selectedTariff = config.LastComparisonTariff;
 
         await RecalcNewComparison();

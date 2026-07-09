@@ -8,7 +8,7 @@
             @if (selectedRegion == null && regions != null && string.IsNullOrEmpty(TariffCode))
             {
                 <MudSelect T="OctopusRegion" @bind-Value="selectedRegion" @bind-Value:after="SelectedRegionChanged" 
-                           Label="Region" Variant="UIConstants.MudVariant" Dense="true" Margin="Margin.Dense">
+                           Label="Region" @attributes="UIConstants.SelectAttribs" Disabled="@Disabled">
                     @foreach (var region in regions.Values)
                     {
                         <MudSelectItem T="OctopusRegion" Value="@region">@region.fullName</MudSelectItem>
@@ -32,7 +32,7 @@
                 }
 
                 <MudSelect T="OctopusProduct" @bind-Value="selectedProduct" @bind-Value:after="SelectedProductChanged"
-                           Label="@Label" Variant="UIConstants.MudVariant" Dense="true" Margin="Margin.Dense" Disabled="@Disabled"
+                           Label="@Label" @attributes="UIConstants.SelectAttribs" Disabled="@Disabled"
                            Placeholder="@Placeholder" Clearable="true" OnClearButtonClick="SelectedProductChanged">
                     @foreach (var product in products)
                     {

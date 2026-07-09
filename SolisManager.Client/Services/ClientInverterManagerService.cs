@@ -162,4 +162,12 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         var response = await httpClient.PostAsJsonAsync($"inverter/notifyslot", slot);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task<string?> GetAccountProductCode(string account, string apiKey)
+    {
+        if (string.IsNullOrEmpty(account) || string.IsNullOrEmpty(apiKey))
+            return null;
+        
+        return await httpClient.GetFromJsonAsync<string?>($"inverter/checkproductcode/{account}/{apiKey}");
+    }
 }

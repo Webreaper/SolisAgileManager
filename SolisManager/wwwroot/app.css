@@ -1,5 +1,9 @@
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --mud-palette-primary-rgb: 245, 130, 0;
+    --mud-palette-primary: rgb(245, 130, 0);
+    --mud-palette-secondary: firebrick;
 }
 
 a, .btn-link {

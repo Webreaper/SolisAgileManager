@@ -201,6 +201,10 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             // everything for each month spanned.
             return thirtyMinSlots?.Where(x => x.valid_from >= from && x.valid_to <= to).ToList() ?? [];
         }
+        else
+        {
+            logger.LogWarning("Octopus API returned no rates/slots: Tariff={Tariff}, Date={F} => {T}", tariffCode, from, to);
+        }
 
         return [];
     }

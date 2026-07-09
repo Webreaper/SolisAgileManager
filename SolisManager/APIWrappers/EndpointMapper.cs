@@ -99,6 +99,15 @@ public static class EndpointMapper
                 return TypedResults.Ok(config);
             });
 
+        group.MapGet("checkproductcode/{account}/{apiKey}",
+            async  (
+                string account, string apiKey, 
+                [FromServices] IInverterManagerService service) =>
+            {
+                var config = await service.GetAccountProductCode(account, apiKey);
+                return TypedResults.Ok(config);
+            });
+
         return group;
     }
 
