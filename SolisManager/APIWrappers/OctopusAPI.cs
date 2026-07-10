@@ -703,9 +703,6 @@ private enum MeterType
         var importMeter = await GetMeter(apiKey, accountNumber, MeterType.Import);
         var now = DateTime.UtcNow;
 
-        if (Debugger.IsAttached)
-            return "E-1R-IOG-SMB-VAR-24-10-29-H";
-
         if (importMeter != null)
         {
             // Look for a contract with no end date.
