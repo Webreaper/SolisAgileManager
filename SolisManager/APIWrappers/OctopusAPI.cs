@@ -156,8 +156,20 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 rate.valid_to = rate.valid_to.Value.AddDays(1);
             }
         }
-        
-        return rates;
+
+        var extras = new List<OctopusRate>();
+
+        // Add an extra day's worth of rates.
+        foreach (var rate in rates)
+        {
+            extras.Add( new OctopusRate()
+            {
+                valid_from = rate.valid_from.AddDays(1),
+                valid_to = rate.valid_from.AddDays(1),
+                value_inc_vat = rate.value_inc_vat
+            });
+        }
+        return rates.Union(extras).ToList();
     }
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
