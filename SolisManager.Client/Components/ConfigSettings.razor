@@ -369,8 +369,16 @@
 
     private async Task GetAccountProduct()
     {
-        evaluatedProductCode = await inverterManagerService.GetAccountProductCode(config.OctopusAccountNumber, config.OctopusAPIKey);
+        try
+        {
+            evaluatedProductCode = await inverterManagerService.GetAccountProductCode(config.OctopusAccountNumber, config.OctopusAPIKey);
+        }
+        catch
+        {
+            evaluatedProductCode = null;
+        }
     }
+
     private RenderFragment? InverterSettings()
     {
         if (config?.InverterConfig == null)
