@@ -162,7 +162,6 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
     {
-        tariffCode = "E-1R-IOG-SMB-FIX-12M-26-03-23-B";
         var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
         
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
