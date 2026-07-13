@@ -124,25 +124,45 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         // Pretty hacky - currently we have to hard-code the night/day rate start and end
         var dayRateStart = new TimeOnly(05, 30);
         var dayRateEnd = new TimeOnly(23, 30);
+        var tomorrow = today.AddDays(1);
         
+        // Project two days of IOG rates
         IEnumerable<OctopusRate> rates =
         [
-            new OctopusRate
+            new()
             {
                 valid_from = new DateTime(today, new TimeOnly(00, 00), kind),
                 valid_to = new DateTime(today, dayRateStart, kind),
                 value_inc_vat = tariff.night_unit_rate_inc_vat
             },
-            new OctopusRate
+            new()
             {
                 valid_from = new DateTime(today, dayRateStart, kind),
                 valid_to = new DateTime(today, dayRateEnd, kind),
                 value_inc_vat = tariff.day_unit_rate_inc_vat
             },
-            new OctopusRate
+            new()
             {
                 valid_from = new DateTime(today, dayRateEnd, kind),
                 valid_to = new DateTime(today.AddDays(1), new TimeOnly(00, 00), kind),
+                value_inc_vat = tariff.night_unit_rate_inc_vat
+            },
+            new()
+            {
+            valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
+            valid_to = new DateTime(tomorrow, dayRateStart, kind),
+            value_inc_vat = tariff.night_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(tomorrow, dayRateStart, kind),
+                valid_to = new DateTime(tomorrow, dayRateEnd, kind),
+                value_inc_vat = tariff.day_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(tomorrow, dayRateEnd, kind),
+                valid_to = new DateTime(tomorrow.AddDays(1), new TimeOnly(00, 00), kind),
                 value_inc_vat = tariff.night_unit_rate_inc_vat
             }
         ];
