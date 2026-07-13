@@ -37,9 +37,11 @@
                     list.
                 </HelpContent>
                 <ChildContent>
-                    <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true" 
+                    <div style="width:40%;">
+                        <MudTextField T="string" Label="Octopus Account Number" @bind-Value="@config.OctopusAccountNumber" Immediate="true"
                                   @bind-Value:after="GetAccountProduct" @attributes="UIConstants.TextAttribs"/>
-                    <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true" 
+                    </div>
+                    <MudTextField T="string" Label="Octopus API Key" @bind-Value="@config.OctopusAPIKey" Immediate="true"
                                   @bind-Value:after="GetAccountProduct" @attributes="UIConstants.TextAttribs"/>
                     @if (!string.IsNullOrEmpty(evaluatedProductCode))
                     {
@@ -59,12 +61,15 @@
                     more than you should!
                 </HelpContent>
                 <ChildContent>
-                    <MudCheckBox Label="Override Product" @bind-Value="@overrideProduct" @bind-Value:after="CancelOverride" class="wrapped-field"/>
+                    <MudCheckBox Label="Override Octopus Product/Tariff" @bind-Value="@overrideProduct" @bind-Value:after="CancelOverride" class="wrapped-field"/>
                 </ChildContent>
             </ConfigSettingHelp>
-            <div class="config-field-row">
-                <OctopusProductSelector @bind-TariffCode="config.OverrideProductCode" Disabled="@(!overrideProduct)" RegionClearable/>
-            </div>
+            @if (overrideProduct)
+            {
+                <div class="config-field-row">
+                    <OctopusProductSelector @bind-TariffCode="config.OverrideProductCode" Disabled="@(!overrideProduct)" RegionClearable/>
+                </div>
+            }
         </div>
         @if (config.TariffIsIntelligentGo)
         {
@@ -364,8 +369,16 @@
 
     private async Task GetAccountProduct()
     {
-        evaluatedProductCode = await inverterManagerService.GetAccountProductCode(config.OctopusAccountNumber, config.OctopusAPIKey);
+        try
+        {
+            evaluatedProductCode = await inverterManagerService.GetAccountProductCode(config.OctopusAccountNumber, config.OctopusAPIKey);
+        }
+        catch
+        {
+            evaluatedProductCode = null;
+        }
     }
+
     private RenderFragment? InverterSettings()
     {
         if (config?.InverterConfig == null)

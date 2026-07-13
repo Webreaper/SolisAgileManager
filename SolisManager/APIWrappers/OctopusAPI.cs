@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using System.Net;
 using System.Security.Authentication;
 using System.Text.Json;
@@ -82,79 +83,163 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         return allPrices;
     }
+
+    private async Task<OctopusTariff?> GetOctopusIOGTariff(string tariffCode)
+    {
+        var productStr = tariffCode.GetProductFromTariffCode();
+        var regionCode = "_" + tariffCode[^1..];
+        
+        var product = await GetOctopusTariffs(productStr);
+
+        var registerTariff = product.four_rate_ev_electricity_tariffs
+            .Where(x => x.Key == regionCode)
+            .Select(t => t.Value.direct_debit_monthly)
+            .FirstOrDefault();
+
+        return registerTariff;
+    }
+    
+    private async Task<IEnumerable<OctopusProductLink>> GetSingleRateTariffLinks(string tariffCode)
+    {
+        var productStr = tariffCode.GetProductFromTariffCode();
+        var regionCode = "_" + tariffCode[^1..];
+
+        var product = await GetOctopusTariffs(productStr);
+
+        var registerTariffs = product.single_register_electricity_tariffs
+            .FirstOrDefault(x => x.Key == regionCode && x.Value.direct_debit_monthly.code == tariffCode);
+
+        var links = registerTariffs.Value.direct_debit_monthly.links
+            .Where(x => ! x.href.EndsWith("standing-charges/"))
+            .ToList();
+
+        return links;
+    }
+
+    private IEnumerable<OctopusRate> GetIOGTariffRates(OctopusTariff tariff)
+    {
+        // Construct the rates based on the peak and off-peak prices
+        DateOnly today = DateOnly.FromDateTime(DateTime.Now);
+        var kind = DateTimeKind.Local;
+        // Pretty hacky - currently we have to hard-code the night/day rate start and end
+        var dayRateStart = new TimeOnly(05, 30);
+        var dayRateEnd = new TimeOnly(23, 30);
+        var tomorrow = today.AddDays(1);
+        
+        // Project two days of IOG rates
+        IEnumerable<OctopusRate> rates =
+        [
+            new()
+            {
+                valid_from = new DateTime(today, new TimeOnly(00, 00), kind),
+                valid_to = new DateTime(today, dayRateStart, kind),
+                value_inc_vat = tariff.night_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(today, dayRateStart, kind),
+                valid_to = new DateTime(today, dayRateEnd, kind),
+                value_inc_vat = tariff.day_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(today, dayRateEnd, kind),
+                valid_to = new DateTime(today.AddDays(1), new TimeOnly(00, 00), kind),
+                value_inc_vat = tariff.night_unit_rate_inc_vat
+            },
+            new()
+            {
+            valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
+            valid_to = new DateTime(tomorrow, dayRateStart, kind),
+            value_inc_vat = tariff.night_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(tomorrow, dayRateStart, kind),
+                valid_to = new DateTime(tomorrow, dayRateEnd, kind),
+                value_inc_vat = tariff.day_unit_rate_inc_vat
+            },
+            new()
+            {
+                valid_from = new DateTime(tomorrow, dayRateEnd, kind),
+                valid_to = new DateTime(tomorrow.AddDays(1), new TimeOnly(00, 00), kind),
+                value_inc_vat = tariff.night_unit_rate_inc_vat
+            }
+        ];
+        
+        foreach(var rate in  rates)
+        {
+            // Roll over to tomorrow if the slots are in the past
+            if (rate.valid_from < DateTime.UtcNow && rate.valid_to < DateTime.UtcNow)
+            {
+                rate.valid_from = rate.valid_from.AddDays(1);
+                rate.valid_to = rate.valid_to.Value.AddDays(1);
+            }
+        }
+        
+        return rates;
+    }
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
     {
         var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
-
+        
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
             return rates;
 
-        var product = tariffCode.GetProductFromTariffCode();
-        var pageSize = 200;
         var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
         var end = start.AddMonths(1).AddSeconds(-1);
 
-        // https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/
-
+        rates = new();
+        
         try
         {
-            var url = "https://api.octopus.energy"
-                .WithHeader("User-Agent", userAgentProvider.UserAgent)
-                .AppendPathSegment("/v1/products")
-                .AppendPathSegment(product)
-                .AppendPathSegment("electricity-tariffs")
-                .AppendPathSegment(tariffCode)
-                .AppendPathSegment("standard-unit-rates")
-                .SetQueryParams(new
-                {
-                    period_from = start,
-                    period_to = end,
-                    page_size = pageSize
-                });
-
-            var prices = await url.GetJsonAsync<OctopusPrices?>(cancellationToken:token);
-
-            if (prices != null && prices.count != 0)
+            var iogTariff = await GetOctopusIOGTariff(tariffCode);
+            if (iogTariff != null)
             {
-                rates = new List<OctopusRate>(prices.results);
-
-                // Paginate
-                while (!string.IsNullOrEmpty(prices?.next))
-                {
-                    prices = await prices.next
-                        .WithHeader("User-Agent", userAgentProvider.UserAgent)
-                        .GetJsonAsync<OctopusPrices?>(cancellationToken:token);
-
-                    if (prices != null)
-                        rates.AddRange(prices.results);
-                }
-
-                var first = rates.OrderBy(x => x.valid_from).FirstOrDefault()?.valid_from;
-                var last = rates.OrderBy(x => x.valid_to).LastOrDefault()?.valid_to;
-
-                logger.LogInformation(
-                    "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
-                    rates.Count(), first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
-
-                // For rates older than 40 days, we cache for a long time. For rates within the last
-                // 40 days, always pull fresh - otherwise our half-hourly recalculation won't update
-                // as time passes!
-                var cacheOptions = _historicRatesCacheOptions;
-                if ((DateTime.UtcNow - start).TotalDays < 40)
-                    cacheOptions = _latestRatesCacheOptions;
-                
-                memoryCache.Set(cacheKey, rates, cacheOptions);
-
-                // Return a copy - so that any manipulation of the collection won't subvert the cache
-                return rates.Select(x => new OctopusRate
-                {
-                    valid_from = x.valid_from,
-                    valid_to = x.valid_to,
-                    value_inc_vat = x.value_inc_vat
-                }).ToList();
+                var iogRates = GetIOGTariffRates(iogTariff);
+                rates.AddRange(iogRates);
             }
+            else
+            {
+                var links = await GetSingleRateTariffLinks(tariffCode);
+                
+                foreach (var link in links)
+                {
+                    var linkRates = await GetPagedTariffPrices(link.href, start, end, token);
+
+                    if (linkRates.Any())
+                    {
+                        var first = linkRates.OrderBy(x => x.valid_from).FirstOrDefault()?.valid_from;
+                        var last = linkRates.OrderBy(x => x.valid_to).LastOrDefault()?.valid_to;
+
+                        logger.LogInformation(
+                            "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
+                            linkRates.Count, first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
+
+                        rates.AddRange(linkRates);
+                    }
+                }
+            }
+
+            // For rates older than 40 days, we cache for a long time. For rates within the last
+            // 40 days, always pull fresh - otherwise our half-hourly recalculation won't update
+            // as time passes!
+            var cacheOptions = _historicRatesCacheOptions;
+            if ((DateTime.UtcNow - start).TotalDays < 40)
+                cacheOptions = _latestRatesCacheOptions;
+            
+            memoryCache.Set(cacheKey, rates, cacheOptions);
+
+            // Return a copy - so that any manipulation of the collection won't subvert the cache
+            return rates.Select(x => new OctopusRate
+            {
+                valid_from = x.valid_from,
+                valid_to = x.valid_to,
+                value_inc_vat = x.value_inc_vat
+            }).ToList();
         }
+
         catch (FlurlHttpException ex)
         {
             if (ex.StatusCode == (int)HttpStatusCode.TooManyRequests)
@@ -172,6 +257,52 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         return [];
     }
+    
+    private async Task<List<OctopusRate>> GetPagedTariffPrices(string tariffLink, DateTime start, DateTime end, CancellationToken token)
+    {
+        var pageSize = 200;
+        var rates = new List<OctopusRate>();
+
+        var url = tariffLink
+            .WithHeader("User-Agent", userAgentProvider.UserAgent)
+            .SetQueryParams(new
+            {
+                period_from = start,
+                period_to = end,
+                page_size = pageSize
+            });
+
+        var prices = await url.GetJsonAsync<OctopusPrices?>(cancellationToken:token);
+
+        if (prices != null && prices.count != 0)
+        {
+            rates = new List<OctopusRate>(prices.results);
+
+            // Paginate
+            while (!string.IsNullOrEmpty(prices?.next))
+            {
+                prices = await prices.next
+                    .WithHeader("User-Agent", userAgentProvider.UserAgent)
+                    .GetJsonAsync<OctopusPrices?>(cancellationToken: token);
+
+                if (prices != null)
+                    rates.AddRange(prices.results);
+            }
+        }
+
+        return rates;
+    }
+
+/*    if tariff_parts.rate == "1R" and "SMB" in tariff_parts.product_code:
+# this can and should be modified later when the TOU endpoint is available
+# this represents (in it's current state) the new sub meter billed IOG tariff case
+    return {"start": "23:30:00", "end": "05:30:00"}
+    elif tariff_parts.rate == "2R":
+# this is the "standard" eco7 case - this _may_ also end up available on the TOU endpoint
+    return {"start": "00:30:00", "end": "07:30:00"}
+    else:
+*/
+
 
     public async Task<IEnumerable<OctopusRate>> GetOctopusRates(string tariffCode, DateTime from, DateTime to, CancellationToken token)
     {
@@ -509,7 +640,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 .WithOctopusAuth(token)
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
                 .GetStringAsync();
-
+            
             accountDetails = JsonSerializer.Deserialize<OctopusAccountDetails>(response);
             
             if( accountDetails != null )
@@ -525,7 +656,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return null;
     }
     
-    private enum MeterType
+private enum MeterType
     {
         Import,
         Export
@@ -1061,4 +1192,5 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         public decimal? dailyStandingCharge { get; set; }
         public decimal? price { get; set; }
     }
-}
+
+    }

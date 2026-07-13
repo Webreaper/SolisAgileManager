@@ -105,6 +105,7 @@ public record SolisManagerConfig
                                          (ProductCode.Contains("INTELLI-VAR") ||
                                           ProductCode.Contains("INTELLI-FIX") ||
                                           ProductCode.Contains("IOG-SMB-VAR") ||
+                                          ProductCode.Contains("IOG-SMB-FIX") ||
                                           ProductCode.Contains("INTELLI-BB-VAR"));
     
     [Obsolete]
