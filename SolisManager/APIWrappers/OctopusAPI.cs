@@ -177,7 +177,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
         }
         
-        return rates.DistinctBy(x => x.valid_from).ToList();
+        return rates;
     }
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
@@ -198,7 +198,13 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             if (iogTariff != null)
             {
                 var iogRates = GetIOGTariffRates(iogTariff);
-                rates.AddRange(iogRates);
+
+                var existingSlots = iogRates.Select(y => y.valid_from).ToList();
+                var filtered = iogRates
+                    .Where(x => !existingSlots.Contains(x.valid_to))
+                    .ToList();
+
+            rates.AddRange(filtered);
             }
             else
             {
