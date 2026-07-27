@@ -177,7 +177,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
         }
         
-        return rates;
+        return rates.DistinctBy(x => x.valid_from).ToList();
     }
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
