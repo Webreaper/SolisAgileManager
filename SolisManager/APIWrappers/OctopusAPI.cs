@@ -198,7 +198,13 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             if (iogTariff != null)
             {
                 var iogRates = GetIOGTariffRates(iogTariff);
-                rates.AddRange(iogRates);
+
+                var existingSlots = iogRates.Select(y => y.valid_from).ToList();
+                var filtered = iogRates
+                    .Where(x => !existingSlots.Contains(x.valid_to))
+                    .ToList();
+
+            rates.AddRange(filtered);
             }
             else
             {
