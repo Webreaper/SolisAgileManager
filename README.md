@@ -14,7 +14,7 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 * Cross platform (runs on Linux, Windows, Mac, RaspPi, and docker). Very simple installation and setup
 * Works with all Octopus Smart Tariffs (Agile, Cosy, Intelligent Go, Go, Flux, etc)
 * SolCast PV forecasting to add charge/discharge strategy
-* Costs view showing day-by-day whether your system is in profit or loss
+* Costs view showing day-by-day whether your system is in profit or loss, including tariff comparisons
 * Scheduled actions let you charge/discharge/hold the battery SOC for particular times every day
 * Simple manual overrides - Charge or Discharge your battery with a simple click (no SolisCloud login/password)
 * Comparison Feature to track relative prices between your current tariff and alternatives, for tariff-hoppers

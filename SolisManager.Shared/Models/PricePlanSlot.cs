@@ -65,6 +65,14 @@ public record PricePlanSlot
                 overrideAmps = ManualOverride.OverrideAmps;
                 actionType = "Manual";
             }
+            else if (VPPOverride != null)
+            {
+                // Assuming no manual overrides, then VPP takes precedence
+                action = VPPOverride.Action;
+                reason = VPPOverride.Explanation;
+                overrideAmps = VPPOverride.OverrideAmps;
+                actionType = "VPP";
+            }
             else if (AutoOverride != null)
             {
                 // Then auto overrides like SOC and IOG. These take precedence 
