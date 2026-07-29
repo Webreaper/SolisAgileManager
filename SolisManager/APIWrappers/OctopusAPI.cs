@@ -201,7 +201,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
                 var existingSlots = iogRates.Select(y => y.valid_from).ToList();
                 var filtered = iogRates
-                    .Where(x => !existingSlots.Contains(x.valid_to))
+                    .Where(x => !existingSlots.Contains(x.valid_from))
                     .ToList();
 
             rates.AddRange(filtered);
