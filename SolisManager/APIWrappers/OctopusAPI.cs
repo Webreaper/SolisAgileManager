@@ -81,7 +81,20 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 allPrices.AddRange(monthRates);
         }
 
-        return allPrices;
+        // Let's track down this bug.
+        var dupeSlots = allPrices.GroupBy(x => x.valid_from)
+            .Where(x => x.Count() > 1)
+            .ToList();
+            
+        if (dupeSlots.Any())
+        {
+            var slots = string.Join(", ", dupeSlots.Select(x => x.Key.TimeOfDay));
+            logger.LogError("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
+
+            allPrices = allPrices.DistinctBy(x => x.valid_from).ToList();
+        }
+
+        return allPrices.OrderBy(x => x.valid_from).ToList();
     }
 
     private async Task<OctopusTariff?> GetOctopusIOGTariff(string tariffCode)
@@ -232,19 +245,6 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             
             memoryCache.Set(cacheKey, rates, cacheOptions);
 
-            // Let's track down this bug.
-            var dupeSlots = rates.GroupBy(x => x.valid_from)
-                .Where(x => x.Count() > 1)
-                .ToList();
-            
-            if (dupeSlots.Any())
-            {
-                var slots = string.Join(", ", dupeSlots.Select(x => x.Key.TimeOfDay));
-                logger.LogError("Duplicate Slots detected!! ({List})", slots);
-
-                rates = rates.DistinctBy(x => x.valid_from).ToList();
-            }
-            
             // Return a copy - so that any manipulation of the collection won't subvert the cache
             return rates.Select(x => new OctopusRate
             {
