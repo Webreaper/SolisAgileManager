@@ -81,7 +81,20 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                 allPrices.AddRange(monthRates);
         }
 
-        return allPrices;
+        // Let's track down this bug.
+        var dupeSlots = allPrices.GroupBy(x => x.valid_from)
+            .Where(x => x.Count() > 1)
+            .ToList();
+            
+        if (dupeSlots.Any())
+        {
+            var slots = string.Join(", ", dupeSlots.Select(x => x.Key.TimeOfDay));
+            logger.LogError("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
+
+            allPrices = allPrices.DistinctBy(x => x.valid_from).ToList();
+        }
+
+        return allPrices.OrderBy(x => x.valid_from).ToList();
     }
 
     private async Task<OctopusTariff?> GetOctopusIOGTariff(string tariffCode)
@@ -149,9 +162,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             },
             new()
             {
-            valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
-            valid_to = new DateTime(tomorrow, dayRateStart, kind),
-            value_inc_vat = tariff.night_unit_rate_inc_vat
+                valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
+                valid_to = new DateTime(tomorrow, dayRateStart, kind),
+                value_inc_vat = tariff.night_unit_rate_inc_vat
             },
             new()
             {
@@ -197,14 +210,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var iogTariff = await GetOctopusIOGTariff(tariffCode);
             if (iogTariff != null)
             {
+                // Generate the IOG rates the hacky way.
                 var iogRates = GetIOGTariffRates(iogTariff);
-
-                var existingSlots = iogRates.Select(y => y.valid_from).ToList();
-                var filtered = iogRates
-                    .Where(x => !existingSlots.Contains(x.valid_from))
-                    .ToList();
-
-            rates.AddRange(filtered);
+                rates.AddRange(iogRates);
             }
             else
             {
