@@ -822,7 +822,8 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
     private async Task<T?> Post<T>(int apiVersion, string resource, object body)
     {
         var content = JsonSerializer.Serialize(body);
-        var response = await Post($"/v{apiVersion}/api/{resource}", content);
+        var url = $"/v{apiVersion}/api/{resource}";
+        var response = await Post(url, content);
         if (!string.IsNullOrEmpty(response))
         {
             try
@@ -831,7 +832,7 @@ public class SolisAPI : InverterBase<InverterConfigSolis>, IInverter
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error deserializing inverter response: {R}", response);
+                logger.LogError(ex, "Error deserializing inverter response from {Url}: {R}", url, response);
             }
         }
 

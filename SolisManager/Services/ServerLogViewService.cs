@@ -36,18 +36,31 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         logLines = ReadLines(fs, Encoding.UTF8).ToArray();
                     }
                     
-                    var filteredQuery = logLines
-                        .Reverse()
-                        .Select(x => CreateLogEntry(logFileDate, x))
-                        .Where(x => x != null)
+                    ILogViewService.LogEntry? prevEntry = null;
+                    List<ILogViewService.LogEntry> logEntries = new();
+                    foreach (var line in logLines)
+                    {
+                        var entry = CreateLogEntry(logFileDate, line);
+                        if (entry != null)
+                        {
+                            prevEntry = entry;
+                            logEntries.Add(entry);
+                        }
+                        else if( prevEntry != null )
+                        {
+                            prevEntry.logText += "\n" + line;
+                        }
+                    }
+                    
+                    var filteredLogs = logEntries
                         .Where(x => string.IsNullOrEmpty(req.searchText) || x!.logText.Contains(req.searchText, StringComparison.OrdinalIgnoreCase))
                         .Where(x => req.levelFilters.Contains(x!.level));
                         
                     // ReSharper disable once PossibleMultipleEnumeration
-                    var totalItems = filteredQuery.Count();
+                    var totalItems = filteredLogs.Count();
                         
                     // ReSharper disable once PossibleMultipleEnumeration
-                    var entries = filteredQuery
+                    var entries = filteredLogs
                         .Skip(req.pageNumber * req.PageSize)
                         .Take(req.PageSize)
                         .Select(x => x!)
@@ -109,7 +122,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                     if (TimeOnly.TryParseExact(timeStr, "HH:mm:ss.fff", out var logEntryTime))
                     {
                         DateTime timestamp = new DateTime(logFileDate, logEntryTime);
-                        return new ILogViewService.LogEntry(timestamp, level, message);
+                        return new ILogViewService.LogEntry {  timestamp = timestamp, level = level, logText = message };
                     }
                 }
             }

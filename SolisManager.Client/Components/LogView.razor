@@ -58,7 +58,9 @@
                             </span>
                         </MudTd>
                         <MudTd>@Level(context)</MudTd>
-                        <MudTd><span class="table-text">@context.logText</span></MudTd>
+                        <MudTd><span class="table-text">
+                            @HandleLineBreaks(context.logText)
+                        </span></MudTd>
                     </RowTemplate>
                 </MudTable>
             </div>
@@ -74,6 +76,7 @@
     private bool forceReload;
     private bool loadedSettings;
 
+    private MarkupString HandleLineBreaks(string text) => new MarkupString(text.Replace("\n", "<br/>"));
     private const string LevelSetting = "LogLevel";
     private const string TextSetting = "SearchText";
 
