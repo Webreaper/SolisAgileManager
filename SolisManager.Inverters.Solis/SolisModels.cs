@@ -80,7 +80,7 @@ internal record StationDetail(StationDetailData data);
 
 internal record StationDetailData(string ss, string sr);
 
-internal record Battery(int batteryCapacitySoc);
+internal record Battery(decimal batteryCapacitySoc);
 internal record UserStation(string id, string installer, string installerId, double allEnergy1, double allIncome,
     double dayEnergy1, double dayIncome, double gridPurchasedTodayEnergy, double gridPurchasedTotalEnergy,
     double gridSellTodayEnergy, double gridSellTotalEnergy, double homeLoadTodayEnergy, double homeLoadTotalEnergy,
