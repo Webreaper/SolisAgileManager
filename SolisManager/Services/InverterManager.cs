@@ -1427,7 +1427,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     public async Task ChargeBattery()
     {
         // Work out the percentage charge, and then calculate how many slots it'll take to achieve that
-        double percentageToCharge = (100 - InverterState.BatterySOC) / 100.0;
+        double percentageToCharge = (100 - ((int)InverterState.BatterySOC)) / 100.0;
         var slotsRequired = (int)Math.Round(config.SlotsForFullBatteryCharge * percentageToCharge,
             MidpointRounding.ToPositiveInfinity);
 
@@ -1443,7 +1443,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
     private int CalculateDischargeSlots()
     {
-        double slotsRequired = config.SlotsForFullBatteryCharge * (InverterState.BatterySOC / 100.0);
+        double slotsRequired = config.SlotsForFullBatteryCharge * ((int)InverterState.BatterySOC / 100.0);
         return (int)Math.Round(slotsRequired, MidpointRounding.ToPositiveInfinity);
     }
 
