@@ -9,7 +9,7 @@ public class HistoryEntry
     public DateTime Start { get; set; }
     public DateTime End { get; set; }
     public decimal Price { get; set; }
-    public int BatterySOC { get; set; }
+    public decimal BatterySOC { get; set; }
     public PriceType Type { get; set; }
     public SlotAction Action { get; set; }
     public string Reason { get; set; } = string.Empty;

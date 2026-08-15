@@ -7,7 +7,7 @@ public class SolisManagerState
     public DateTime InverterDataTimestamp { get; set; }
     public DateTime? SolcastTimeStamp { get; set; }
     public IEnumerable<PricePlanSlot> Prices { get; set; } = [];
-    public int BatterySOC { get; set; }
+    public decimal BatterySOC { get; set; }
     public decimal CurrentBatteryPowerKW { get; set; }
     public decimal TodayPVkWh { get; set; }
     public decimal TodayExportkWh { get; set; }
