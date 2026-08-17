@@ -263,7 +263,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private async Task RefreshTariffDataAndRecalculate()
     {
-        logger.LogInformation("Multi-line log entry: Blah \n Blah \n");
+        logger.LogInformation("Here's a multi-line log entry\nHere's line 1\nHere's line 2\nHere's line 3");
+        
         try
         {
             // Don't even attempt this if there's no config

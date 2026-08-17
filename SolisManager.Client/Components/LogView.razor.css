@@ -34,6 +34,12 @@
 .log-level-text {
 }
 
+::deep .mud-expand-panel-header { 
+    padding-top: 0 !important;
+    padding-bottom: 2px !important;
+    min-height: initial !important;
+}
+
 @media screen and (max-width: 900px) {
     .log-level-text {
         display:none;

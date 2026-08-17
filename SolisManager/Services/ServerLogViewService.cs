@@ -48,7 +48,7 @@ public class ServerLogViewService(ILogger<ServerLogViewService> _logger) : ILogV
                         }
                         else if( prevEntry != null )
                         {
-                            prevEntry.logText += "\n" + line;
+                            prevEntry.extraLines.Add(line);
                         }
                     }
                     
