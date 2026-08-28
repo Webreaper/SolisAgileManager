@@ -114,15 +114,32 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     
     private async Task<IEnumerable<OctopusProductLink>> GetSingleRateTariffLinks(string tariffCode)
     {
+        tariffCode = "E-2R-VAR-22-11-01-B";
+        
         var productStr = tariffCode.GetProductFromTariffCode();
         var regionCode = "_" + tariffCode[^1..];
 
         var product = await GetOctopusTariffs(productStr);
+        
+        IEnumerable<OctopusProductLink>? links = product.single_register_electricity_tariffs
+            .Where(x => x.Key == regionCode && 
+                                 x.Value.direct_debit_monthly?.code != null &&
+                                 x.Value.direct_debit_monthly.code == tariffCode)
+            .Select( x => x.Value.direct_debit_monthly.links)
+            .FirstOrDefault();
 
-        var registerTariffs = product.single_register_electricity_tariffs
-            .FirstOrDefault(x => x.Key == regionCode && x.Value.direct_debit_monthly.code == tariffCode);
-
-        var links = registerTariffs.Value.direct_debit_monthly.links
+        if (links == null || ! links.Any())
+        {
+            // Dual fuel tariff?
+            links = product.dual_register_electricity_tariffs
+                .Where(x => x.Key == regionCode && 
+                            x.Value.varying?.code != null &&
+                            x.Value.varying.code == tariffCode)
+                .Select( x => x.Value.varying.links)
+                .FirstOrDefault();
+        }
+        
+        links = links
             .Where(x => ! x.href.EndsWith("standing-charges/"))
             .ToList();
 
