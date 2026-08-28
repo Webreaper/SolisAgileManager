@@ -112,36 +112,40 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return registerTariff;
     }
     
-    private async Task<IEnumerable<OctopusProductLink>> GetSingleRateTariffLinks(string tariffCode)
+    private async Task<IEnumerable<OctopusProductLink>> GetTariffRateLinks(string tariffCode)
     {
-        tariffCode = "E-2R-VAR-22-11-01-B";
+        if( Debugger.IsAttached)
+            tariffCode = "E-2R-VAR-22-11-01-B";
         
         var productStr = tariffCode.GetProductFromTariffCode();
         var regionCode = "_" + tariffCode[^1..];
 
         var product = await GetOctopusTariffs(productStr);
+
+        if (product == null)
+            return [];
         
         IEnumerable<OctopusProductLink>? links = product.single_register_electricity_tariffs
             .Where(x => x.Key == regionCode && 
                                  x.Value.direct_debit_monthly?.code != null &&
                                  x.Value.direct_debit_monthly.code == tariffCode)
-            .Select( x => x.Value.direct_debit_monthly.links)
+            .Select( x => x.Value.direct_debit_monthly!.links)
             .FirstOrDefault();
 
         if (links == null || ! links.Any())
         {
             // Dual fuel tariff?
+            // Eg https://api.octopus.energy/v1/products/VAR-22-11-01/electricity-tariffs/E-2R-VAR-22-11-01-E/day-unit-rates/
             links = product.dual_register_electricity_tariffs
                 .Where(x => x.Key == regionCode && 
                             x.Value.varying?.code != null &&
                             x.Value.varying.code == tariffCode)
-                .Select( x => x.Value.varying.links)
+                .Select( x => x.Value.varying!.links)
                 .FirstOrDefault();
         }
         
-        links = links
-            .Where(x => ! x.href.EndsWith("standing-charges/"))
-            .ToList();
+        links = links.Where(x => ! x.href.EndsWith("standing-charges/"))
+                     .ToList();
 
         return links;
     }
@@ -155,6 +159,9 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         var dayRateStart = new TimeOnly(05, 30);
         var dayRateEnd = new TimeOnly(23, 30);
         var tomorrow = today.AddDays(1);
+
+        if (tariff.day_unit_rate_inc_vat == null || tariff.night_unit_rate_inc_vat == null)
+            return [];
         
         // Project two days of IOG rates
         IEnumerable<OctopusRate> rates =
@@ -163,37 +170,37 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             {
                 valid_from = new DateTime(today, new TimeOnly(00, 00), kind),
                 valid_to = new DateTime(today, dayRateStart, kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
+                value_inc_vat = tariff.night_unit_rate_inc_vat.Value
             },
             new()
             {
                 valid_from = new DateTime(today, dayRateStart, kind),
                 valid_to = new DateTime(today, dayRateEnd, kind),
-                value_inc_vat = tariff.day_unit_rate_inc_vat
+                value_inc_vat = tariff.day_unit_rate_inc_vat.Value
             },
             new()
             {
                 valid_from = new DateTime(today, dayRateEnd, kind),
                 valid_to = new DateTime(today.AddDays(1), new TimeOnly(00, 00), kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
+                value_inc_vat = tariff.night_unit_rate_inc_vat.Value
             },
             new()
             {
                 valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
                 valid_to = new DateTime(tomorrow, dayRateStart, kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
+                value_inc_vat = tariff.night_unit_rate_inc_vat.Value
             },
             new()
             {
                 valid_from = new DateTime(tomorrow, dayRateStart, kind),
                 valid_to = new DateTime(tomorrow, dayRateEnd, kind),
-                value_inc_vat = tariff.day_unit_rate_inc_vat
+                value_inc_vat = tariff.day_unit_rate_inc_vat.Value
             },
             new()
             {
                 valid_from = new DateTime(tomorrow, dayRateEnd, kind),
                 valid_to = new DateTime(tomorrow.AddDays(1), new TimeOnly(00, 00), kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
+                value_inc_vat = tariff.night_unit_rate_inc_vat.Value
             }
         ];
         
@@ -233,7 +240,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             }
             else
             {
-                var links = await GetSingleRateTariffLinks(tariffCode);
+                var links = await GetTariffRateLinks(tariffCode);
                 
                 foreach (var link in links)
                 {
