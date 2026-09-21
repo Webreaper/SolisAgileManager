@@ -49,7 +49,7 @@
                         <MudTablePager PageSizeOptions="[50, 100, 200, 500]"/>
                     </PagerContent>
                     <RowTemplate>
-                        <MudTd>
+                        <MudTd style="vertical-align: top;">
                             <span class="table-text">
                                 <span class="log-level-text">
                                     @context.timestamp.ToString("dd-MMM-yyyy")
@@ -57,9 +57,9 @@
                                 @context.timestamp.ToString("HH:mm:ss")
                             </span>
                         </MudTd>
-                        <MudTd>@Level(context)</MudTd>
-                        <MudTd><span class="table-text">
-                            @HandleLineBreaks(context.logText)
+                        <MudTd style="vertical-align: top;">@Level(context)</MudTd>
+                        <MudTd style="vertical-align: top;"><span class="table-text">
+                            @LogEntry(context)
                         </span></MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -80,6 +80,26 @@
     private const string LevelSetting = "LogLevel";
     private const string TextSetting = "SearchText";
 
+    private RenderFragment LogEntry(ILogViewService.LogEntry entry)
+    {
+        if (entry.extraLines.Any())
+        {
+            return @<MudExpansionPanel Dense Gutters="false" Icon="@Icons.Material.Filled.KeyboardDoubleArrowDown">
+                       <TitleContent>
+                           @entry.logText;
+                       </TitleContent>
+                       <ChildContent>
+                           @foreach (var line in entry.extraLines)
+                           {
+                               <div>@line</div>
+                           }
+                       </ChildContent>
+                   </MudExpansionPanel>;
+        }
+
+        return @<span>@entry.logText</span>;
+    }
+    
     private string? FilterSummary()
     {
         var breadcrumbs = new List<string>();

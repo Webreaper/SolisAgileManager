@@ -187,11 +187,14 @@ The program works in two modes:
   profits for you
 * `Events Only` - where you continue to manage your inverter + battery to suit your personal needs best,
   but Axle can send events to request that you discharge your battery, and then pays for that discharge.
+* `Self-Dispatch` - where you run software such as SolisAgileManager or Home Assistant, which takes 
+  responsibility for listening to events from Axle, and charging or discharging your battery as appropriate.
 
-SolisManager supports the `Events Only` model; the app will continue to charge/discharge your battery
-based on the normal pricing stragey, but if an Axle Event is received, it will update the slot in the 
-strategy to discharge the battery. Note that manually overriding a VPP event will always take precedent,
-so if you decide not to participate you can just cancel the charge/discharge with a mannual override.
+For SolisManager you should select the `Self-Dispatch` model; the app will continue to charge/discharge 
+your battery based on the normal pricing stragey, but if an Axle Event is received, it will update the 
+slot in the  strategy to discharge the battery. Note that manually overriding a VPP event will always 
+take precedent, so if you decide not to participate you can just cancel the charge/discharge with a 
+mannual override.
 
 SolisManager will also prepare for the event by charging (or discharging, if it's an 'import' 
 event) the battery for an hour before the event starts. This will attempt to get the maximum return
@@ -204,6 +207,7 @@ To join the program:
 * Sign up to [Axle.Energy VPP](https://vpp.axle.energy/landing?ref=R-LKLMKHRL) (note, this link is a 
   referral link)
 * Register your address and MPAN so they can track your export for billing purposes
+* Select `Self-Dispatch` mode (recommended for Home Assistant and similar apps like SolisManager)
 * Give them access to your Solis Inverter. Note that you do not need to give them 'full control' when
   you enable their access in SolisCLoud. I gave them permissions to _read_ my inverter data, but not
   to _control_ the inverter, since all the discharge control will be managed by SolisAgileManager.

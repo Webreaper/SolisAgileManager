@@ -97,7 +97,7 @@
                 <MudTextField T="string" Label="Solcast Site ID / Resource ID" @bind-Value="@config.SolcastSiteIdentifier" Immediate="true" @attributes="UIConstants.TextAttribs"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp HelpText="Damping factor for Solcast (e.g., if Solcast estimates are double actual yield, set this to 50%). A value of 100% will use the raw solcast data">
-                <MudNumericField T="int" Label="Solcast Damping/Reduction %" @bind-Value="@DampingPercentageProxy" Min="0" Max="100" @attributes="UIConstants.TextAttribs"/>
+                <MudNumericField T="int" Label="Solcast Damping/Reduction %" @bind-Value="@DampingPercentageProxy" Min="10" Max="100" @attributes="UIConstants.TextAttribs"/>
             </ConfigSettingHelp>
             <ConfigSettingHelp>
                 <HelpContent>

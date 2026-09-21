@@ -89,7 +89,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if (dupeSlots.Any())
         {
             var slots = string.Join(", ", dupeSlots.Select(x => x.Key.TimeOfDay));
-            logger.LogError("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
+            logger.LogWarning("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
 
             allPrices = allPrices.DistinctBy(x => x.valid_from).ToList();
         }
@@ -97,143 +97,175 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return allPrices.OrderBy(x => x.valid_from).ToList();
     }
 
-    private async Task<OctopusTariff?> GetOctopusIOGTariff(string tariffCode)
+    private enum RateType
     {
-        var productStr = tariffCode.GetProductFromTariffCode();
-        var regionCode = "_" + tariffCode[^1..];
-        
-        var product = await GetOctopusTariffs(productStr);
-
-        var registerTariff = product.four_rate_ev_electricity_tariffs
-            .Where(x => x.Key == regionCode)
-            .Select(t => t.Value.direct_debit_monthly)
-            .FirstOrDefault();
-
-        return registerTariff;
+        SingleRegister,
+        DualRegister,
+        FourRateEV
     }
-    
-    private async Task<IEnumerable<OctopusProductLink>> GetSingleRateTariffLinks(string tariffCode)
+
+    private record TariffDetails(RateType rateType, OctopusTariff tariff, List<OctopusProductLink> links);
+
+    private TariffDetails? GetLinks(Dictionary<string, OctopusTariffRegion> tariffRegion, string tariffCode,
+        RateType rateType)
+    {
+        Func<OctopusTariffRegion, OctopusTariff?> tariffSelector = rateType switch
+        {
+            RateType.DualRegister => x => x.varying,
+            _ => x => x.direct_debit_monthly
+        };
+
+        var regionCode = "_" + tariffCode[^1..];
+
+        var octopusTariff = tariffRegion
+            .Where(x => x.Key == regionCode &&
+                        tariffSelector(x.Value)?.code != null &&
+                        tariffSelector(x.Value)!.code == tariffCode)
+            .Select(x => tariffSelector(x.Value))
+            .FirstOrDefault();
+        
+        if (octopusTariff != null)
+        {
+            var rateLinks =
+                octopusTariff.links
+                    .Where(x => !x.href.EndsWith("standing-charges/"))
+                    .ToList();
+
+            return new TariffDetails(rateType, octopusTariff, rateLinks);
+        }
+
+        return null;
+    }
+
+
+    private async Task<TariffDetails?> GetTariffRateLinks(string tariffCode)
     {
         var productStr = tariffCode.GetProductFromTariffCode();
         var regionCode = "_" + tariffCode[^1..];
 
         var product = await GetOctopusTariffs(productStr);
 
-        var registerTariffs = product.single_register_electricity_tariffs
-            .FirstOrDefault(x => x.Key == regionCode && x.Value.direct_debit_monthly.code == tariffCode);
+        if (product == null)
+            return null;
 
-        var links = registerTariffs.Value.direct_debit_monthly.links
-            .Where(x => ! x.href.EndsWith("standing-charges/"))
-            .ToList();
+        var links = GetLinks(product.single_register_electricity_tariffs, tariffCode, RateType.SingleRegister);
+        
+        if (links == null)
+            links = GetLinks(product.four_rate_ev_electricity_tariffs, tariffCode, RateType.FourRateEV);
 
+        if (links == null)
+            links = GetLinks(product.dual_register_electricity_tariffs, tariffCode, RateType.DualRegister);
+ 
         return links;
     }
 
-    private IEnumerable<OctopusRate> GetIOGTariffRates(OctopusTariff tariff)
+    private List<OctopusRate> ExtrudeDayAndNightRates(OctopusTariff tariff, DateTime start, DateTime end, TimeOnly dayRateStart, TimeOnly dayRateEnd)
     {
-        // Construct the rates based on the peak and off-peak prices
-        DateOnly today = DateOnly.FromDateTime(DateTime.Now);
-        var kind = DateTimeKind.Local;
-        // Pretty hacky - currently we have to hard-code the night/day rate start and end
-        var dayRateStart = new TimeOnly(05, 30);
-        var dayRateEnd = new TimeOnly(23, 30);
-        var tomorrow = today.AddDays(1);
+        var slotStart = start;
+
+        if (dayRateEnd == new TimeOnly(00, 00, 00))
+            dayRateEnd = new TimeOnly(23, 59, 59);
+
+        if (tariff.day_unit_rate_inc_vat == null || tariff.night_unit_rate_inc_vat == null)
+            return [];
+
+        List<OctopusRate> rates = new();
         
-        // Project two days of IOG rates
-        IEnumerable<OctopusRate> rates =
-        [
-            new()
-            {
-                valid_from = new DateTime(today, new TimeOnly(00, 00), kind),
-                valid_to = new DateTime(today, dayRateStart, kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
-            },
-            new()
-            {
-                valid_from = new DateTime(today, dayRateStart, kind),
-                valid_to = new DateTime(today, dayRateEnd, kind),
-                value_inc_vat = tariff.day_unit_rate_inc_vat
-            },
-            new()
-            {
-                valid_from = new DateTime(today, dayRateEnd, kind),
-                valid_to = new DateTime(today.AddDays(1), new TimeOnly(00, 00), kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
-            },
-            new()
-            {
-                valid_from = new DateTime(tomorrow, new TimeOnly(00, 00), kind),
-                valid_to = new DateTime(tomorrow, dayRateStart, kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
-            },
-            new()
-            {
-                valid_from = new DateTime(tomorrow, dayRateStart, kind),
-                valid_to = new DateTime(tomorrow, dayRateEnd, kind),
-                value_inc_vat = tariff.day_unit_rate_inc_vat
-            },
-            new()
-            {
-                valid_from = new DateTime(tomorrow, dayRateEnd, kind),
-                valid_to = new DateTime(tomorrow.AddDays(1), new TimeOnly(00, 00), kind),
-                value_inc_vat = tariff.night_unit_rate_inc_vat
-            }
-        ];
-        
-        foreach(var rate in  rates)
+        while (slotStart <= end)
         {
-            // Roll over to tomorrow if the slots are in the past
-            if (rate.valid_from < DateTime.UtcNow && rate.valid_to < DateTime.UtcNow)
+            var slotEnd = slotStart.AddMinutes(30);
+            decimal? rate;
+            var slotStartTime = TimeOnly.FromDateTime(slotStart);
+            var slotEndTime = TimeOnly.FromDateTime(slotEnd).AddMinutes(-1);
+            
+            if (slotStartTime >= dayRateStart && slotEndTime <= dayRateEnd)
             {
-                rate.valid_from = rate.valid_from.AddDays(1);
-                rate.valid_to = rate.valid_to.Value.AddDays(1);
+                rate = tariff.day_unit_rate_inc_vat;
             }
+            else
+            {
+                rate = tariff.night_unit_rate_inc_vat;
+            }
+
+            if (rate != null)
+            {
+                rates.Add(new()
+                {
+                    valid_from = slotStart,
+                    valid_to = slotEnd,
+                    value_inc_vat = rate.Value
+                });
+            }
+            
+            slotStart = slotStart.AddMinutes(30);
         }
         
-        return rates;
+        return rates.OrderBy(x => x.valid_from).ToList();
     }
     
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
     {
+        // To test: E-1R-IOG-SMB-VAR-24-10-29-H and E-2R-VAR-22-11-01-B
+        //if( Debugger.IsAttached)
+        //    tariffCode = "E-1R-IOG-SMB-VAR-24-10-29-H";
+        
         var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
         
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
             return rates;
 
-        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
 
         rates = new();
         
         try
         {
-            var iogTariff = await GetOctopusIOGTariff(tariffCode);
-            if (iogTariff != null)
+            var tariffDetails = await GetTariffRateLinks(tariffCode);
+
+            if (tariffDetails == null)
             {
-                // Generate the IOG rates the hacky way.
-                var iogRates = GetIOGTariffRates(iogTariff);
-                rates.AddRange(iogRates);
+                logger.LogInformation("Unable to retrieve tariff links for tariff {Code}", tariffCode);
+                return [];
             }
-            else
+            
+            foreach (var link in tariffDetails.links)
             {
-                var links = await GetSingleRateTariffLinks(tariffCode);
-                
-                foreach (var link in links)
+                var linkRates = await GetPagedTariffPrices(link.href, start, end, token);
+
+                if (linkRates.Any())
                 {
-                    var linkRates = await GetPagedTariffPrices(link.href, start, end, token);
+                    var first = linkRates.OrderBy(x => x.valid_from).FirstOrDefault()?.valid_from;
+                    var last = linkRates.OrderBy(x => x.valid_to).LastOrDefault()?.valid_to;
 
-                    if (linkRates.Any())
-                    {
-                        var first = linkRates.OrderBy(x => x.valid_from).FirstOrDefault()?.valid_from;
-                        var last = linkRates.OrderBy(x => x.valid_to).LastOrDefault()?.valid_to;
+                    logger.LogInformation(
+                        "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
+                        linkRates.Count, first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}",
+                        tariffCode);
 
-                        logger.LogInformation(
-                            "Retrieved {C} rates from Octopus ({S:dd-MMM-yyyy HH:mm} - {End}) for product {Code}",
-                            linkRates.Count, first, last == null ? "today" : $"{last:dd-MMM-yyyy HH:mm}", tariffCode);
-
-                        rates.AddRange(linkRates);
-                    }
+                    rates.AddRange(linkRates);
                 }
+            }
+
+            if(tariffDetails.rateType != RateType.SingleRegister )
+            {
+                // In this case, we'll have received tariff rates which are:
+                //   - the tariff start date
+                //   - the tariff period rate
+                // We use these to calculate/extrude a real set of rates for those periods, but appled 
+                // to the next 48 hours. However, the 4 rates we get are from the past, and aren't really
+                // relevant any more - and may contain duplicates. So clear them out
+                rates = rates.Where(x => x.valid_from > DateTime.Now.AddMinutes(-30)).ToList();
+                
+                (TimeOnly start, TimeOnly end) dayRatePeriod = tariffDetails.rateType switch
+                {
+                    RateType.DualRegister => (new TimeOnly(07, 00), new TimeOnly(00, 00)),
+                    RateType.FourRateEV => (new TimeOnly(05, 30), new TimeOnly(23, 30)),
+                    _ => throw new ArgumentException("Unexpected Rate Type")
+                };
+
+                var iogRates = ExtrudeDayAndNightRates(tariffDetails.tariff, start, end, dayRatePeriod.start, dayRatePeriod.end);
+                rates.AddRange(iogRates);
             }
 
             // For rates older than 40 days, we cache for a long time. For rates within the last
@@ -1112,7 +1144,7 @@ private enum MeterType
 
         ArgumentNullException.ThrowIfNull(meterPoints);
 
-        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
         var pageSize = 200;
         

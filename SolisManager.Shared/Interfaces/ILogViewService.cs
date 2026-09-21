@@ -11,6 +11,7 @@ public interface ILogViewService
         public DateTimeOffset timestamp { get; set; }
         public LogLevel level { get; set; }
         public string logText { get; set; } = string.Empty;
+        public List<string> extraLines { get; init; } = new();
     }
     public record LogViewResponse(string LogFileName, IEnumerable<LogEntry> LogEntries, int TotalItemCount, IEnumerable<string> logFiles);
 

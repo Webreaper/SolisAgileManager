@@ -1,13 +1,16 @@
 namespace SolisManager.Shared.Models;
 
-public record OctopusTariff(string code, decimal? standing_charge_inc_vat, decimal? standing_charge_exc_vat, 
-        IEnumerable<OctopusProductLink> links,
-        decimal day_unit_rate_inc_vat,
-        decimal night_unit_rate_inc_vat,
-        decimal ev_device_peak_unit_rate_inc_vat,
-        decimal ev_device_off_peak_unit_rate_inc_vat);
+public record OctopusTariff(
+    string code,
+    decimal? standing_charge_inc_vat,
+    decimal? standing_charge_exc_vat,
+    IEnumerable<OctopusProductLink> links,
+    decimal? day_unit_rate_inc_vat,
+    decimal? night_unit_rate_inc_vat,
+    decimal ev_device_peak_unit_rate_inc_vat,
+    decimal ev_device_off_peak_unit_rate_inc_vat);
 
-public record OctopusTariffRegion(OctopusTariff direct_debit_monthly);
+public record OctopusTariffRegion(OctopusTariff? direct_debit_monthly, OctopusTariff? varying);
 
 public record OctopusTariffResponse(
     string code,
