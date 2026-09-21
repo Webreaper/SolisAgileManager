@@ -20,7 +20,16 @@
                                  SeriesType="SeriesType.Bar"
                                  Color="#005ba3"
                                  PointColor="e => GetColor(e)"/>
-            </ApexChart>
+
+                <ApexPointSeries TItem="PricePlanSlot"
+                                 Items="ChartData"
+                                 Name="PV Forecast (kWh)"
+                                 XValue="@(e => e.valid_from)"
+                                 YValue="@(e => e.pv_est_kwh)"
+                                 SeriesType="SeriesType.Line"
+                                 Color="darkorange"
+                                 Hidden="@(!ChartData.Any(x => x.pv_est_kwh > 0))"
+                                 Stroke="@(new SeriesStroke { Color = "darkorange", Width = 3 })"/></ApexChart >
         </div>
     }
 </ErrorBoundary>
@@ -60,7 +69,14 @@
                 Title = new AxisTitle { Text = "Price (p/kWh)" },
                 SeriesName = "Price",
                 DecimalsInFloat = 2
-            }
+            },
+            new()
+            {
+                Title = new AxisTitle { Text = "PV Forecast (kWh)" },
+                SeriesName = "PV Forecast (kWh)",
+                DecimalsInFloat = 1,
+                Opposite = true,
+            },
         };
 
         options.Yaxis = yAxis;
