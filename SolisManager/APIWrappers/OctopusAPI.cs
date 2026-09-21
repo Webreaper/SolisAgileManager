@@ -206,8 +206,8 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
     private async Task<IEnumerable<OctopusRate>?> GetOctopusTariffPricesForMonth(string tariffCode, DateTime monthStart, CancellationToken token)
     {
         // To test: E-1R-IOG-SMB-VAR-24-10-29-H and E-2R-VAR-22-11-01-B
-        if( Debugger.IsAttached)
-            tariffCode = "E-1R-IOG-SMB-VAR-24-10-29-H";
+        //if( Debugger.IsAttached)
+        //    tariffCode = "E-1R-IOG-SMB-VAR-24-10-29-H";
         
         var cacheKey = $"prices-{tariffCode.ToLower()}-{monthStart:yyyyMM}";
         

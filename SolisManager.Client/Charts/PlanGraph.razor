@@ -19,7 +19,8 @@
                                  YAggregate="@(e => e.Average(e => e.value_inc_vat))"
                                  SeriesType="SeriesType.Bar"
                                  Color="#005ba3"
-                                 PointColor="e => GetColor(e)"/>
+                                 PointColor="e => GetColor(e)"
+                                 Stroke="@(new SeriesStroke { Width = 0 })"/>
 
                 <ApexPointSeries TItem="PricePlanSlot"
                                  Items="ChartData"
@@ -29,7 +30,8 @@
                                  SeriesType="SeriesType.Line"
                                  Color="darkorange"
                                  Hidden="@(!ChartData.Any(x => x.pv_est_kwh > 0))"
-                                 Stroke="@(new SeriesStroke { Color = "darkorange", Width = 3 })"/></ApexChart >
+                                 Stroke="@(new SeriesStroke { Color = "darkorange", Width = 3 })"/>
+                </ApexChart >
         </div>
     }
 </ErrorBoundary>
