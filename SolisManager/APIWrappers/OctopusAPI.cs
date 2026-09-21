@@ -249,6 +249,14 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
             if(tariffDetails.rateType != RateType.SingleRegister )
             {
+                // In this case, we'll have received tariff rates which are:
+                //   - the tariff start date
+                //   - the tariff period rate
+                // We use these to calculate/extrude a real set of rates for those periods, but appled 
+                // to the next 48 hours. However, the 4 rates we get are from the past, and aren't really
+                // relevant any more - and may contain duplicates. So clear them out
+                rates = rates.Where(x => x.valid_from > DateTime.Now.AddMinutes(-30)).ToList();
+                
                 (TimeOnly start, TimeOnly end) dayRatePeriod = tariffDetails.rateType switch
                 {
                     RateType.DualRegister => (new TimeOnly(07, 00), new TimeOnly(00, 00)),
