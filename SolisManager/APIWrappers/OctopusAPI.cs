@@ -89,7 +89,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if (dupeSlots.Any())
         {
             var slots = string.Join(", ", dupeSlots.Select(x => x.Key.TimeOfDay));
-            logger.LogError("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
+            logger.LogWarning("Duplicate Slots detected for {T}!! ({List})", tariffCode, slots);
 
             allPrices = allPrices.DistinctBy(x => x.valid_from).ToList();
         }
@@ -176,7 +176,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var slotEnd = slotStart.AddMinutes(30);
             decimal? rate;
             var slotStartTime = TimeOnly.FromDateTime(slotStart);
-            var slotEndTime = TimeOnly.FromDateTime(slotEnd);
+            var slotEndTime = TimeOnly.FromDateTime(slotEnd).AddMinutes(-1);
             
             if (slotStartTime >= dayRateStart && slotEndTime <= dayRateEnd)
             {
@@ -214,7 +214,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if (memoryCache.TryGetValue(cacheKey, out List<OctopusRate>? rates))
             return rates;
 
-        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
 
         rates = new();
@@ -255,7 +255,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
                     RateType.FourRateEV => (new TimeOnly(05, 30), new TimeOnly(23, 30)),
                     _ => throw new ArgumentException("Unexpected Rate Type")
                 };
-                
+
                 var iogRates = ExtrudeDayAndNightRates(tariffDetails.tariff, start, end, dayRatePeriod.start, dayRatePeriod.end);
                 rates.AddRange(iogRates);
             }
@@ -1136,7 +1136,7 @@ private enum MeterType
 
         ArgumentNullException.ThrowIfNull(meterPoints);
 
-        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0);
+        var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
         var pageSize = 200;
         

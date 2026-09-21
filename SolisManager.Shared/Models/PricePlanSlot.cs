@@ -29,7 +29,7 @@ public record OctopusRate
     public DateTime valid_from { get; set; }
     public DateTime? valid_to { get; set; } = DateTime.MaxValue;
 
-    public override string ToString() => $"{valid_from:dd-MMM-yyyy HH:mm} - {valid_from:dd-MMM-yyyy HH:mm}: {value_inc_vat:N3}p/kWh";
+    public override string ToString() => $"{valid_from:dd-MMM-yyyy HH:mm} - {valid_to:dd-MMM-yyyy HH:mm}: {value_inc_vat:N3}p/kWh";
 }
 
 public record PricePlanSlot
