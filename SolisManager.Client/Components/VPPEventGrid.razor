@@ -1,9 +1,10 @@
 @inject IInverterManagerService inverterService
 @inject IDialogService dialogService
+@inject ISnackbar snackBar
 
 <h3>VPP Event History</h3>
 
-<MudDataGrid T="AxleHistoricEvent" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
+<MudDataGrid T="AxleHistoricEvent" @ref="_grid" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
           CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true" Breakpoint="Breakpoint.None">
     <ToolBarContent>
         <MudText>
@@ -15,13 +16,21 @@
         </MudButton>
     </ToolBarContent>
     <GroupTemplate>
-        <div class="month-grouping">
+        <div class="month-grouping" @onclick="() => OnGroupHeaderClick(context)">
             <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"/>
             <div class="grouping-header-item">@MonthSummary(context.Grouping.Key)</div>
             @if (context.Grouping.Count() != 0)
             {
                 <div class="grouping-header-item">@($"Events: {context.Grouping.Count()}")</div>
                 <div class="grouping-header-item">@($"Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
+                @if (context.Grouping.Any(x => x.Earnings == null || x.Earnings is 0))
+                {
+                    <div class="grouping-header-item missing-earnings">Click to add Earnings</div>
+                }
+                else
+                {
+                    <MudSpacer/>
+                }
             }
         </div>
     </GroupTemplate>
@@ -35,16 +44,14 @@
         <PropertyColumn Property="x => x.KWH" Title="KWH" Format="F2">
             <EditTemplate>
                 <MudNumericField Placeholder="Energy (kWh)" @bind-Value="context.Item.KWH"
-                              @attributes="UIConstants.TextAttribs" Format="N2"
-                              Immediate="true" />
+                              @attributes="UIConstants.TextAttribs" Format="N2" />
             </EditTemplate>
         </PropertyColumn>
 
         <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
             <EditTemplate>
                 <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
-                                 @attributes="UIConstants.TextAttribs"
-                              Format="N2" Immediate="true" />
+                                 @attributes="UIConstants.TextAttribs" Format="N2" />
             </EditTemplate>
             <CellTemplate>@($"£{context.Item.Earnings:N2}")</CellTemplate>
         </PropertyColumn>
@@ -66,15 +73,12 @@
             </CellTemplate>
         </TemplateColumn>
     </Columns>
-    <PagerContent>
-        <MudDataGridPager T="AxleHistoricEvent" PageSizeOptions="@pageSizeOptions" />
-    </PagerContent>
 </MudDataGrid>
 
 @code {
     private List<AxleHistoricEvent> _events = [];
-    private readonly int[] pageSizeOptions = [15, 25, 50, 100];
     private Func<AxleHistoricEvent, object>? _grouping;
+    private MudDataGrid<AxleHistoricEvent> _grid;
 
     private string? MonthSummary(object? groupKey)
     {
@@ -104,10 +108,15 @@
         await base.OnInitializedAsync();
     }
 
+    private void OnGroupHeaderClick(GroupDefinition<AxleHistoricEvent> group)
+    {
+        _grid.ToggleGroupExpand(group.Title, group.KeyPath, !group.Expanded);
+    }
+    
     private async Task LoadEvents()
     {
         var allEvents = await inverterService.GetAxleHistoricEvents(CancellationToken.None);
-        _events = allEvents.OrderBy(x => x.Start)
+        _events = allEvents.OrderByDescending(x => x.Start)
                            .ToList();
 
     }
