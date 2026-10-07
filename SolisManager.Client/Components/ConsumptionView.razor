@@ -116,7 +116,7 @@
                     <MudTd>@Math.Round(context.TotalExport, 2)</MudTd>
                     <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
                     <MudTd><Price Value="@(context.TotalExportProfit)"/></MudTd>
-                    <MudTd><Price Value="@(context.NetCost)" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    <MudTd><Price Value="@(context.NetCost(false))" Colours="Price.ColorType.PositiveRed"/></MudTd>
                     @if (comparePrices)
                     {
                         <MudTd><Price Value="@GetComparisonCost(context.StartTime!.Value)" Colours="Price.ColorType.PositiveRed"/></MudTd>
@@ -147,7 +147,7 @@
     private decimal GetComparisonCost(DateTime? date)
     {
         if (date != null && comparisonLookup != null && comparisonLookup.TryGetValue(date.Value, out var cost))
-            return cost.NetCost;
+            return cost.NetCost(false);
         return 0;
     }
     
@@ -188,8 +188,8 @@
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.ImportTariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
-    private decimal? TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost);
-    private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost);
+    private decimal? TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost(false));
+    private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost(false));
     private decimal? ComparisonDelta => TotalNetComparisonCost - TotalNetCost;
     
     public void Dispose()

@@ -1565,6 +1565,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         if (consumption != null)
         {
+            await EnrichDataWithVPPEarnings(consumption.RawConsumptionData, token);
+            
             var response = new ConsumptionResponse()
             {
                 ConsumptionData = GroupConsumptionData(consumption.RawConsumptionData, req.GroupBy),
@@ -1583,7 +1585,27 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         logger.LogWarning("Attempted to get consumption, but no data was returned");
         return null;
     }
-    
+
+    private async Task EnrichDataWithVPPEarnings(IEnumerable<OctopusConsumption> consumptionData, CancellationToken token)
+    {
+        var axleEarnings = await axleApi.LoadHistoricVPPEvents(token);
+
+        // TODO  Need to break up by 30-min slots
+        var lookup = axleEarnings.events.ToDictionary(x => x.Start);
+
+        int enriched = 0;
+        foreach (var data in consumptionData)
+        {
+            if (lookup.TryGetValue(data.PeriodStart, out var evt) && evt.Earnings is not 0)
+            {
+                data.VPPEarnings = evt.Earnings;
+                enriched++;
+            }
+        }
+        
+        logger.LogInformation("Enriched {N} consumption items with VPP earnings", enriched);
+    }
+
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
     {
         Func<OctopusConsumption, object> groupSelector = groupBy switch
@@ -1607,6 +1629,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 AverageImportPrice = WeightedAverage(x, x => x.ImportConsumption, x => x.ImportCost),
                 AverageExportPrice = WeightedAverage(x, x => x.ExportConsumption, x => x.ExportProfit),
                 AverageStandingCharge = x.Average(x => x.DailyStandingCharge ?? 0),
+                TotalVPPEarnings = x.Sum(x => x.VPPEarnings ?? 0),
             })
             .OrderByDescending(x => x.StartTime)
             .ToList();

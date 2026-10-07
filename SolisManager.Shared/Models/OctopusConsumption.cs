@@ -10,6 +10,7 @@ public class OctopusConsumption
     public decimal ExportConsumption { get; set; }
     public decimal ImportPrice { get; set; }
     public decimal ExportPrice { get; set; }
+    public decimal? VPPEarnings { get; set; }
     public decimal ImportCost => ImportPrice * ImportConsumption;
     public decimal ExportProfit => ExportPrice * ExportConsumption;
     public decimal NetCost => ImportCost - ExportProfit;
@@ -37,5 +38,5 @@ public class GroupedConsumption
     public decimal TotalExportProfit { get; set; }
     public decimal AverageExportPrice { get; set; }
     public decimal TotalVPPEarnings { get; set; }
-    public decimal NetCost => TotalImportCost - TotalExportProfit;
+    public decimal NetCost(bool includeVpp) => TotalImportCost - TotalExportProfit - (includeVpp ? TotalVPPEarnings : 0);
 }
