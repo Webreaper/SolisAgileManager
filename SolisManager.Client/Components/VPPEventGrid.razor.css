@@ -1,7 +1,13 @@
 .month-grouping {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
+    column-gap: 10px;
     font-weight: bold;
     width: 100%;
+}
+
+.grouping-header-item {
+    min-width: 150px;
+    max-width: 300px;
 }

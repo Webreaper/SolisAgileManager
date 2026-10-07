@@ -36,5 +36,6 @@ public class GroupedConsumption
     public decimal TotalExport { get; set; }
     public decimal TotalExportProfit { get; set; }
     public decimal AverageExportPrice { get; set; }
+    public decimal TotalVPPEarnings { get; set; }
     public decimal NetCost => TotalImportCost - TotalExportProfit;
 }

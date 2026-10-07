@@ -4,10 +4,10 @@
 <h3>VPP Event History</h3>
 
 <MudDataGrid T="AxleHistoricEvent" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
-          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true">
+          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true" Breakpoint="Breakpoint.None">
     <ToolBarContent>
         <MudText>
-            @($"Events: {_events.Count:0}, Total Earnings: £{_events.Sum(x => x.Earnings):N2}")
+            @($"Total Earnings: £{_events.Sum(x => x.Earnings):N2} from {_events.Count:0} events")
         </MudText>
         <MudSpacer/>
         <MudButton OnClick="NewItemAsync" @attributes="UIConstants.ButtonAttribs" EndIcon="@Icons.Material.Filled.AddCircle">
@@ -16,22 +16,20 @@
     </ToolBarContent>
     <GroupTemplate>
         <div class="month-grouping">
-            <div>@MonthSummary(context.Grouping.Key)</div>
-            @if (context.DataGrid.FilteredItems.Count() != 0)
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"/>
+            <div class="grouping-header-item">@MonthSummary(context.Grouping.Key)</div>
+            @if (context.Grouping.Count() != 0)
             {
-                <MudSpacer/>
-                <div>@($" Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
+                <div class="grouping-header-item">@($"Events: {context.Grouping.Count()}")</div>
+                <div class="grouping-header-item">@($"Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
             }
         </div>
     </GroupTemplate>
     <Columns>
         <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy" Editable="false" 
                         GroupBy="_grouping" Grouping="true"/>
-        <PropertyColumn Property="x => x.Start.Date" Title="Start" Editable="false">
-            <CellTemplate>@TimeOfDate(context.Item.Start)</CellTemplate>
-        </PropertyColumn>
-        <PropertyColumn Property="x => x.End.Date" Title="End" Editable="false">
-            <CellTemplate>@TimeOfDate(context.Item.End)</CellTemplate>
+        <PropertyColumn Property="x => x.Start.Date" Title="Time" Editable="false">
+            <CellTemplate>@TimeOfDate(context.Item.Start) - @TimeOfDate(context.Item.End)</CellTemplate>
         </PropertyColumn>
 
         <PropertyColumn Property="x => x.KWH" Title="KWH" Format="F2">
@@ -85,7 +83,7 @@
 
         (int month, int year) key = ((int month, int year))groupKey;
 
-        return $"{CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(key.month)} {key.year}";
+        return $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(key.month)} {key.year}";
     }
 
     private RenderFragment? TimeOfDate(DateTime? date)
