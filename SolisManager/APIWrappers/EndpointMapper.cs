@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml;
 using Microsoft.AspNetCore.Mvc;
 using SolisManager.Client.Pages;
 using SolisManager.Services;
@@ -84,6 +85,29 @@ public static class EndpointMapper
                 [FromServices] IInverterManagerService service) =>
             {
                 await service.SlotNotified(slot);
+                return TypedResults.Ok();
+            });
+
+        group.MapGet("vppevents",
+            async ([FromServices] IInverterManagerService service,
+                CancellationToken token) =>
+            {
+                var result = await service.GetAxleHistoricEvents(token);
+                return TypedResults.Ok(result);
+            });
+
+        group.MapDelete("vppevents/{uniqueId}",
+            async (string uniqueId, [FromServices] IInverterManagerService service) =>
+            {
+                var result = await service.DeleteAxleHistoricEvent(uniqueId);
+                return TypedResults.Ok(result);
+            });
+
+        group.MapPost("vppevent",
+            async (AxleHistoricEvent evt, 
+                [FromServices] IInverterManagerService service) =>
+            {
+                await service.UpdateAxleHistoricEvent(evt);
                 return TypedResults.Ok();
             });
 

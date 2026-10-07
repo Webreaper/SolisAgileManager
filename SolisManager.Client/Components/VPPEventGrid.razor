@@ -1,0 +1,130 @@
+@inject IInverterManagerService inverterService
+@inject IDialogService dialogService
+
+<h3>VPP Event History</h3>
+
+<MudDataGrid T="AxleHistoricEvent" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
+          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true">
+    <ToolBarContent>
+        <MudText>
+            Historic Axle events allow VPP earnings to be included in the Costs/Consumption view.
+        </MudText>
+        <MudSpacer/>
+        <MudButton OnClick="NewItemAsync" @attributes="UIConstants.ButtonAttribs" EndIcon="@Icons.Material.Filled.AddCircle">
+            Add
+        </MudButton>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy HH:mm" Editable="false"/>
+        <PropertyColumn Property="x => x.Start.Date" Title="Start" Editable="false">
+            <CellTemplate>@TimeOfDate(context.Item.Start)</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.End.Date" Title="End" Editable="false">
+            <CellTemplate>@TimeOfDate(context.Item.End)</CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.KWH" Title="KWH" Format="F2">
+            <EditTemplate>
+                <MudNumericField Placeholder="Energy (kWh)" @bind-Value="context.Item.KWH"
+                              @attributes="UIConstants.TextAttribs" Format="N2"
+                              Immediate="true" />
+            </EditTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
+            <EditTemplate>
+                <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
+                                 @attributes="UIConstants.TextAttribs"
+                              Format="N2" Immediate="true" />
+            </EditTemplate>
+            <CellTemplate>@($"£{context.Item.Earnings:N2}")</CellTemplate>
+        </PropertyColumn>
+        
+        <TemplateColumn>
+            <CellTemplate>
+                <MudStack Row Spacing="0" Justify="Justify.FlexEnd">
+                        <MudIconButton Size="Size.Small"
+                                       Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Success"
+                                       aria-label="Save changes"
+                                       OnClick="async () => await EditItem(context.Item)" />
+
+                        <MudIconButton Size="Size.Small"
+                                       Icon="@Icons.Material.Outlined.Delete"
+                                       aria-label="Delete row"
+                                       OnClick="async () => await DeleteItem(context.Item)" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private List<AxleHistoricEvent> _events = [];
+
+    private RenderFragment? TimeOfDate(DateTime? date)
+    {
+        if (date != null)
+        {
+            var formattedTime = date.Value.ToShortTimeString();
+            return @<span>@formattedTime</span>;
+        }
+
+        return null;
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task LoadEvents()
+    {
+        var allEvents = await inverterService.GetAxleHistoricEvents(CancellationToken.None);
+        _events = allEvents.OrderBy(x => x.Start)
+                           .ToList();
+
+    }
+
+    private async Task<DataGridEditFormAction> SaveChanges(AxleHistoricEvent evt)
+    {
+        if(await inverterService.UpdateAxleHistoricEvent(evt))
+        {
+            await LoadEvents();
+            return DataGridEditFormAction.Close;
+        }
+
+        return DataGridEditFormAction.KeepOpen;
+    }
+
+    private async Task DeleteItem(AxleHistoricEvent evt)
+    {
+        if (await inverterService.DeleteAxleHistoricEvent(evt.UniqueID))
+            await LoadEvents();
+    }
+
+    private async Task EditItem(AxleHistoricEvent evt)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, BackdropClick = false };
+        var parameters = new DialogParameters { { "VPPEvent", evt } };
+        var dialog = await dialogService.ShowAsync<VPPEventDialog>("VPP Event", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Data: AxleHistoricEvent updatedEvent })
+            await SaveChanges(updatedEvent);
+    }
+    
+    private async Task NewItemAsync()
+    {
+        var currentTime = DateTime.Now.RoundToHalfHour();
+        
+        var newEvent = new AxleHistoricEvent
+        {
+            Start = currentTime.AddMinutes(-60),
+            End = currentTime
+        };
+        
+        await EditItem(newEvent);
+    }
+}

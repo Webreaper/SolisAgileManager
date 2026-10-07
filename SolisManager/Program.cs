@@ -4,12 +4,9 @@ using Blazored.LocalStorage;
 using SolisManager.APIWrappers;
 using SolisManager.Components;
 using Coravel;
-using MudBlazor;
-using MudBlazor.Services;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using SolisManager.Client.Constants;
 using SolisManager.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
@@ -277,6 +274,9 @@ public class Program
         
         var solcastAPI = app.Services.GetRequiredService<SolcastAPI>();
         await solcastAPI.InitialiseSolcastCache();
+        
+        var axleApi = app.Services.GetRequiredService<AxleApi>();
+        await axleApi.LoadHistoricVPPEvents(CancellationToken.None);
 
         try
         {

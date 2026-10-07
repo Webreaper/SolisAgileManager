@@ -28,6 +28,11 @@ public interface IInverterManagerService
     Task<OctopusTariffResponse?> GetOctopusTariffs(string product);
     Task SlotNotified(PricePlanSlot slot);
     Task<string?> GetAccountProductCode(string account, string apiKey);
+    
+    Task<List<AxleHistoricEvent>> GetAxleHistoricEvents(CancellationToken token);
+    Task<bool> UpdateAxleHistoricEvent(AxleHistoricEvent evt);
+    Task<bool> DeleteAxleHistoricEvent(string uniqueId);
+    Task<bool> VPPEnabled();
 }
 
 public interface IInverterRefreshService

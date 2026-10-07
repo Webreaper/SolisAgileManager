@@ -5,6 +5,7 @@ using SolisManager.APIWrappers;
 using SolisManager.Extensions;
 using SolisManager.Inverters.Solis;
 using SolisManager.Shared;
+using SolisManager.Shared.Extensions;
 using SolisManager.Shared.Interfaces;
 using SolisManager.Shared.Models;
 
@@ -1015,7 +1016,42 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
         return null;
     }
-    
+
+    public async Task<List<AxleHistoricEvent>> GetAxleHistoricEvents(CancellationToken token)
+    {
+        var history = await axleApi.LoadHistoricVPPEvents(token);
+
+        return history.events;
+    }
+
+    public async Task<bool> UpdateAxleHistoricEvent(AxleHistoricEvent evt)
+    {
+        try
+        {
+            await axleApi.SaveHistoricVPPEvent(evt);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to save VPP event");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteAxleHistoricEvent(string uniqueId)
+    {
+        try
+        {
+            await axleApi.DeleteHistoricVPPEvent(uniqueId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to save VPP event");
+            return false;
+        }
+    }
+
     private async Task<bool> UpdateConfigWithOctopusTariff(SolisManagerConfig theConfig)
     {
         try
@@ -1755,5 +1791,10 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         {
             logger.LogInformation("PV forecast power {D:dd-MMM-yyyy} = {Y:F2} kW", d.Date, d.Energy);
         }
+    }
+    
+    public Task<bool> VPPEnabled()
+    {
+        return Task.FromResult(!string.IsNullOrEmpty(config.AxleAPIKey));
     }
 }
