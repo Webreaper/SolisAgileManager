@@ -58,11 +58,15 @@
             </CellTemplate>
         </TemplateColumn>
     </Columns>
+    <PagerContent>
+        <MudDataGridPager T="AxleHistoricEvent" PageSizeOptions="@pageSizeOptions" />
+    </PagerContent>
 </MudDataGrid>
 
 @code {
     private List<AxleHistoricEvent> _events = [];
-
+    private readonly int[] pageSizeOptions = [15, 25, 50, 100];
+    
     private RenderFragment? TimeOfDate(DateTime? date)
     {
         if (date != null)
