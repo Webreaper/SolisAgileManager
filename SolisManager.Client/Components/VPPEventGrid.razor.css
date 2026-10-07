@@ -1,0 +1,7 @@
+.month-grouping {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-weight: bold;
+    width: 100%;
+}

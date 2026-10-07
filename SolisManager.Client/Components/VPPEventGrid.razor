@@ -4,19 +4,29 @@
 <h3>VPP Event History</h3>
 
 <MudDataGrid T="AxleHistoricEvent" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
-          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true">
+          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true">
     <ToolBarContent>
         <MudText>
-            Historic Axle events allow VPP earnings to be included in the Costs/Consumption view.
+            @($"Events: {_events.Count:0}, Total Earnings: £{_events.Sum(x => x.Earnings):N2}")
         </MudText>
         <MudSpacer/>
         <MudButton OnClick="NewItemAsync" @attributes="UIConstants.ButtonAttribs" EndIcon="@Icons.Material.Filled.AddCircle">
             Add
         </MudButton>
     </ToolBarContent>
+    <GroupTemplate>
+        <div class="month-grouping">
+            <div>@MonthSummary(context.Grouping.Key)</div>
+            @if (context.DataGrid.FilteredItems.Count() != 0)
+            {
+                <MudSpacer/>
+                <div>@($" Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
+            }
+        </div>
+    </GroupTemplate>
     <Columns>
         <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy" Editable="false" 
-                        AggregateDefinition="_countAggregation"/>
+                        GroupBy="_grouping" Grouping="true"/>
         <PropertyColumn Property="x => x.Start.Date" Title="Start" Editable="false">
             <CellTemplate>@TimeOfDate(context.Item.Start)</CellTemplate>
         </PropertyColumn>
@@ -32,7 +42,7 @@
             </EditTemplate>
         </PropertyColumn>
 
-        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)" AggregateDefinition="_earningsAggregation">
+        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
             <EditTemplate>
                 <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
                                  @attributes="UIConstants.TextAttribs"
@@ -66,7 +76,18 @@
 @code {
     private List<AxleHistoricEvent> _events = [];
     private readonly int[] pageSizeOptions = [15, 25, 50, 100];
-    
+    private Func<AxleHistoricEvent, object>? _grouping;
+
+    private string? MonthSummary(object? groupKey)
+    {
+        if (groupKey == null)
+            return null;
+
+        (int month, int year) key = ((int month, int year))groupKey;
+
+        return $"{CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(key.month)} {key.year}";
+    }
+
     private RenderFragment? TimeOfDate(DateTime? date)
     {
         if (date != null)
@@ -80,6 +101,7 @@
     
     protected override async Task OnInitializedAsync()
     {
+        _grouping = x => (x.Start.Month, x.Start.Year);
         await LoadEvents();
         await base.OnInitializedAsync();
     }
@@ -105,8 +127,12 @@
 
     private async Task DeleteItem(AxleHistoricEvent evt)
     {
-        if (await inverterService.DeleteAxleHistoricEvent(evt.UniqueID))
-            await LoadEvents();
+        var result = await dialogService.ShowMessageBoxAsync("Delete VPP Event?", "Do you really want to delete this event?", "Delete", "Cancel");
+        if (result != null && result.Value)
+        {
+            if (await inverterService.DeleteAxleHistoricEvent(evt.UniqueID))
+                await LoadEvents();
+        }
     }
 
     private async Task EditItem(AxleHistoricEvent evt)
@@ -132,24 +158,4 @@
         
         await EditItem(newEvent);
     }
-    
-    private readonly AggregateDefinition<AxleHistoricEvent> _earningsAggregation = new()
-    {
-        Type = AggregateType.Custom,
-        CustomAggregate = x =>
-        {
-            var totalEarnings = x.Sum(z => z.Earnings);
-            return $"Total Earnings: £{totalEarnings:0}";
-        }
-    };
-    
-    private readonly AggregateDefinition<AxleHistoricEvent> _countAggregation = new()
-    {
-        Type = AggregateType.Custom,
-        CustomAggregate = x =>
-        {
-            var totalEvents = x.Count();
-            return $"Events: {totalEvents:0}";
-        }
-    };
 }
