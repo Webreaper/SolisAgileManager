@@ -7,7 +7,7 @@
         {
             <div class="dialog-form">
                 <MudDatePicker Label="Date" @bind-Date="itemProxy.Date" DateFormat="dd-MMM-yyyy"
-                               Required="true" Editable="true" 
+                               Required="true" Editable="true" FirstDayOfWeek="DayOfWeek.Monday"
                                @attributes="UIConstants.TextAttribs"/>
             
                 <MudSelect Label="Start Time" @bind-Value="itemProxy.Time" @attributes="UIConstants.SelectAttribs">

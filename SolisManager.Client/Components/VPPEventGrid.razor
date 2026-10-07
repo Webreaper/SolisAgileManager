@@ -15,7 +15,8 @@
         </MudButton>
     </ToolBarContent>
     <Columns>
-        <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy HH:mm" Editable="false"/>
+        <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy" Editable="false" 
+                        AggregateDefinition="_countAggregation"/>
         <PropertyColumn Property="x => x.Start.Date" Title="Start" Editable="false">
             <CellTemplate>@TimeOfDate(context.Item.Start)</CellTemplate>
         </PropertyColumn>
@@ -31,7 +32,7 @@
             </EditTemplate>
         </PropertyColumn>
 
-        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
+        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)" AggregateDefinition="_earningsAggregation">
             <EditTemplate>
                 <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
                                  @attributes="UIConstants.TextAttribs"
@@ -127,4 +128,24 @@
         
         await EditItem(newEvent);
     }
+    
+    private readonly AggregateDefinition<AxleHistoricEvent> _earningsAggregation = new()
+    {
+        Type = AggregateType.Custom,
+        CustomAggregate = x =>
+        {
+            var totalEarnings = x.Sum(z => z.Earnings);
+            return $"Total Earnings: £{totalEarnings:0}";
+        }
+    };
+    
+    private readonly AggregateDefinition<AxleHistoricEvent> _countAggregation = new()
+    {
+        Type = AggregateType.Custom,
+        CustomAggregate = x =>
+        {
+            var totalEvents = x.Count();
+            return $"Events: {totalEvents:0}";
+        }
+    };
 }
