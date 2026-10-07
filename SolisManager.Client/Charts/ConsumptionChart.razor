@@ -16,7 +16,7 @@
                     <div class="chart-tooltip">
                         <div class="chart-tooltip-title">
                             <div>@TooltipRange(context.DataPoint.Items)</div>
-                            <Price Label="Net Cost" Value=@context.DataPoint.Items.Sum(e => e.NetCost(true)) Colours="Price.ColorType.PositiveRed "/>
+                            <Price Label="Net Cost" Value=@context.DataPoint.Items.Sum(e => e.NetCost(IncludeVPPEarnings)) Colours="Price.ColorType.PositiveRed "/>
                         </div>
                         <Price Label="Import Total" Value="@context.DataPoint.Items.Sum(e => e.TotalImportCost)" Colours="Price.ColorType.PositiveRed"/>
                         <div class="price-row">Import Average: @context.DataPoint.Items.Average(e => e.AverageImportPrice).ToString("N2")<text>p/kWh</text></div>
@@ -34,7 +34,7 @@
                                  Items="@ChartData.ConsumptionData"
                                  Name="Cost"
                                  XValue="@(e => e.StartTime?.Date)"
-                                 YValue="@(e => e.NetCost(true))"
+                                 YValue="@(e => e.NetCost(IncludeVPPEarnings))"
                                  SeriesType="SeriesType.Bar"
                                  Color="darkred"
                                  PointColor="e => GetColor(e)"/>
@@ -45,7 +45,7 @@
                                      Items="@ChartData.ComparisonConsumptionData"
                                      Name="Comparison Cost"
                                      XValue="@(e => e.StartTime?.Date)"
-                                     YValue="@(e => e.NetCost(true))"
+                                     YValue="@(e => e.NetCost(IncludeVPPEarnings))"
                                      SeriesType="SeriesType.Bar"
                                      Color="orange"
                                      PointColor="e => GetComparisonColor(e)"/>
@@ -63,8 +63,11 @@
     [Parameter]
     public GroupByType SelectedGrouping { get; set; }
     
-    private string GetColor(GroupedConsumption item) => item.NetCost(true) > 0 ? "firebrick" : "green";
-    private string GetComparisonColor(GroupedConsumption item) => item.NetCost(true) > 0 ? "orange" : "lightblue";
+    [Parameter]
+    public bool IncludeVPPEarnings { get; set; }
+    
+    private string GetColor(GroupedConsumption item) => item.NetCost(IncludeVPPEarnings) > 0 ? "firebrick" : "green";
+    private string GetComparisonColor(GroupedConsumption item) => item.NetCost(IncludeVPPEarnings) > 0 ? "orange" : "lightblue";
 
     private string TooltipRange(IEnumerable<GroupedConsumption>? items)
     {
