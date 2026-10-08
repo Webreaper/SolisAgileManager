@@ -5,7 +5,7 @@
 <h3>VPP Event History</h3>
 
 <MudDataGrid T="AxleHistoricEvent" @ref="_grid" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
-          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true" Breakpoint="Breakpoint.None">
+             Dense="true" Hover="true" Groupable="true" Breakpoint="Breakpoint.None">
     <ToolBarContent>
         <MudText>
             @($"Total Earnings: £{_events.Sum(x => x.Earnings):N2} from {_events.Count:0} events")
@@ -23,9 +23,9 @@
             {
                 <div class="grouping-header-item">@($"Events: {context.Grouping.Count()}")</div>
                 <div class="grouping-header-item">@($"Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
-                @if (context.Grouping.Any(x => x.Earnings == null || x.Earnings is 0))
+                @if (!context.Expanded && context.Grouping.Any(x => x.Earnings == null || x.Earnings is 0 || x.KWH == null || x.KWH == 0))
                 {
-                    <div class="grouping-header-item missing-earnings">Click to add Earnings</div>
+                    <MudSpacer/><div class="grouping-header-item missing-earnings">Expand to add Earnings</div>
                 }
                 else
                 {
@@ -43,15 +43,21 @@
 
         <PropertyColumn Property="x => x.KWH" Title="KWH" Format="F2">
             <EditTemplate>
-                <MudNumericField Placeholder="Energy (kWh)" @bind-Value="context.Item.KWH"
-                              @attributes="UIConstants.TextAttribs" Format="N2" />
+                <div class="@FieldClass(context.Item.KWH)">
+                    <MudNumericField Placeholder="Energy (kWh)" @bind-Value="context.Item.KWH"
+                                 @bind-Value:after="async () => await SaveChanges(context.Item)"
+                                 @attributes="UIConstants.TextAttribs" Format="N2"/>
+                </div>
             </EditTemplate>
         </PropertyColumn>
 
         <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
             <EditTemplate>
-                <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
-                                 @attributes="UIConstants.TextAttribs" Format="N2" />
+                <div class="@FieldClass(context.Item.Earnings)">
+                    <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
+                                 @bind-Value:after="async () => await SaveChanges(context.Item)"
+                                 @attributes="UIConstants.TextAttribs" Format="N2"/>
+                </div>
             </EditTemplate>
             <CellTemplate>@($"£{context.Item.Earnings:N2}")</CellTemplate>
         </PropertyColumn>
@@ -80,6 +86,14 @@
     private Func<AxleHistoricEvent, object>? _grouping;
     private MudDataGrid<AxleHistoricEvent> _grid;
 
+    private string? FieldClass(decimal? value)
+    {
+        if (value is null or 0)
+            return "missing-data";
+
+        return "complete-data";
+    }
+    
     private string? MonthSummary(object? groupKey)
     {
         if (groupKey == null)
@@ -121,15 +135,15 @@
 
     }
 
-    private async Task<DataGridEditFormAction> SaveChanges(AxleHistoricEvent evt)
+    private async Task SaveChanges(AxleHistoricEvent evt)
     {
         if(await inverterService.UpdateAxleHistoricEvent(evt))
         {
+            snackBar.Add("Changes saved", Severity.Success);
             await LoadEvents();
-            return DataGridEditFormAction.Close;
         }
-
-        return DataGridEditFormAction.KeepOpen;
+        
+        StateHasChanged();
     }
 
     private async Task DeleteItem(AxleHistoricEvent evt)
@@ -138,7 +152,10 @@
         if (result != null && result.Value)
         {
             if (await inverterService.DeleteAxleHistoricEvent(evt.UniqueID))
+            {
+                snackBar.Add("Event deleted", Severity.Success);
                 await LoadEvents();
+            }
         }
     }
 

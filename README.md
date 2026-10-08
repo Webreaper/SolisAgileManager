@@ -221,7 +221,7 @@ When tracking the consumption costs/profits for your system, it can be useful to
 costs. The latest version of SolisManager supports this by allowing you to track events and earnings in the app, and view them on the costs page. 
 
 Once you configure your Axle API key, the 'VPP Events' page will be enabled, which provides a summary of all of the events and earnings for your VPP account.
-Unfortunately Axle don't provide an API or export to get event history details automatically, so historic events will need to be added manually. Events are
+Unfortunately Axle doesn't provide an API or export to get event history details automatically, so historic events will need to be added manually. Events are
 stored in a Json file in the config folder.
 
 <img width="383" height="517" alt="Screenshot 2026-10-08 at 05 16 19" src="https://github.com/user-attachments/assets/9c7d84ad-fb75-4c11-8e61-238365ceae2d" />
