@@ -170,4 +170,30 @@ public class ClientInverterManagerService( HttpClient httpClient, ILogger<Client
         
         return await httpClient.GetFromJsonAsync<string?>($"inverter/checkproductcode/{account}/{apiKey}");
     }
+
+    public async Task<List<AxleHistoricEvent>> GetAxleHistoricEvents(CancellationToken token)
+    {
+        var events = await httpClient.GetFromJsonAsync<List<AxleHistoricEvent>>($"inverter/vppevents", token);
+        return events ?? [];
+    }
+
+    public async Task<bool> UpdateAxleHistoricEvent(AxleHistoricEvent evt)
+    {
+        var response = await httpClient.PostAsJsonAsync($"inverter/vppevent", evt);
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<bool> DeleteAxleHistoricEvent(string uniqueId)
+    {
+        var response = await httpClient.DeleteAsync($"inverter/vppevent/{uniqueId}");
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<bool> VPPEnabled()
+    {
+        var config = await GetConfig();
+        return !string.IsNullOrEmpty(config.AxleAPIKey);
+    }
 }

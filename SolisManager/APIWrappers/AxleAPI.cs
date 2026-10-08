@@ -15,6 +15,8 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
     private readonly List<AxleEvent> axleEvents = new();
     private bool checkedEvents = false;
 
+    private string EventHistoryPath => Path.Combine(Program.ConfigFolder, $"VPP-events.json");
+
     public async Task<IEnumerable<AxleEvent>> GetAxleEventsAsync()
     {
         if (!checkedEvents)
@@ -90,6 +92,8 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
                 logger.LogInformation("Axle API succeeded: event retrieved: {Event}", axleEvent);
                 axleEvents.Add(axleEvent);
 
+                await AutoCreateAxleEvents(axleEvent);
+                
                 LogAxleEvents();
             }
             else 
@@ -110,6 +114,112 @@ public class AxleApi(SolisManagerConfig config, IUserAgentProvider userAgentProv
             logger.LogError("Exception getting Axle events: {E}", ex);
         }
     }
+
+    private AxleVPPEventHistory? _eventHistory;
+
+    public async Task AutoCreateAxleEvents(AxleEvent evt)
+    {
+        if (_eventHistory is null)
+            await LoadHistoricVPPEvents(CancellationToken.None);
+        
+        ArgumentNullException.ThrowIfNull(_eventHistory);
+
+        if (_eventHistory.events.Any(x => x.Start == evt.start_time))
+        {
+            logger.LogTrace("Auto VPP creation skipped: event already exists");
+        }
+        else
+        {
+            var newEvent = new AxleHistoricEvent
+            {
+                Start = evt.start_time!.Value,
+                End = evt.end_time!.Value, 
+                Export = evt.import_export == "export"
+            };
+            
+            logger.LogInformation("Auto VPP creation succeeded: {Event}", newEvent);
+            _eventHistory.events.Add(newEvent);
+            
+            await SaveHistoricVPPEvents();
+        }
+    }
+    
+    public async Task SaveHistoricVPPEvent(AxleHistoricEvent vppEvent)
+    {
+        if (_eventHistory is null)
+            await LoadHistoricVPPEvents(CancellationToken.None);
+        
+        ArgumentNullException.ThrowIfNull(_eventHistory);
+        
+        var lookup = _eventHistory.events.ToDictionary(x => x.UniqueID);
+
+        lookup[vppEvent.UniqueID] = vppEvent;
+        
+        _eventHistory = new AxleVPPEventHistory {  events = lookup.Values.ToList() };
+
+        await SaveHistoricVPPEvents();
+    }
+
+    public async Task DeleteHistoricVPPEvent(string uniqueId)
+    {
+        ArgumentNullException.ThrowIfNull(_eventHistory);
+
+        var lookup = _eventHistory.events.ToDictionary(x => x.UniqueID);
+
+        lookup.Remove(uniqueId);
+        
+        _eventHistory = new AxleVPPEventHistory {  events = lookup.Values.ToList() };
+
+        await SaveHistoricVPPEvents();
+    }
+
+    private async Task SaveHistoricVPPEvents()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(_eventHistory, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(EventHistoryPath, json);
+            logger.LogInformation("Saved {N} VPP events from {F}", EventHistoryPath, json);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Unable to save Historic VPP events");
+        }
+    }
+
+    public async Task<AxleVPPEventHistory> LoadHistoricVPPEvents(CancellationToken token)
+    {
+        if (_eventHistory == null)
+        {
+            try
+            {
+                var file = EventHistoryPath;
+
+                if (File.Exists(file))
+                {
+                    var json = await File.ReadAllTextAsync(file, token);
+
+                    var loadedHistory = JsonSerializer.Deserialize<AxleVPPEventHistory>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (loadedHistory != null)
+                    {
+                        _eventHistory = loadedHistory;
+                        logger.LogInformation("Loaded {N} VPP events from {F}", _eventHistory.events.Count, file);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex , "Unable to load VPP event history from {F}", EventHistoryPath);
+            }
+
+            _eventHistory ??= new AxleVPPEventHistory();
+        }
+
+        return _eventHistory;
+    }
+
     
     public record AxleEvent
     {

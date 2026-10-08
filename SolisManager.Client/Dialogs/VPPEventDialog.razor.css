@@ -1,0 +1,6 @@
+.dialog-form {
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
+    max-width: 750px;
+}

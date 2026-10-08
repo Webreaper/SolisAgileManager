@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
 using MudBlazor.Services;
 using SolisManager.Client.Constants;
-using SolisManager.Shared.Models;
+using MudBlazor.Extensions;
 
 namespace SolisManager.Shared;
 

@@ -1,0 +1,24 @@
+.month-grouping {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    column-gap: 10px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.grouping-header-item {
+    min-width: 150px;
+    max-width: 300px;
+}
+
+.missing-earnings {
+    border-radius: 10px;
+    background-color: darkred;
+    border: 1px solid red;
+    color: lightgray;
+    padding-left: 3px;
+    padding-right: 3px;
+    white-space: nowrap;
+    opacity: 0.9;
+}

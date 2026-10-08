@@ -1,0 +1,168 @@
+@inject IInverterManagerService inverterService
+@inject IDialogService dialogService
+@inject ISnackbar snackBar
+
+<h3>VPP Event History</h3>
+
+<MudDataGrid T="AxleHistoricEvent" @ref="_grid" Items="_events" ReadOnly="false" EditMode="@DataGridEditMode.Cell"
+          CommittedItemChanges="@SaveChanges" Dense="true" Hover="true" Groupable="true" Breakpoint="Breakpoint.None">
+    <ToolBarContent>
+        <MudText>
+            @($"Total Earnings: £{_events.Sum(x => x.Earnings):N2} from {_events.Count:0} events")
+        </MudText>
+        <MudSpacer/>
+        <MudButton OnClick="NewItemAsync" @attributes="UIConstants.ButtonAttribs" EndIcon="@Icons.Material.Filled.AddCircle">
+            Add
+        </MudButton>
+    </ToolBarContent>
+    <GroupTemplate>
+        <div class="month-grouping" @onclick="() => OnGroupHeaderClick(context)">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"/>
+            <div class="grouping-header-item">@MonthSummary(context.Grouping.Key)</div>
+            @if (context.Grouping.Count() != 0)
+            {
+                <div class="grouping-header-item">@($"Events: {context.Grouping.Count()}")</div>
+                <div class="grouping-header-item">@($"Earnings: £{context.Grouping.Sum(x => x.Earnings):N2}")</div>
+                @if (context.Grouping.Any(x => x.Earnings == null || x.Earnings is 0))
+                {
+                    <div class="grouping-header-item missing-earnings">Click to add Earnings</div>
+                }
+                else
+                {
+                    <MudSpacer/>
+                }
+            }
+        </div>
+    </GroupTemplate>
+    <Columns>
+        <PropertyColumn Property="x => x.Start.Date" Title="Date" Format="dd-MMM-yyyy" Editable="false" 
+                        GroupBy="_grouping" Grouping="true"/>
+        <PropertyColumn Property="x => x.Start.Date" Title="Time" Editable="false">
+            <CellTemplate>@TimeOfDate(context.Item.Start) - @TimeOfDate(context.Item.End)</CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.KWH" Title="KWH" Format="F2">
+            <EditTemplate>
+                <MudNumericField Placeholder="Energy (kWh)" @bind-Value="context.Item.KWH"
+                              @attributes="UIConstants.TextAttribs" Format="N2" />
+            </EditTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.Earnings" Title="Earnings (£)">
+            <EditTemplate>
+                <MudNumericField Placeholder="Earnings (£)" @bind-Value="context.Item.Earnings"
+                                 @attributes="UIConstants.TextAttribs" Format="N2" />
+            </EditTemplate>
+            <CellTemplate>@($"£{context.Item.Earnings:N2}")</CellTemplate>
+        </PropertyColumn>
+        
+        <TemplateColumn>
+            <CellTemplate>
+                <MudStack Row Spacing="0" Justify="Justify.FlexEnd">
+                        <MudIconButton Size="Size.Small"
+                                       Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Success"
+                                       aria-label="Save changes"
+                                       OnClick="async () => await EditItem(context.Item)" />
+
+                        <MudIconButton Size="Size.Small"
+                                       Icon="@Icons.Material.Outlined.Delete"
+                                       aria-label="Delete row"
+                                       OnClick="async () => await DeleteItem(context.Item)" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private List<AxleHistoricEvent> _events = [];
+    private Func<AxleHistoricEvent, object>? _grouping;
+    private MudDataGrid<AxleHistoricEvent> _grid;
+
+    private string? MonthSummary(object? groupKey)
+    {
+        if (groupKey == null)
+            return null;
+
+        (int month, int year) key = ((int month, int year))groupKey;
+
+        return $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(key.month)} {key.year}";
+    }
+
+    private RenderFragment? TimeOfDate(DateTime? date)
+    {
+        if (date != null)
+        {
+            var formattedTime = date.Value.ToShortTimeString();
+            return @<span>@formattedTime</span>;
+        }
+
+        return null;
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _grouping = x => (x.Start.Month, x.Start.Year);
+        await LoadEvents();
+        await base.OnInitializedAsync();
+    }
+
+    private void OnGroupHeaderClick(GroupDefinition<AxleHistoricEvent> group)
+    {
+        _grid.ToggleGroupExpand(group.Title, group.KeyPath, !group.Expanded);
+    }
+    
+    private async Task LoadEvents()
+    {
+        var allEvents = await inverterService.GetAxleHistoricEvents(CancellationToken.None);
+        _events = allEvents.OrderByDescending(x => x.Start)
+                           .ToList();
+
+    }
+
+    private async Task<DataGridEditFormAction> SaveChanges(AxleHistoricEvent evt)
+    {
+        if(await inverterService.UpdateAxleHistoricEvent(evt))
+        {
+            await LoadEvents();
+            return DataGridEditFormAction.Close;
+        }
+
+        return DataGridEditFormAction.KeepOpen;
+    }
+
+    private async Task DeleteItem(AxleHistoricEvent evt)
+    {
+        var result = await dialogService.ShowMessageBoxAsync("Delete VPP Event?", "Do you really want to delete this event?", "Delete", "Cancel");
+        if (result != null && result.Value)
+        {
+            if (await inverterService.DeleteAxleHistoricEvent(evt.UniqueID))
+                await LoadEvents();
+        }
+    }
+
+    private async Task EditItem(AxleHistoricEvent evt)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, BackdropClick = false };
+        var parameters = new DialogParameters { { "VPPEvent", evt } };
+        var dialog = await dialogService.ShowAsync<VPPEventDialog>("VPP Event", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Data: AxleHistoricEvent updatedEvent })
+            await SaveChanges(updatedEvent);
+    }
+    
+    private async Task NewItemAsync()
+    {
+        var currentTime = DateTime.Now.RoundToHalfHour();
+        
+        var newEvent = new AxleHistoricEvent
+        {
+            Start = currentTime.AddMinutes(-60),
+            End = currentTime
+        };
+        
+        await EditItem(newEvent);
+    }
+}

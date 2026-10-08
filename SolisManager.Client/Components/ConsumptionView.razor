@@ -53,6 +53,10 @@
                         <MudCheckBox @bind-Value="comparePrices" @bind-Value:after="@RecalcConsmption" Label="Compare" title="Enable historic tariff cost comparison"/>
                     </ChildContent>
                 </ConfigSettingHelp>
+                @if (vppEnabled && selectedView == ViewSelector.ViewType.Chart)
+                {
+                    <MudCheckBox @bind-Value="includeVppEarnings" @bind-Value:after="@RecalcConsmption" Label="Include VPP" title="Include VPP earnings"/>
+                }
                 @if (comparePrices)
                 {
                     <div class="comparison-selection">
@@ -85,7 +89,7 @@
     {
         @if (selectedView == ViewSelector.ViewType.Chart)
         {
-            <ConsumptionChart ChartData="consumptionData" SelectedGrouping="@selectedGrouping"/>
+            <ConsumptionChart ChartData="consumptionData" SelectedGrouping="@selectedGrouping" IncludeVPPEarnings="includeVppEarnings"/>
         }
         else
         {
@@ -116,7 +120,7 @@
                     <MudTd>@Math.Round(context.TotalExport, 2)</MudTd>
                     <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
                     <MudTd><Price Value="@(context.TotalExportProfit)"/></MudTd>
-                    <MudTd><Price Value="@(context.NetCost)" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    <MudTd><Price Value="@(context.NetCost(false))" Colours="Price.ColorType.PositiveRed"/></MudTd>
                     @if (comparePrices)
                     {
                         <MudTd><Price Value="@GetComparisonCost(context.StartTime!.Value)" Colours="Price.ColorType.PositiveRed"/></MudTd>
@@ -147,11 +151,13 @@
     private decimal GetComparisonCost(DateTime? date)
     {
         if (date != null && comparisonLookup != null && comparisonLookup.TryGetValue(date.Value, out var cost))
-            return cost.NetCost;
+            return cost.NetCost(false);
         return 0;
     }
     
     private bool comparePrices = false;
+    private bool includeVppEarnings = true;
+    private bool vppEnabled = false;
     private string? currentTariff;
     private string? overrideExportTariffCode;
     private string? overrideImportTariffCode;
@@ -188,8 +194,8 @@
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.ImportTariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
-    private decimal? TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost);
-    private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost);
+    private decimal? TotalNetCost => consumptionData?.ConsumptionData.Sum(x => x.NetCost(includeVppEarnings));
+    private decimal? TotalNetComparisonCost => consumptionData?.ComparisonConsumptionData?.Sum(x => x.NetCost(includeVppEarnings));
     private decimal? ComparisonDelta => TotalNetComparisonCost - TotalNetCost;
     
     public void Dispose()
@@ -225,6 +231,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        vppEnabled = await inverterManagerService.VPPEnabled();
         config = await inverterManagerService.GetConfig();
         currentTariff = config.ProductCode;
         accountValid = !string.IsNullOrEmpty(config.OctopusAPIKey) && !string.IsNullOrEmpty(config.OctopusAccountNumber);

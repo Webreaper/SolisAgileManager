@@ -1,0 +1,143 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">VPP Event Details</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if(itemProxy != null)
+        {
+            <div class="dialog-form">
+                <MudDatePicker Label="Date" @bind-Date="itemProxy.Date" DateFormat="dd-MMM-yyyy"
+                               Required="true" Editable="true" FirstDayOfWeek="DayOfWeek.Monday"
+                               @attributes="UIConstants.TextAttribs"/>
+            
+                <MudSelect Label="Start Time" @bind-Value="itemProxy.Time" @attributes="UIConstants.SelectAttribs">
+                    @foreach( var t in Enumerable.Range(0, 48).Select(x => new TimeOnly().AddMinutes(x * 30)))
+                    {
+                        <MudSelectItem Value="@t">@t.ToString("HH:mm")</MudSelectItem>
+                    }
+                </MudSelect>
+            
+                <MudSelect Label="Length (mins)" @bind-Value="itemProxy.LengthMins" @attributes="UIConstants.SelectAttribs">
+                    <MudSelectItem Value="30">@TimeStr(30)</MudSelectItem>
+                    <MudSelectItem Value="60">@TimeStr(60)</MudSelectItem>
+                    <MudSelectItem Value="90">@TimeStr(90)</MudSelectItem>
+                    <MudSelectItem Value="120">@TimeStr(120)</MudSelectItem>
+                    <MudSelectItem Value="150">@TimeStr(150)</MudSelectItem>
+                    <MudSelectItem Value="180">@TimeStr(180)</MudSelectItem>
+                </MudSelect>
+            
+                <MudNumericField Label="Energy (kWh)" @bind-Value="itemProxy.KWH"
+                                     @attributes="UIConstants.TextAttribs" Format="N2" />
+                <MudNumericField Label="Earnings (£)" @bind-Value="itemProxy.Earnings"
+                                      Format="N2" @attributes="UIConstants.TextAttribs"/>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="error-msg">@errorMsg</div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudSpacer/>
+        <MudButton OnClick="Cancel" @attributes="UIConstants.ButtonAttribs">Cancel</MudButton>
+        <MudButton Color="Color.Primary" @attributes="UIConstants.ButtonAttribs" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter, EditorRequired] public AxleHistoricEvent VPPEvent { get; set; }
+
+    private VPPItemProxy? itemProxy;
+
+    private string TimeStr(int mins) => mins switch
+    {
+        30 => "30 mins",
+        60 => "1 hour",
+        90 => "30 mins",
+        120 => "2 hours",
+        _ => $"{mins} mins"
+    };
+
+    protected override void OnInitialized()
+    {
+        itemProxy = CreateItemProxy(VPPEvent);
+        
+        base.OnInitialized();
+    }
+
+    private VPPItemProxy CreateItemProxy(AxleHistoricEvent vppEvent)
+    {
+        var uniqueId = vppEvent.UniqueID;
+        
+        if( string.IsNullOrWhiteSpace(uniqueId) )
+            uniqueId = AxleHistoricEvent.GetUniqueId();
+        
+        var newItem = new VPPItemProxy
+        {
+            Date = vppEvent.Start.Date,
+            Time = TimeOnly.FromDateTime(vppEvent.Start),
+            LengthMins = (int)(vppEvent.End - vppEvent.Start).TotalMinutes,
+            KWH = vppEvent.KWH,
+            Earnings = vppEvent.Earnings,
+            UniqueID = uniqueId
+        };
+
+        return newItem;
+    }
+    
+    private AxleHistoricEvent? ConvertFromProxy( VPPItemProxy item)
+    {
+        if (item.Date == null)
+            return null;
+
+        var startDate = DateOnly.FromDateTime(item.Date.Value);
+
+        return new AxleHistoricEvent()
+        {
+            Start = new DateTime(startDate, item.Time),
+            End = new DateTime(startDate, item.Time.AddMinutes(item.LengthMins)),
+            Earnings = item.Earnings,
+            KWH = item.KWH, 
+            UniqueID =  item.UniqueID
+        };
+    }
+
+    private void Save()
+    {
+        var result = ConvertFromProxy(itemProxy);
+        MudDialog?.Close(DialogResult.Ok(result));
+        StateHasChanged();
+    }
+
+    private string? errorMsg;
+
+    private void DisplayError(string errorText)
+    {
+        errorMsg = errorText;
+        StateHasChanged();
+    }
+
+    void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void PauseEntry(ScheduledAction scheduledAction, bool disable)
+    {
+        scheduledAction.Disabled = disable;
+        StateHasChanged();
+    }
+    private sealed record VPPItemProxy
+    {
+        public DateTime? Date { get; set; } = DateTime.Now.Date;
+        public TimeOnly Time { get; set; }
+        public int LengthMins { get; set; } = 60;
+        public decimal? KWH { get; set; }
+        public decimal? Earnings { get; set; }
+        public string UniqueID { get; init; } = AxleHistoricEvent.GetUniqueId();
+    }
+
+}

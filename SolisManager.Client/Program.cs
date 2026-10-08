@@ -1,9 +1,6 @@
 using ApexCharts;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using MudBlazor;
-using MudBlazor.Services;
-using SolisManager.Client.Constants;
 using SolisManager.Client.Services;
 using SolisManager.Shared;
 using SolisManager.Shared.Interfaces;
