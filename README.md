@@ -229,7 +229,10 @@ stored in a Json file in the config folder.
 New VPP events will be added to the list with the earnings values empty, meaning you just need to fill in the KWH and earnings figures once Axle emails you the
 results. 
 
-<img width="1528" height="783" alt="Screenshot 2026-10-08 at 05 15 39" src="https://github.com/user-attachments/assets/2ef48c99-b536-4438-8de1-948c21dcbfac" />
+<img width="901" height="378" alt="Screenshot 2026-10-08 at 07 05 07" src="https://github.com/user-attachments/assets/878d03fa-4b6c-41a2-8513-387c392dbf25" />
+
+<img width="895" height="255" alt="Screenshot 2026-10-08 at 07 05 26" src="https://github.com/user-attachments/assets/42885842-fefc-4b33-9bbc-9d69222b38be" />
+
 
 Once you've input the events, you will be able to view the costs graph including the VPP earnings. The VPP earnings will also factor into the 'total cost' 
 figure at the top of the page.
