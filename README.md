@@ -181,7 +181,7 @@ The idea is that you sign up to Axle Energy's program, and then they send you 'E
 when the grid is under strain - and during those periods you discharge your battery to the grid to help
 supplement generation.
 
-The program works in two modes:
+The program works in three modes:
 
 * `Full control` - where Axle.Energy manages your inverter + battery completely, to try and maximise 
   profits for you
@@ -214,6 +214,31 @@ To join the program:
 * Once you're set up, go to `Account => Home Assistant` and generate an Authentication Token.
 * In the SolisAgileManager settings screen, paste your Axle authentication token into the Axle.Energy 
   VPP Settings API Key field.
+
+### VPP Event Earnings Tracking
+
+When tracking the consumption costs/profits for your system, it can be useful to include earnings from the VPP to get a 'real' figure for the consumption 
+costs. The latest version of SolisManager supports this by allowing you to track events and earnings in the app, and view them on the costs page. 
+
+Once you configure your Axle API key, the 'VPP Events' page will be enabled, which provides a summary of all of the events and earnings for your VPP account.
+Unfortunately Axle don't provide an API or export to get event history details automatically, so historic events will need to be added manually. Events are
+stored in a Json file in the config folder.
+
+<img width="383" height="517" alt="Screenshot 2026-10-08 at 05 16 19" src="https://github.com/user-attachments/assets/9c7d84ad-fb75-4c11-8e61-238365ceae2d" />
+
+New VPP events will be added to the list with the earnings values empty, meaning you just need to fill in the KWH and earnings figures once Axle emails you the
+results. 
+
+<img width="1528" height="783" alt="Screenshot 2026-10-08 at 05 15 39" src="https://github.com/user-attachments/assets/2ef48c99-b536-4438-8de1-948c21dcbfac" />
+
+Once you've input the events, you will be able to view the costs graph including the VPP earnings. The VPP earnings will also factor into the 'total cost' 
+figure at the top of the page.
+
+<img width="1521" height="927" alt="Screenshot 2026-10-08 at 05 17 05" src="https://github.com/user-attachments/assets/452c6d71-9770-4054-907e-b21a6b42bc7c" />
+
+Compare to the graph with earnings excluded:
+
+<img width="1513" height="920" alt="Screenshot 2026-10-08 at 05 17 25" src="https://github.com/user-attachments/assets/d59ac3e6-902d-4d58-af7f-802fe847fd0b" />
 
 ### Other Configuration Settings
 
