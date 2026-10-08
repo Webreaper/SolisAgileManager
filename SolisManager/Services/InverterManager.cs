@@ -264,6 +264,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private async Task RefreshTariffDataAndRecalculate()
     {
+        logger.LogInformation("Multi-line log entry: Blah \n Blah \n");
         try
         {
             // Don't even attempt this if there's no config
