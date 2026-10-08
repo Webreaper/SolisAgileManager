@@ -14,11 +14,17 @@
 
 .missing-earnings {
     border-radius: 10px;
-    background-color: darkred;
-    border: 1px solid red;
-    color: lightgray;
-    padding-left: 3px;
+    border: 1px solid darkorange;
+    color: darkorange;
+    padding-left: 5px;
     padding-right: 3px;
     white-space: nowrap;
     opacity: 0.9;
+}
+
+.complete-data {
+    border: 1px solid rgba(0,0,0,0);
+}
+.missing-data {
+    border: 1px solid darkorange;
 }
