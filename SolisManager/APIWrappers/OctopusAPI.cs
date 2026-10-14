@@ -918,7 +918,7 @@ private enum MeterType
             logger.LogWarning("No import meter found in account");
             return null;
         }
-
+        
         var response = new RawConsumptionResponse();
         
         var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, req.Start, req.End, false, token);
@@ -941,7 +941,7 @@ private enum MeterType
             var data = await GetEnrichedConsumptionData(importConsumption, exportConsumption, importMeter, exportMeter, null, null, token);
             
             response.RawConsumptionData = data
-                                    .Where(x => x.PeriodStart > req.Start)
+                                    .Where(x => x.PeriodStart >= req.Start)
                                     .OrderBy(x => x.PeriodStart).ToList();
 
             if (!string.IsNullOrEmpty(req.OverrideImportTariffCode) ||
@@ -1143,7 +1143,6 @@ private enum MeterType
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
 
         ArgumentNullException.ThrowIfNull(meterPoints);
-
         var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
         var pageSize = 200;
@@ -1173,7 +1172,7 @@ private enum MeterType
 
                 if (result != null)
                 {
-                    results = new List<ConsumptionRecord>(result.results);
+                    results = new List<ConsumptionRecord>(result.results.OrderBy(x => x.interval_start));
 
                     // Paginate
                     while (!string.IsNullOrEmpty(result?.next))
@@ -1186,7 +1185,11 @@ private enum MeterType
                         if (result != null)
                             results.AddRange(result.results);
                     }
-                    
+
+                    // For some reason Octopus returns duplicates in the results. Eek! So ensure we 
+                    // only have a distinct set of results. 
+                    results = results.DistinctBy(x => x.interval_start).ToList();
+
                     var cacheOptions = _historicRatesCacheOptions;
                     if ((DateTime.UtcNow - start).TotalDays < 40)
                         cacheOptions = _latestRatesCacheOptions;

@@ -1562,9 +1562,6 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             return null;
         }
 
-        req.Start = new DateTime(2026, 08, 12, 16, 00, 00);
-        req.End = new DateTime(2026, 08, 12, 23, 00, 00);
-
         var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, req, token);
         
         if (consumption != null)
