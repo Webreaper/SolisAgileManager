@@ -1563,7 +1563,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         }
 
         var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, req, token);
-
+        
         if (consumption != null)
         {
             await EnrichDataWithVPPEarnings(consumption.RawConsumptionData, token);
@@ -1587,24 +1587,53 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return null;
     }
 
+    private Dictionary<DateTime, decimal> Get30MinEarningsProjection(AxleVPPEventHistory history)
+    {
+        var result = new Dictionary<DateTime, decimal>();
+
+        foreach (var evt in history.events.Where(x => x.Earnings is not 0))
+        {
+            if (evt.Earnings is null or 0)
+                continue;
+            
+            try
+            {
+                var eventMins = (int)((evt.End - evt.Start).TotalMinutes);
+                var sliceCount = eventMins / 30;
+                var proRataEarnings = evt.Earnings!.Value / sliceCount;
+
+                for (int slice = 0; slice < sliceCount; slice++)
+                {
+                    var sliceStart = evt.Start.AddMinutes(slice * 30);
+                    result[sliceStart] = proRataEarnings;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error getting earnings for slot");
+            }
+        }
+
+        return result;
+    }
+    
     private async Task EnrichDataWithVPPEarnings(IEnumerable<OctopusConsumption> consumptionData, CancellationToken token)
     {
         var axleEarnings = await axleApi.LoadHistoricVPPEvents(token);
-
-        // TODO  Need to break up by 30-min slots
-        var lookup = axleEarnings.events.ToDictionary(x => x.Start);
+        var thirtyMinVPPEarnings = Get30MinEarningsProjection(axleEarnings);
+        var consumptionLookup = consumptionData.ToDictionary(x => x.PeriodStart);
 
         int enriched = 0;
-        foreach (var data in consumptionData)
+        foreach (var earning in thirtyMinVPPEarnings)
         {
-            if (lookup.TryGetValue(data.PeriodStart, out var evt) && evt.Earnings is not 0)
+            if (consumptionLookup.TryGetValue(earning.Key, out var consumptionItem))
             {
-                data.VPPEarnings = evt.Earnings;
+                consumptionItem.VPPEarnings = earning.Value;
                 enriched++;
             }
         }
         
-        logger.LogInformation("Enriched {N} consumption items with VPP earnings", enriched);
+        logger.LogInformation("Enriched {N} consumption items of {N2} with VPP earnings", enriched, thirtyMinVPPEarnings.Count);
     }
 
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)

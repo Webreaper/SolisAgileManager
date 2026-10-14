@@ -22,7 +22,7 @@ and then apply an opinionated strategy to manage your battery based on the cheap
 * 'Dump-And-Recharge' feature for when Agile prices go negative
 * History view showing forecast/actual PV generation
 * Simulation Mode, so you can see how the charging strategy will work as you step through the day
-* Axle.Energy VPP integration
+* Axle.Energy VPP integration with historic earnings tracking
 * No AI has been used in the development of this app.
 
 ### Referral Link
