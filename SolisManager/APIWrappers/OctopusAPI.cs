@@ -1180,15 +1180,15 @@ private enum MeterType
                         result = await result.next
                             .WithOctopusAuth(authToken)
                             .WithHeader("User-Agent", userAgentProvider.UserAgent)
-                            .GetJsonAsync<Consumption?>(cancellationToken:token);
+                            .GetJsonAsync<Consumption?>(cancellationToken: token);
 
                         if (result != null)
-                            results.AddRange(result.results);
+                        {
+                            results.AddRange(result.results.OrderBy(x => x.interval_start));
+                        }
                     }
 
-                    // For some reason Octopus returns duplicates in the results. Eek! So ensure we 
-                    // only have a distinct set of results. 
-                    results = results.DistinctBy(x => x.interval_start).ToList();
+                    results = ValidatedConsumptionData(results);
 
                     var cacheOptions = _historicRatesCacheOptions;
                     if ((DateTime.UtcNow - start).TotalDays < 40)
@@ -1220,6 +1220,55 @@ private enum MeterType
         }
 
         return [];
+    }
+
+    /// <summary>
+    /// For some reason, the Octopus APIs return consumption data in 30-minute slots...
+    /// ...but not all of them. So it's possible to get 30-min slots for
+    ///   07:30
+    ///   08:00
+    ///   08:30
+    ///   10:00
+    ///   10:30
+    /// I'm sure there must be some sensible reason for this, but I have no idea.
+    /// So we validate and 'fill in the blanks' to ensure that every 30-min slot
+    /// has a consumption data object.
+    /// We also get some duplicates too - so we might receive two entries for
+    /// 09:00-09:30. Again. No idea why, so filter them out with a distinct.
+    /// </summary>
+    /// <param name="records"></param>
+    /// <returns></returns>
+    private List<ConsumptionRecord> ValidatedConsumptionData(List<ConsumptionRecord> records)
+    {
+        var sorted = records
+                                            .DistinctBy(x => x.interval_start)
+                                            .OrderBy(x => x.interval_start)
+                                            .ToList();
+
+        var prev = records.MinBy(x => x.interval_start);
+        var missing = new List<ConsumptionRecord>();
+        foreach (var record in sorted.Skip(1).ToList())
+        {
+            while(prev.interval_end != record.interval_start)
+            {
+                var toAdd = new ConsumptionRecord
+                { 
+                    interval_start = prev.interval_end,
+                    interval_end = prev.interval_end.AddMinutes(30), 
+                    consumption = 0, // Assume missing consumption is no consumption
+                    tariff = prev.tariff
+                };
+                sorted.Add(toAdd);
+                missing.Add(toAdd);
+                prev = toAdd;
+            }
+
+            prev = record;
+        }
+
+        logger.LogTrace("Added up {N} items of missing consumption data!", missing.Count);
+        
+        return sorted.OrderBy(x=>x.interval_start).ToList();
     }
     
     public record OctopusAgreement(string tariff_code, DateTime? valid_from, DateTime? valid_to);

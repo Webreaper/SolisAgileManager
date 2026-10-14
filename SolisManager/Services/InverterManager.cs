@@ -1620,20 +1620,20 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private async Task EnrichDataWithVPPEarnings(IEnumerable<OctopusConsumption> consumptionData, CancellationToken token)
     {
         var axleEarnings = await axleApi.LoadHistoricVPPEvents(token);
-
-        var lookup = Get30MinEarningsProjection(axleEarnings);
+        var thirtyMinVPPEarnings = Get30MinEarningsProjection(axleEarnings);
+        var consumptionLookup = consumptionData.ToDictionary(x => x.PeriodStart);
 
         int enriched = 0;
-        foreach (var data in consumptionData)
+        foreach (var earning in thirtyMinVPPEarnings)
         {
-            if (lookup.TryGetValue(data.PeriodStart, out var earnings) && earnings is not 0)
+            if (consumptionLookup.TryGetValue(earning.Key, out var consumptionItem))
             {
-                data.VPPEarnings = earnings;
+                consumptionItem.VPPEarnings = earning.Value;
                 enriched++;
             }
         }
         
-        logger.LogInformation("Enriched {N} consumption items with VPP earnings", enriched);
+        logger.LogInformation("Enriched {N} consumption items of {N2} with VPP earnings", enriched, thirtyMinVPPEarnings.Count);
     }
 
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
