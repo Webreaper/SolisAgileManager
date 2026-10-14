@@ -1562,8 +1562,11 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             return null;
         }
 
-        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, req, token);
+        req.Start = new DateTime(2026, 08, 12, 16, 00, 00);
+        req.End = new DateTime(2026, 08, 12, 23, 00, 00);
 
+        var consumption = await octopusAPI.GetConsumption(config.OctopusAPIKey, config.OctopusAccountNumber, req, token);
+        
         if (consumption != null)
         {
             await EnrichDataWithVPPEarnings(consumption.RawConsumptionData, token);
@@ -1587,19 +1590,48 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         return null;
     }
 
+    private Dictionary<DateTime, decimal> Get30MinEarningsProjection(AxleVPPEventHistory history)
+    {
+        var result = new Dictionary<DateTime, decimal>();
+
+        foreach (var evt in history.events.Where(x => x.Earnings is not 0))
+        {
+            if (evt.Earnings is null or 0)
+                continue;
+            
+            try
+            {
+                var eventMins = (int)((evt.End - evt.Start).TotalMinutes);
+                var sliceCount = eventMins / 30;
+                var proRataEarnings = evt.Earnings!.Value / sliceCount;
+
+                for (int slice = 0; slice < sliceCount; slice++)
+                {
+                    var sliceStart = evt.Start.AddMinutes(slice * 30);
+                    result[sliceStart] = proRataEarnings;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error getting earnings for slot");
+            }
+        }
+
+        return result;
+    }
+    
     private async Task EnrichDataWithVPPEarnings(IEnumerable<OctopusConsumption> consumptionData, CancellationToken token)
     {
         var axleEarnings = await axleApi.LoadHistoricVPPEvents(token);
 
-        // TODO  Need to break up by 30-min slots
-        var lookup = axleEarnings.events.ToDictionary(x => x.Start);
+        var lookup = Get30MinEarningsProjection(axleEarnings);
 
         int enriched = 0;
         foreach (var data in consumptionData)
         {
-            if (lookup.TryGetValue(data.PeriodStart, out var evt) && evt.Earnings is not 0)
+            if (lookup.TryGetValue(data.PeriodStart, out var earnings) && earnings is not 0)
             {
-                data.VPPEarnings = evt.Earnings;
+                data.VPPEarnings = earnings;
                 enriched++;
             }
         }
