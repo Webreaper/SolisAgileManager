@@ -20,11 +20,12 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     private readonly NewVersionResponse appVersion = new();
     private List<PricePlanSlot>? simulationData;
     private const int maxExecutionHistory = 180 * 48;
+    private IInverter inverterAPI;
 
     private readonly SolisManagerConfig config;
     private readonly OctopusAPI octopusAPI;
-    private readonly IInverter inverterAPI;
     private readonly SolcastAPI solcastApi;
+    private readonly InverterFactory inverterFactory;
     private readonly AxleApi axleApi;
     private readonly ILogger<InverterManager> logger;
     private readonly HashSet<DateTime> notifiedSlots = new();
@@ -43,6 +44,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
         axleApi = _axleAPI;
         solcastApi = _solcastApi; 
         logger = _logger;
+        inverterFactory = _inverterFactory;
 
         var inverterImplementation = _inverterFactory.GetInverter();
         
@@ -1363,6 +1365,14 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     public async Task<ConfigSaveResponse> SaveConfig(SolisManagerConfig newConfig)
     {
         logger.LogInformation("Saving config to server...");
+
+        if (inverterAPI == null)
+        {
+            var inverterImplementation = inverterFactory.GetInverter();
+
+            if (inverterImplementation != null)
+                inverterAPI = inverterImplementation;
+        }
 
         var siteIds = SolcastAPI.GetSolcastSites(newConfig.SolcastSiteIdentifier);
 
