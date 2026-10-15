@@ -1372,6 +1372,8 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
 
             if (inverterImplementation != null)
                 inverterAPI = inverterImplementation;
+            else
+                throw new InvalidDataException("Unable to initialise inverter implementation - config problem?");
         }
 
         var siteIds = SolcastAPI.GetSolcastSites(newConfig.SolcastSiteIdentifier);
