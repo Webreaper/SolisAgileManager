@@ -96,7 +96,7 @@ public static class EndpointMapper
                 return TypedResults.Ok(result);
             });
 
-        group.MapDelete("vppevents/{uniqueId}",
+        group.MapDelete("vppevent/{uniqueId}",
             async (string uniqueId, [FromServices] IInverterManagerService service) =>
             {
                 var result = await service.DeleteAxleHistoricEvent(uniqueId);

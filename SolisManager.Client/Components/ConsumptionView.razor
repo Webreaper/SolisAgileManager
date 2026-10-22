@@ -53,7 +53,7 @@
                         <MudCheckBox @bind-Value="comparePrices" @bind-Value:after="@RecalcConsmption" Label="Compare" title="Enable historic tariff cost comparison"/>
                     </ChildContent>
                 </ConfigSettingHelp>
-                @if (vppEnabled && selectedView == ViewSelector.ViewType.Chart)
+                @if (vppEnabled)
                 {
                     <MudCheckBox @bind-Value="includeVppEarnings" @bind-Value:after="@RecalcConsmption" Label="Include VPP" title="Include VPP earnings"/>
                 }
@@ -104,6 +104,10 @@
                     <MudTh>Exported (kWh)</MudTh>
                     <MudTh>Export Price Earned (p/kWh)</MudTh>
                     <MudTh>Export Profit (£)</MudTh>
+                    @if (includeVppEarnings)
+                    {
+                        <MudTh>VPP Earnings (£)</MudTh>
+                    }
                     <MudTh>Net Cost (£)</MudTh>
                     @if (comparePrices)
                     {
@@ -120,7 +124,11 @@
                     <MudTd>@Math.Round(context.TotalExport, 2)</MudTd>
                     <MudTd>@Math.Round(context.AverageExportPrice, 2)</MudTd>
                     <MudTd><Price Value="@(context.TotalExportProfit)"/></MudTd>
-                    <MudTd><Price Value="@(context.NetCost(false))" Colours="Price.ColorType.PositiveRed"/></MudTd>
+                    @if (includeVppEarnings)
+                    {
+                        <MudTd><Price Value="@(context.TotalVPPEarnings)"/></MudTd>
+                    }
+                    <MudTd><Price Value="@(context.NetCost(includeVppEarnings))" Colours="Price.ColorType.PositiveRed"/></MudTd>
                     @if (comparePrices)
                     {
                         <MudTd><Price Value="@GetComparisonCost(context.StartTime!.Value)" Colours="Price.ColorType.PositiveRed"/></MudTd>
