@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography.Xml;
 using Octokit;
 using SolisManager.APIWrappers;
 using SolisManager.Extensions;
@@ -1630,10 +1631,13 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
     
     private async Task EnrichDataWithVPPEarnings(IEnumerable<OctopusConsumption> consumptionData, CancellationToken token)
     {
+        const decimal minTopupThreshold = 10.0M;
+        
         var axleEarnings = await axleApi.LoadHistoricVPPEvents(token);
+        
         var thirtyMinVPPEarnings = Get30MinEarningsProjection(axleEarnings);
         var consumptionLookup = consumptionData.ToDictionary(x => x.PeriodStart);
-
+        
         int enriched = 0;
         foreach (var earning in thirtyMinVPPEarnings)
         {
@@ -1643,8 +1647,33 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
                 enriched++;
             }
         }
-        
+
         logger.LogInformation("Enriched {N} consumption items of {N2} with VPP earnings", enriched, thirtyMinVPPEarnings.Count);
+
+        // Now, find all the months where the minimum topup threshold wasn't reached, and calculate the shortfall
+        var topups = axleEarnings.events
+            .GroupBy(x => (x.Start.Date.Year, x.Start.Date.Month))
+            .Select(x => new
+            {
+                // Add the top-up at 9am on the 1st of the following month
+                TopUpTime = new DateTime(x.Key.Year, x.Key.Month + 1, 1, 09, 00, 00, DateTimeKind.Local),
+                Shortfall = minTopupThreshold - x.Sum(m => m.Earnings)
+            })
+            .Where(x => x.Shortfall > 0 && x.TopUpTime < DateTime.Now)
+            .ToList();
+        
+        // Now add the shortfalls to the VPPearnings for each slot. 
+        int topupsAdded = 0;
+        foreach (var topup in topups)
+        {
+            if (consumptionLookup.TryGetValue(topup.TopUpTime, out var consumptionItem))
+            {
+                consumptionItem.VPPEarnings = topup.Shortfall + (consumptionItem.VPPEarnings ?? 0);
+                topupsAdded++;
+            }
+        }
+
+        logger.LogInformation("Enriched {N} consumption items of {N2} with VPP top-ups", topupsAdded, topups.Count);
     }
 
     private IEnumerable<GroupedConsumption> GroupConsumptionData(IEnumerable<OctopusConsumption> data, GroupByType groupBy)
