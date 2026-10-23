@@ -125,7 +125,7 @@
     
     private bool vppEnabled = false;
     private string SolisURL => !string.IsNullOrEmpty(inverterManagerService.InverterState?.StationId) ?
-            $"https://www.soliscloud.com/#/station/stationDetails/generalSituation/{inverterManagerService.InverterState?.StationId}" : 
+            $"https://www.soliscloud.com/overview/plantStation/details/overview/{inverterManagerService.InverterState?.StationId}" : 
             "https://www.soliscloud.com/#/station";
 
     private async Task ToggleDarkMode()
