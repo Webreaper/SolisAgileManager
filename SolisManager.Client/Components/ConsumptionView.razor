@@ -188,7 +188,7 @@
         }
     }
 
-    private static readonly DateRange[] DateRanges =
+    private static readonly List<DateRange> DateRanges =
     [
         new ("1 week", MidnightToday.AddDays(-7), MidnightToday),
         new ("2 weeks", MidnightToday.AddDays(-14), MidnightToday),
@@ -197,8 +197,7 @@
         new ("3 months", MidnightToday.AddDays(-90), MidnightToday),
         new ("6 months", MidnightToday.AddMonths(-6), MidnightToday),
         new ("1 year", MidnightToday.AddYears(-1), MidnightToday),
-        new ("This year", new DateTime(DateTime.Now.Year, 1, 1), MidnightToday.AddSeconds(-1)),
-        new ("Last year", new DateTime(DateTime.Now.Year - 1, 1, 1), new DateTime(DateTime.Now.Year -1, 12, 31, 23, 59, 59)),
+        new ("This year", new DateTime(DateTime.Now.Year, 1, 1), MidnightToday.AddSeconds(-1))
     ];
 
     private string TariffSummary(OctopusConsumption? item) => $"{item?.ImportTariff}" + (item?.DailyStandingCharge != null ? $" ({item.DailyStandingCharge:F2}p/day)" : string.Empty);
@@ -239,6 +238,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AddPrevYearDropdownItems();
+        
         vppEnabled = await inverterManagerService.VPPEnabled();
         config = await inverterManagerService.GetConfig();
         currentTariff = config.ProductCode;
@@ -247,5 +248,22 @@
         await RecalcConsmption();
 
         await base.OnInitializedAsync();
+    }
+
+    private void AddPrevYearDropdownItems()
+    {
+        var lastYear = new DateRange("Last year", 
+                new DateTime(DateTime.Now.Year - 1, 1, 1), 
+                    new DateTime(DateTime.Now.Year - 1, 12, 31, 23, 59, 59));
+
+        DateRanges.Add(lastYear);
+
+        for (int i = 2; i < 5; i++)
+        {
+            var start = new DateTime(DateTime.Now.Year - i, 1, 1);
+            var end = new DateTime(DateTime.Now.Year - i, 12, 31, 23, 59, 59);
+            var range = new DateRange($"{start.Year}", start, end);
+            DateRanges.Add(range);
+       }
     }
 }
