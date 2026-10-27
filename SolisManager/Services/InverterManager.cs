@@ -1595,7 +1595,7 @@ public class InverterManager : IInverterManagerService, IInverterRefreshService
             return response;
         }
 
-        logger.LogWarning("Attempted to get consumption, but no data was returned");
+        logger.LogWarning("Attempted to get consumption, but no data was returned ({S} => {E})", req.Start, req.End);
         return null;
     }
 

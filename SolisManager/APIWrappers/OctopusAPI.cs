@@ -1,4 +1,5 @@
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Security.Authentication;
@@ -911,34 +912,30 @@ private enum MeterType
             return null;
         }
 
-        var importMeter = meters.FirstOrDefault(x => !x.is_export);
+        var importMeterpoints = meters.Where(x => !x.is_export).FirstOrDefault();
 
-        if (importMeter == null)
+        if (importMeterpoints == null)
         {
-            logger.LogWarning("No import meter found in account");
+            logger.LogWarning("No import meterpoints found in account");
             return null;
         }
         
         var response = new RawConsumptionResponse();
         
-        var importMeterTask = GetConsumptionForMeter(apiKey, importMeter, req.Start, req.End, false, token);
+        IEnumerable<ConsumptionRecord> exportConsumption = [];
+        var importConsumption = await GetConsumptionForMeters(apiKey, importMeterpoints, req.Start, req.End, false, token);
         Task<IEnumerable<ConsumptionRecord>?> exportMeterTask = Task.FromResult<IEnumerable<ConsumptionRecord>?>(null);
         
         var exportMeter = meters.FirstOrDefault(x => x.is_export);
 
         if (exportMeter != null)
-            exportMeterTask = GetConsumptionForMeter(apiKey, exportMeter, req.Start, req.End, true, token);
+            exportConsumption = await GetConsumptionForMeters(apiKey, exportMeter, req.Start, req.End, true, token);
         else
             logger.LogWarning("No export meter found in account");
-
-        await Task.WhenAll(importMeterTask, exportMeterTask);
-
-        var importConsumption = await importMeterTask;
-        var exportConsumption = await exportMeterTask;
-
+        
         if (importConsumption != null && importConsumption.Any())
         {
-            var data = await GetEnrichedConsumptionData(importConsumption, exportConsumption, importMeter, exportMeter, null, null, token);
+            var data = await GetEnrichedConsumptionData(importConsumption, exportConsumption, importMeterpoints, exportMeter, null, null, token);
             
             response.RawConsumptionData = data
                                     .Where(x => x.PeriodStart >= req.Start)
@@ -948,7 +945,7 @@ private enum MeterType
                 !string.IsNullOrEmpty(req.OverrideExportTariffCode))
             {
                 var comparisonData = await GetEnrichedConsumptionData(importConsumption,
-                    exportConsumption, importMeter, exportMeter,
+                    exportConsumption, importMeterpoints, exportMeter,
                     req.OverrideImportTariffCode, req.OverrideExportTariffCode, token);
 
                 response.RawComparisonConsumptionData = comparisonData
@@ -959,7 +956,7 @@ private enum MeterType
             return response;
         }
 
-        logger.LogWarning("No consumption data found from import meter");
+        logger.LogWarning("No consumption data found from import meter (MPAN: {Mpan}, {S} => {E})", importMeterpoints.mpan, req.Start, req.End);
         return null;
     }
 
@@ -1107,42 +1104,64 @@ private enum MeterType
         return (tariffCode, rates);
     }
 
-    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeter(string apiKey,
-        OctopusMeterPoints meterPoints, DateTime startDate, DateTime endDate, bool isExport, CancellationToken token)
+    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeters(string apiKey,
+               OctopusMeterPoints meterPoint, DateTime startDate, DateTime endDate, bool isExport, CancellationToken token)
     {
         var months = GetIndividualMonths(startDate, endDate);
-        var allConsumption = new List<ConsumptionRecord>();
 
-        foreach (var month in months)
+//        months = [new DateTime(2024, 05, 01, 00, 00, 01)];
+
+        List<Task<IEnumerable<ConsumptionRecord>>> tasks = new();
+        
+        var task = months.Select((month) =>
+            GetConsumptionForMeterForMonth(apiKey, meterPoint, month, isExport, token));
+
+        tasks.AddRange(task);
+
+        ConcurrentBag<IEnumerable<ConsumptionRecord>> results = new();
+        await Parallel.ForEachAsync(tasks, new ParallelOptions { MaxDegreeOfParallelism = 5 }, 
+                async (t, _) =>
         {
-            var monthConsumption = await GetConsumptionForMeterForMonth(apiKey, meterPoints, month, isExport, token);
+             results.Add(await t);
+        });
 
-            if (monthConsumption != null)
-                allConsumption.AddRange(monthConsumption);
-        }
+        var allConsumption = results.SelectMany(x => x).ToList();
 
         // Return a cloned copy, so we don't subvert the cached data
         return allConsumption.Clone();
-    }   
-    
-    public async Task<IEnumerable<ConsumptionRecord>?> GetConsumptionForMeterForMonth(string apiKey, OctopusMeterPoints meterPoints, 
+    }
+
+    public async Task<IEnumerable<ConsumptionRecord>> GetConsumptionForMeterForMonth(string apiKey,
+        OctopusMeterPoints meterPoints,
+        DateTime monthStart, bool isExport, CancellationToken token)
+    {
+        List<ConsumptionRecord> results = new();
+        
+        foreach (var meter in meterPoints.meters)
+        {
+            results.AddRange(await GetConsumptionForMeterForMonth(apiKey, meterPoints.mpan, meter, monthStart, isExport, token));
+        }
+
+        return results;
+    }
+
+    public async Task<IEnumerable<ConsumptionRecord>> GetConsumptionForMeterForMonth(string apiKey, string mpan, OctopusMeter meter, 
                             DateTime monthStart, bool isExport, CancellationToken token)
     {
         // Which meter to use? Use the last one.
-        var meter = meterPoints.meters.LastOrDefault();
-        var serial = meter?.serial_number;
+        var serial = meter.serial_number;
 
-        var cacheKey = $"consumption-{meterPoints.mpan}-{serial}-{monthStart:yyyyMM}";
+        var cacheKey = $"consumption-{mpan}-{serial}-{monthStart:yyyyMM}";
 
         if (memoryCache.TryGetValue(cacheKey, out List<ConsumptionRecord>? results))
-            return results;
+            return results ?? [];
         
         var authToken = await GetAuthToken(apiKey);
         
         // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
 
-        ArgumentNullException.ThrowIfNull(meterPoints);
+        ArgumentNullException.ThrowIfNull(meter);
         var start = new DateTime(monthStart.Year, monthStart.Month, monthStart.Day, 0, 0, 0, DateTimeKind.Local);
         var end = start.AddMonths(1).AddSeconds(-1);
         var pageSize = 200;
@@ -1156,7 +1175,7 @@ private enum MeterType
                     .WithOctopusAuth(authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
                     .AppendPathSegment("/v1/electricity-meter-points")
-                    .AppendPathSegment(meterPoints.mpan)
+                    .AppendPathSegment(mpan)
                     .AppendPathSegment("meters")
                     .AppendPathSegment(serial)
                     .AppendPathSegment("consumption/")
