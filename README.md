@@ -160,10 +160,10 @@ If you don't want to use your Octopus account to infer the current tariff, you c
 product code manually. Just leave the Octopus API key and Account number blank and enter the product and tariff 
 codes yourself. 
 
-* [Click here](https://api.octopus.energy/v1/products/) to get the list of Octopus Agile Product codes (e.g.,
+* [Click here](https://api.oegb-kraken.energy/v1/products/) to get the list of Octopus Agile Product codes (e.g.,
   `AGILE-24-10-01`).
 * Then once you've found your tariff, click on the URL in the `links` section to find your region-specific
-  product code. For example: [https://api.octopus.energy/v1/products/AGILE-24-10-01/](https://api.octopus.energy/v1/products/AGILE-24-10-01/)
+  product code. For example: [https://api.oegb-kraken.energy/v1/products/AGILE-24-10-01/](https://api.oegb-kraken.energy/v1/products/AGILE-24-10-01/)
 * From that page, copy the product code (e.g., `E-1R-AGILE-24-10-01-A`) into the Solis Manager settings.
 
 Note that in the most common cases, selecting `AGILE-24-10-01` and `E-1R-AGILE-24-10-01-A`, and just altering 

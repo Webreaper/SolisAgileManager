@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!--
+      Versions are declared here rather than in Directory.Packages.props on purpose: the repo
+      uses central package management for its shipped projects, and this test project is
+      deliberately not part of the build the owner releases. Keeping its versions local means
+      adding tests cannot disturb a package version the app depends on.
+    -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!--
+    Deliberately NOT added to SolisManager.sln. The CI workflow builds the solution and
+    publishes binaries; wiring an unproven test project into it would make a red test job
+    block the owner's releases. Run it explicitly:
+
+        dotnet test SolisManager.Tests/SolisManager.Tests.csproj
+
+    Add it to the solution once someone has seen it green on .NET 10.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- HttpTest lives in Flurl.Http itself; there is no Flurl.Http.Testing package. -->
+    <PackageReference Include="Flurl.Http" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SolisManager\SolisManager.csproj" />
+  </ItemGroup>
+
+</Project>
