@@ -52,4 +52,9 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <!-- Lets SolisManager.Tests exercise the pagination loop directly. Tests only. -->
+      <InternalsVisibleTo Include="SolisManager.Tests" />
+    </ItemGroup>
+
 </Project>

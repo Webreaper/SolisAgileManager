@@ -14,6 +14,17 @@ namespace SolisManager.APIWrappers;
 
 public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IUserAgentProvider userAgentProvider)
 {
+    // Octopus is moving the REST/GraphQL API to this host; api.octopus.energy keeps running in
+    // parallel for months, and both serve the same responses today. One constant so the next
+    // move is a one-line change rather than eight.
+    private const string OctopusApiBase = "https://api.oegb-kraken.energy";
+
+    // The host the API used before this migration. Pagination `next` links and product
+    // `links[].href` values can still carry it, so it is recognised and rewritten rather
+    // than followed blindly.
+    private const string OctopusApiHost = "api.oegb-kraken.energy";
+    private const string OctopusApiHostLegacy = "api.octopus.energy";
+
     private readonly MemoryCacheEntryOptions _productCacheOptions =
         new MemoryCacheEntryOptions()
                     .SetSize(1)
@@ -304,12 +315,78 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         return [];
     }
     
-    private async Task<List<OctopusRate>> GetPagedTariffPrices(string tariffLink, DateTime start, DateTime end, CancellationToken token)
+    /// <summary>
+    /// Validates an absolute Octopus API URL before it is used with credentials attached, and
+    /// rewrites the legacy host to the current one.
+    /// </summary>
+    /// <remarks>
+    /// Pagination `next` links and product `links[].href` values arrive from the API as full
+    /// URLs and were previously followed verbatim. That means whatever host those fields name
+    /// receives the request, and for consumption calls also the Kraken bearer token. This
+    /// method is the single choke point: HTTPS only, one of the two known hosts after the
+    /// legacy rewrite, no userinfo, no non-default port, and the path and query preserved
+    /// exactly. Anything else returns null so the caller stops rather than sending a token
+    /// somewhere unexpected.
+    /// </remarks>
+    internal static string? NormalizeOctopusUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return null;
+
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
+            return null;
+
+        // HTTPS only. A downgrade to http would expose the bearer token in transit, and there
+        // is no legitimate plaintext Octopus endpoint.
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        // No credentials in the URL: we authenticate with a header, and userinfo in a link is
+        // either a mistake or an attempt to smuggle something.
+        if (!string.IsNullOrEmpty(uri.UserInfo))
+            return null;
+
+        // A non-default port is not something the Octopus API uses, and it is a cheap way to
+        // make a hostile link look like the real host at a glance.
+        if (!uri.IsDefaultPort)
+            return null;
+
+        var host = uri.Host;
+        if (!string.Equals(host, OctopusApiHost, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(host, OctopusApiHostLegacy, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            // Legacy host: rebuild on the current host, keeping the rest of the request intact.
+            var builder = new UriBuilder(uri)
+            {
+                Host = OctopusApiHost,
+                Port = -1,
+                Scheme = Uri.UriSchemeHttps
+            };
+            return builder.Uri.AbsoluteUri;
+        }
+
+        return uri.AbsoluteUri;
+    }
+
+    // internal, not private: the pagination loop is the part a host migration breaks, so it
+    // is worth testing directly (see SolisManager.Tests).
+    internal async Task<List<OctopusRate>> GetPagedTariffPrices(string tariffLink, DateTime start, DateTime end, CancellationToken token)
     {
         var pageSize = 200;
         var rates = new List<OctopusRate>();
 
-        var url = tariffLink
+        // The link arrives from the products response as a full URL, so it is validated before
+        // anything is requested. Null means the host was not one we recognise.
+        var safeLink = NormalizeOctopusUrl(tariffLink);
+        if (safeLink == null)
+        {
+            logger.LogWarning("Ignoring tariff link with an unexpected host, scheme or port");
+            return rates;
+        }
+
+        var url = safeLink
             .WithHeader("User-Agent", userAgentProvider.UserAgent)
             .SetQueryParams(new
             {
@@ -324,10 +401,26 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         {
             rates = new List<OctopusRate>(prices.results);
 
-            // Paginate
+            // Paginate. Every next link is validated, and a link we have already followed ends
+            // the loop: a server that keeps returning the same `next` would otherwise spin here
+            // forever.
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { safeLink };
             while (!string.IsNullOrEmpty(prices?.next))
             {
-                prices = await prices.next
+                var next = NormalizeOctopusUrl(prices.next);
+                if (next == null)
+                {
+                    logger.LogWarning("Stopping tariff pagination: next link has an unexpected host, scheme or port");
+                    break;
+                }
+
+                if (!seen.Add(next))
+                {
+                    logger.LogWarning("Stopping tariff pagination: next link repeats a page already fetched");
+                    break;
+                }
+
+                prices = await next
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
                     .GetJsonAsync<OctopusPrices?>(cancellationToken: token);
 
@@ -445,7 +538,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
             var variables = new { api = apiKey };
             var payload = new { query = krakenQuery, variables = variables };
 
-            var response = await "https://api.octopus.energy"
+            var response = await OctopusApiBase
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment("/v1/graphql/")
                 .PostJsonAsync(payload)
@@ -476,7 +569,7 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
 
         try
         {
-            var responseStr = await "https://api.octopus.energy"
+            var responseStr = await OctopusApiBase
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .WithOctopusAuth(token)
                 .AppendPathSegment("/v1/graphql/")
@@ -677,11 +770,11 @@ public class OctopusAPI(IMemoryCache memoryCache, ILogger<OctopusAPI> logger, IU
         if( memoryCache.TryGetValue<OctopusAccountDetails>(cacheKey, out var accountDetails ) )
             return accountDetails;
         
-        // https://api.octopus.energy/v1/accounts/{number}
+        // https://api.oegb-kraken.energy/v1/accounts/{number}
 
         try
         {
-            var response = await "https://api.octopus.energy/"
+            var response = await $"{OctopusApiBase}/"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .WithOctopusAuth(token)
                 .AppendPathSegment($"/v1/accounts/{accountNumber}/")
@@ -799,7 +892,7 @@ private enum MeterType
         
         try
         {
-            var response = await "https://api.octopus.energy/"
+            var response = await $"{OctopusApiBase}/"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/{code}")
                 .GetStringAsync();
@@ -861,7 +954,7 @@ private enum MeterType
         
         try
         {
-            var response = await "https://api.octopus.energy/"
+            var response = await $"{OctopusApiBase}/"
                 .WithHeader("User-Agent", userAgentProvider.UserAgent)
                 .AppendPathSegment($"/v1/products/")
                 .GetStringAsync();
@@ -901,7 +994,7 @@ private enum MeterType
 
         logger.LogInformation("Querying consumption data from {S} to {E}", req.Start, req.End);
 
-        // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
+        // https://api.oegb-kraken.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
         var meters = await GetMeters(apiKey, accountNumber);
 
@@ -1139,7 +1232,7 @@ private enum MeterType
         
         var authToken = await GetAuthToken(apiKey);
         
-        // https://api.octopus.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
+        // https://api.oegb-kraken.energy/v1/electricity-meter-points/< MPAN >/meters/< meter serial number >/consumption/?
         //                  page_size=100&period_from=2023-03-29T00:00Z&period_to=2023-03-29T01:29Z&order_by=period
 
         ArgumentNullException.ThrowIfNull(meterPoints);
@@ -1152,7 +1245,7 @@ private enum MeterType
             logger.LogInformation("  Requesting consumption data for {T} meter S/N {M}", isExport ? "export" : "import", serial);
             try
             {
-                var url = "https://api.octopus.energy"
+                var url = OctopusApiBase
                     .WithOctopusAuth(authToken)
                     .WithHeader("User-Agent", userAgentProvider.UserAgent)
                     .AppendPathSegment("/v1/electricity-meter-points")
@@ -1174,10 +1267,26 @@ private enum MeterType
                 {
                     results = new List<ConsumptionRecord>(result.results.OrderBy(x => x.interval_start));
 
-                    // Paginate
+                    // Paginate. This loop attaches the Kraken bearer token, so a `next` link
+                    // pointing anywhere unexpected is refused rather than followed, and a
+                    // repeated page ends the loop instead of looping for ever.
+                    var seenPages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     while (!string.IsNullOrEmpty(result?.next))
                     {
-                        result = await result.next
+                        var nextPage = NormalizeOctopusUrl(result.next);
+                        if (nextPage == null)
+                        {
+                            logger.LogWarning("Stopping consumption pagination: next link has an unexpected host, scheme or port");
+                            break;
+                        }
+
+                        if (!seenPages.Add(nextPage))
+                        {
+                            logger.LogWarning("Stopping consumption pagination: next link repeats a page already fetched");
+                            break;
+                        }
+
+                        result = await nextPage
                             .WithOctopusAuth(authToken)
                             .WithHeader("User-Agent", userAgentProvider.UserAgent)
                             .GetJsonAsync<Consumption?>(cancellationToken: token);
